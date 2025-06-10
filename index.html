@@ -1,0 +1,108 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOGAN CC's - Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.9/purify.min.js"></script>
+    <script src="script.js" defer></script>
+    <script src="index.js" defer></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center">
+    <div id="globalLoader">
+        <div class="spinner"></div>
+    </div>
+    <div id="notifications" class="fixed top-4 right-4 z-[10000] space-y-2"></div>
+    <div class="container max-w-md mx-auto p-6 bg-gray-800 rounded-lg shadow-lg">
+        <!-- Formulário de Login -->
+        <form id="loginContainer" class="space-y-4" novalidate>
+            <h1 class="text-3xl font-bold text-center text-green-500">LOGAN CC's</h1>
+            <div class="space-y-4">
+                <div>
+                    <label for="username" class="block text-sm font-medium"><i class="fas fa-user mr-2"></i>Usuário</label>
+                    <input type="text" id="username" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Digite seu usuário" required pattern="[a-zA-Z0-9]{3,}" aria-describedby="loginError">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium"><i class="fas fa-lock mr-2"></i>Senha</label>
+                    <input type="password" id="password" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Digite sua senha" required minlength="4" aria-describedby="loginError">
+                </div>
+                <p id="loginError" class="text-red-500 text-sm hidden" role="alert"></p>
+                <button type="button" id="loginButton" class="w-full py-2 bg-green-500 text-white rounded hover:bg-green-600 transition flex items-center justify-center">
+                    <i class="fas fa-sign-in-alt mr-2"></i>Entrar
+                </button>
+                <p class="text-center text-sm">
+                    Não tem uma conta? <button type="button" id="toggleRegister" class="text-green-500 hover:underline">Registre-se</button>
+                </p>
+            </div>
+        </form>
+        <!-- Formulário de Registro -->
+        <form id="registerContainer" class="space-y-4 hidden" novalidate>
+            <h1 class="text-3xl font-bold text-center text-green-500">LOGAN CC's - Registro</h1>
+            <div class="space-y-4">
+                <div>
+                    <label for="newUsername" class="block text-sm font-medium"><i class="fas fa-user mr-2"></i>Usuário</label>
+                    <input type="text" id="newUsername" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Escolha um usuário" required pattern="[a-zA-Z0-9]{3,}" aria-describedby="registerError">
+                </div>
+                <div>
+                    <label for="newPassword" class="block text-sm font-medium"><i class="fas fa-lock mr-2"></i>Senha</label>
+                    <input type="password" id="newPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Crie uma senha" required minlength="4" aria-describedby="registerError">
+                </div>
+                <div>
+                    <label for="confirmPassword" class="block text-sm font-medium"><i class="fas fa-lock mr-2"></i>Confirmar Senha</label>
+                    <input type="password" id="confirmPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Confirme sua senha" required minlength="4" aria-describedby="registerError">
+                </div>
+                <p id="registerError" class="text-red-500 text-sm hidden" role="alert"></p>
+                <button type="button" id="registerButton" class="w-full py-2 bg-green-500 text-white rounded hover:bg-green-600 transition flex items-center justify-center">
+                    <i class="fas fa-user-plus mr-2"></i>Registrar
+                </button>
+                <p class="text-center text-sm">
+                    Já tem uma conta? <button type="button" id="toggleLogin" class="text-green-500 hover:underline">Faça login</button>
+                </p>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

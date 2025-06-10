@@ -1,0 +1,333 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOGAN CC's - Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.9/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/inputmask/5.0.8/inputmask.min.js"></script>
+    <script src="script.js" defer></script>
+    <script src="dashboard.js" defer></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    <div id="globalLoader">
+        <div class="spinner"></div>
+    </div>
+    <div id="notifications" class="fixed top-4 right-4 z-[10000] space-y-2"></div>
+    <header class="bg-gray-800 p-4 flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-green-500">LOGAN CC's - Admin</h1>
+        <div class="flex items-center space-x-4">
+            <button type="button" id="shopButton" class="text-gray-300 hover:text-green-500"><i class="fas fa-store mr-2"></i>Loja</button>
+            <button type="button" id="logoutButton" class="text-gray-300 hover:text-red-500"><i class="fas fa-sign-out-alt"></i>Sair</button>
+        </div>
+    </header>
+    <main class="container mx-auto p-6">
+        <!-- Gerenciamento de Usuários -->
+        <div class="bg-gray-800 p-4 rounded-lg mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold"><i class="fas fa-users mr-2"></i>Usuários</h2>
+                <button type="button" id="addUserButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-user-plus mr-2"></i>Adicionar Usuário</button>
+            </div>
+            <div id="userList" class="overflow-x-auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">Usuário</th>
+                            <th scope="col">Saldo</th>
+                            <th scope="col">Admin</th>
+                            <th scope="col">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Gerenciamento de Cartões -->
+        <div class="bg-gray-800 p-4 rounded-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold"><i class="fas fa-credit-card mr-2"></i>Cartões</h2>
+                <button type="button" id="addCardButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-plus mr-2"></i>Adicionar Cartão</button>
+            </div>
+            <div id="adminCardList" class="overflow-x-auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">Número</th>
+                            <th scope="col">Bandeira</th>
+                            <th scope="col">Banco</th>
+                            <th scope="col">Nível</th>
+                            <th scope="col">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+    <!-- Modal Editar Saldo -->
+    <div id="editBalanceModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editBalanceTitle">
+        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h2 id="editBalanceTitle" class="text-xl font-semibold mb-4"><i class="fas fa-coins mr-2"></i>Editar Saldo</h2>
+            <div class="mb-4">
+                <label for="editBalanceAmount" class="block text-sm font-medium">Novo Saldo</label>
+                <input type="number" id="editBalanceAmount" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: 100.00" step="0.01" min="0" required aria-describedby="editBalanceError">
+            </div>
+            <p id="editBalanceError" class="text-red-500 text-sm hidden" role="alert"></p>
+            <div class="flex justify-end space-x-2">
+                <button type="button" id="cancelBalanceButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
+                <button type="button" id="saveBalanceButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-save mr-2"></i>Salvar</button>
+            </div>
+        </div>
+    </div>
+    <!-- Modal Editar Usuário -->
+    <div id="editUserModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editUserTitle">
+        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h2 id="editUserTitle" class="text-xl font-semibold mb-4"><i class="fas fa-user-edit mr-2"></i>Editar Usuário</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="editUsername" class="block text-sm font-medium">Usuário</label>
+                    <input type="text" id="editUsername" readonly class="mt-1 w-full p-2 bg-gray-600 rounded">
+                </div>
+                <div>
+                    <label for="editPassword" class="block text-sm font-medium">Nova Senha (opcional)</label>
+                    <input type="password" id="editPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Deixe em branco para manter" minlength="4" aria-describedby="editUserError">
+                </div>
+                <div>
+                    <label for="editBalance" class="block text-sm font-medium">Saldo</label>
+                    <input type="number" id="editBalance" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" step="0.01" min="0" required aria-describedby="editUserError">
+                </div>
+                <div>
+                    <label for="editIsAdmin" class="block text-sm font-medium">Admin</label>
+                    <select id="editIsAdmin" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded">
+                        <option value="true">Sim</option>
+                        <option value="false">Não</option>
+                    </select>
+                </div>
+            </div>
+            <p id="editUserError" class="text-red-500 text-sm hidden" role="alert"></p>
+            <div class="flex justify-end space-x-2 mt-4">
+                <button type="button" id="cancelUserButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
+                <button type="button" id="saveUserButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-save mr-2"></i>Salvar</button>
+            </div>
+        </div>
+    </div>
+    <!-- Modal Adicionar Usuário -->
+    <div id="addUserModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="addUserTitle">
+        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h2 id="addUserTitle" class="text-xl font-semibold mb-4"><i class="fas fa-user-plus mr-2"></i>Adicionar Usuário</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="newUsername" class="block text-sm font-medium">Usuário</label>
+                    <input type="text" id="newUsername" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Nome do usuário" required pattern="[a-zA-Z0-9]{3,}" aria-describedby="addUserError">
+                </div>
+                <div>
+                    <label for="newPassword" class="block text-sm font-medium>Senha</label>
+                    <input type="password" id="newPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Nova senha" required minlength="4" aria-describedby="addUserError">
+                </div>
+                <div>
+            <label for="newBalance" class="block text-sm font-medium>Saldo Inicial</label>
+            <input type="number" id="newBalance" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: 0.00" step="0.01 min="0" required aria-describedby="addUserError">
+            <div>
+                <div>
+                    <label for="newIsAdmin" class="block text-sm font-medium">Admin</label>
+                    <select id="newIsAdmin" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded">
+                        <option value="true">Sim</option>
+                        <option value="false">Não</option>
+                    </select>
+                </div>
+            </div>
+            <p id="addUserError" class="text-red-500 text-sm hidden" role="alert"></p>
+            <div class="flex justify-end space-x-2 mt-4">
+                <button type="button" id="cancelAddUserButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
+                <button type="button" id="addUserConfirmButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-save mr-2"></i>Adicionar</button>
+            </div>
+        </div>
+    </div>
+    <!-- Modal Editar Cartão -->
+    <div id="editCardModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editCardTitle">
+        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h2 id="editCardTitle" class="text-xl font-semibold mb-4"><i class="fas fa-credit-card mr-2"></i>Editar Cartão</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="editCardNumber" class="block text-sm font-medium>Número</label>
+                    <input type="text" id="editCardNumber" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: 4532123456789012" required pattern="\d{16}" inputmode="numeric" aria-describedby="editCardError">
+                </div>
+                <div>
+                    <label for="editCardCvv" class="block text-sm font-medium">CVV</label>
+                    <input type="text" id="editCardCvv" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: 123" required pattern="\d{3}" inputmode="numeric" aria-describedby="editCardError">
+                </div>
+                <div>
+                    <label for="editCardExpiry" class="block text-sm font-medium>Validade</label>
+                    <input type="text" id="editCardExpiry" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: MM/AA" required pattern="\d{2}/\d{2}" aria-describedby="editCardError">
+                </div>
+                <div>
+                    <label for="editCardName" class="block text-sm font-medium>Nome</label>
+                    <input type="text" id="editCardName" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required aria-describedby="editCardError">
+                </div>
+                <div>
+                    <label for="editCardCpf" class="block text-sm font-medium>CPF</label>
+                    <input type="text" id="editCardCpf" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: 123.456.789-01" required pattern="\d{11}" inputmode="numeric" aria-describedby="editCardError">
+                </div>
+                <div>
+                    <label for="editCardBandeira" class="block text-sm font-medium">Bandeira</label>
+                    <select id="editCardBandeira" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required>
+                        <option value="Visa">Visa</option>
+                        <option value="Mastercard">Mastercard</option>
+                        <option value="Amex">Amex</option>
+                        <option value="Elo">Elo</option>
+                        <option value="Hipercard">Hipercard</option>
+                        <option value="Diners Club">Diners Club</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="editCardBanco" class="block text-sm font-medium>Banco</label>
+                    <select id="select id="editCardBanco" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required>
+                        <option value="Nubank">Nubank</option>
+                        <option value="Itaú">Itaú</option>
+                        <option value="Bradesco">Bradesco</option>
+                        <option value="Santander">Santander</option>
+                        <option value="Banco do Brasil">Banco do Brasil</option>
+                        <option value="Caixa Econômica Federal">Caixa Econômica Federal</option>
+                        <option value="Sicredi">Sicredi</option>
+                        <option value="Sicoob">Sicoob</option>
+                    </select>
+                </select>
+                </div>
+                <div>
+                    <label for="editCardNivel" class="block text-sm font-medium">Nível</label>
+                    <select id="editCardNivel" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required>
+                        <option value="Classic">Classic</option>
+                        <option value="Gold">Gold</option>
+                        <option value="Platinum">Platinum</option>
+                        <option value="Black">Black</option>
+                    </select>
+                </div>
+                </div>
+                <div>
+                    <label for="editCardPrice" class="block text-sm font-medium">Preço</label>
+                    <div>
+                    <input type="number" id="editCardPrice" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: 10.00" step="0.01" min="0.01" required aria-describedby="editCardError">
+                    <p id="editCardError" class="text-red-500 text-sm hidden" role="alert"></p>
+                    <div class="flex justify-end space-x-2 mt-4">
+                        <button type="button" id="cancelCardButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
+                        <button type="button" id="saveCardButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-save mr-2"></i>Salvar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <!-- Modal Adicionar Cartão -->
+    </div>
+    <div id="addCardModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="addCardTitle">
+        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h2 id="addCardTitle" class="text-xl font-semibold mb-4"><i class="fas fa-plus mr-2"></i>Adicionar Cartão</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="cardNumber" class="block text-sm font-medium">Número</label>
+                    <input type="text" id="cardNumber" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required pattern="\d{16}" inputmode="numeric" aria-describedby="addCardError">
+                </div>
+                <div>
+                    <label for="cardCvv" class="block text-sm font-medium">CVV</label>
+                    <input type="text" id="cardCvv" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: 123" required pattern="\d{3}" inputmode="numeric" aria-describedby="addCardError">
+                </div>
+                <div>
+                    <label for="cardExpiry" class="block text-sm font-medium">Validade</label>
+                    <input type="text" id="cardExpiry" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: MM/AA" required pattern="\d{2}/\d{2}" aria-describedby="addCardError">
+                </div>
+                <div>
+                    <label for="cardName" class="block text-sm font-medium">Nome</label>
+                    <input type="text" id="cardName" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required aria-describedby="addCardError">
+                </div>
+                <div>
+                    <label for="cardCpf" class="block text-sm font-medium">CPF</label>
+                    <input type="text" id="cardCpf" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: 123.456.789-01" required pattern="\d{11}" inputmode="numeric" aria-describedby="addCardError">
+                </div>
+                <div>
+                    <label for="cardBandeira" class="block text-sm font-medium">Bandeira</label>
+                    <select id="cardBandeira" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required>
+                        <option value="Visa">Visa</option>
+                        <option value="Mastercard">Mastercard</option>
+                        <option value="Amex">Amex</option>
+                        <option value="Elo">Elo</option>
+                        <option value="Hipercard">Hipercard</option>
+                        <option value="Diners Club">Diners Club</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="cardBanco" class="block text-sm font-medium">Banco</label>
+                    <select id="cardBanco" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required>
+                        <option value="Nubank">Nubank</option>
+                        <option value="Itaú">Itaú</option>
+                        <option value="Bradesco">Bradesco</option>
+                        <option value="Santander">Santander</option>
+                        <option value="Banco do Brasil">Banco do Brasil</option>
+                        <option value="Caixa Econômica Federal">Caixa Econômica Federal</option>
+                        <option value="Sicredi">Sicredi</option>
+                        <option value="Sicoob">Sicoob</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="cardNivel" class="block text-sm font-medium">Nível</label>
+                    <select id="cardNivel" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required>
+                        <option value="Classic">Classic</option>
+                        <option value="Gold">Gold</option>
+                        <option value="Platinum">Platinum</option>
+                        <option value="Black">Black</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="cardPrice" class="block text-sm font-medium">Preço</label>
+                    <input type="number" id="cardPrice" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: 10.00" step="0.01" min="0.01" required aria-describedby="addCardError">
+                </div>
+            </div>
+            <p id="addCardError" class="text-red-500 text-sm hidden" role="alert"></p>
+            <div class="flex justify-end space-x-2 mt-4">
+                <button type="button" id="cancelAddCardButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
+                <button type="button" id="addCardConfirmButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-save mr-2"></i>Adicionar</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -16,7 +16,7 @@
             transition: opacity 0.3s ease;
             opacity: 1;
             max-width: 300px;
-            z-index: 100;
+            z-index: 1000;
         }
     </style>
 </head>
@@ -31,7 +31,7 @@
             <input id="username" type="text" class="w-full p-3 bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Usuário" autocomplete="username">
             <input id="password" type="password" class="w-full p-3 bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Senha" autocomplete="current-password">
             <button id="loginButton" class="w-full p-3 bg-green-500 hover:bg-green-600 rounded-md font-semibold transition duration-200">Entrar</button>
-            <div id="loginError" class="hidden text-red-500 text-sm mt-2 text-center"></div>
+            <div id="loginError" class="text-red-500 text-sm mt-2 text-center hidden"></div>
             <p class="text-center mt-4">Não tem conta? <a id="toggleRegister" class="text-green-500 hover:underline cursor-pointer">Registre-se</a></p>
         </div>
     </div>
@@ -44,29 +44,29 @@
             <input id="newPassword" type="password" class="w-full p-3 bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Senha" autocomplete="new-password">
             <input id="confirmPassword" type="password" class="w-full p-3 bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Confirmar Senha" autocomplete="new-password">
             <button id="registerButton" class="w-full p-3 bg-green-500 hover:bg-green-600 rounded-md font-semibold transition duration-200">Registrar</button>
-            <div id="registerError" class="hidden text-red-500 text-sm mt-2 text-center"></div>
+            <div id="registerError" class="text-red-500 text-sm mt-2 text-center hidden"></div>
             <p class="text-center mt-4">Já tem conta? <a id="toggleLogin" class="text-green-500 hover:underline cursor-pointer">Faça login</a></p>
         </div>
     </div>
 
     <!-- Scripts -->
     <!-- Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" integrity="sha512-6n1/EF5T+kwuZSOv0V29A3tM0zNRh0Yz2v0T2BRbEboNs0yHOeI0z7D7o4ZQmCVoex7/0zGWNUkW+YSUOxv3bNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.0/dist/umd/supabase.min.js"></script>
     <!-- Configurações Globais -->
     <script src="script.js"></script>
     <!-- Lógica da Página -->
     <script>
         const ui = {
             showNotification(message, type = 'error') {
-                console.log('Exibindo notificação:', message, type);
+                console.log('🔵 Notificação:', { message, type });
                 const notificationsDiv = document.getElementById('notifications');
                 if (!notificationsDiv) {
-                    console.error('Div #notifications não encontrada');
+                    console.error('❌ Div #notifications não encontrada');
                     return;
                 }
                 const notification = document.createElement('div');
-                notification.className = `notification p-4 rounded-lg text-white shadow-lg ${type === 'error' ? 'bg-red-500' : type === 'success' ? 'bg-green-500' : 'bg-blue-500'}`;
-                notification.innerHTML = message; // Usar innerHTML para evitar problemas com sanitização
+                notification.className = `notification p-4 rounded-lg text-white shadow-lg ${type === 'error' ? 'bg-red-600' : 'bg-green-600'}`;
+                notification.innerHTML = message;
                 notificationsDiv.appendChild(notification);
                 setTimeout(() => {
                     notification.style.opacity = '0';
@@ -75,7 +75,7 @@
             },
 
             showError(context, message) {
-                console.log(`Erro em ${context}:`, message);
+                console.log('🛑 Erro:', { context, message });
                 this.showNotification(message, 'error');
                 const errorElement = document.getElementById(`${context}Error`);
                 if (errorElement) {
@@ -85,7 +85,7 @@
             },
 
             showSuccess(message) {
-                console.log('Sucesso:', message);
+                console.log('✅ Sucesso:', message);
                 this.showNotification(message, 'success');
             },
 
@@ -98,7 +98,7 @@
             },
 
             toggleForms() {
-                console.log('Alternando formulários');
+                console.log('🔄 Alternando formulários');
                 const loginContainer = document.getElementById('loginContainer');
                 const registerContainer = document.getElementById('registerContainer');
                 if (loginContainer && registerContainer) {
@@ -106,19 +106,21 @@
                     registerContainer.classList.toggle('hidden');
                     document.getElementById('loginError').classList.add('hidden');
                     document.getElementById('registerError').classList.add('hidden');
+                } else {
+                    console.error('❌ Contêineres de login ou registro não encontrados');
                 }
             }
         };
 
         const auth = {
             async login(username, password) {
-                console.log('Tentando login:', username);
+                console.log('🔑 Tentando login:', username);
                 if (!utils.debounce()) {
                     ui.showError('login', 'Aguarde antes de tentar novamente.');
                     return;
                 }
                 if (!window.supabaseClient) {
-                    ui.showError('login', 'Erro de conexão com o servidor.');
+                    ui.showError('login', 'Erro de conexão com o servidor. Verifique sua conexão.');
                     return;
                 }
                 username = utils.sanitizeInput(username);
@@ -132,8 +134,11 @@
                     const { data, error } = await utils.withRetry(() =>
                         window.supabaseClient.from('users').select('id, username, password, balance, is_admin').eq('username', username).single()
                     );
-                    console.log('Resposta do Supabase:', { data, error });
-                    if (error || !data) {
+                    console.log('📡 Resposta do Supabase:', { data, error });
+                    if (error) {
+                        throw error;
+                    }
+                    if (!data) {
                         ui.showError('login', 'Usuário ou senha inválidos.');
                         return;
                     }
@@ -151,19 +156,19 @@
                     localStorage.setItem('sessionStart', Date.now().toString());
                     ui.showSuccess(`Bem-vindo, ${username}!`);
                     setTimeout(() => {
-                        console.log('Redirecionando para shop.html');
+                        console.log('➡️ Redirecionando para shop.html');
                         window.location.href = 'shop.html';
                     }, 1000);
                 } catch (err) {
-                    console.error('Erro no login:', err);
-                    ui.showError('login', `Erro: ${err.message || 'Falha na conexão.'}`);
+                    console.error('❌ Erro no login:', err);
+                    ui.showError('login', `Erro: ${err.message || 'Falha na conexão com o servidor.'}`);
                 } finally {
                     ui.toggleLoading('loginButton', false);
                 }
             },
 
             async register(username, password, confirmPassword) {
-                console.log('Tentando registro:', username);
+                console.log('📝 Tentando registro:', username);
                 if (!utils.debounce()) {
                     ui.showError('register', 'Aguarde antes de tentar novamente.');
                     return;
@@ -207,8 +212,8 @@
                     ui.showSuccess('Conta criada com sucesso! Faça login.');
                     ui.toggleForms();
                 } catch (err) {
-                    console.error('Erro no registro:', err);
-                    ui.showError('register', `Erro: ${err.message || 'Falha na conexão.'}`);
+                    console.error('❌ Erro no registro:', err);
+                    ui.showError('register', `Erro: ${err.message || 'Falha na conexão com o servidor.'}`);
                 } finally {
                     ui.toggleLoading('registerButton', false);
                 }
@@ -229,12 +234,12 @@
         };
 
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('DOM carregado');
+            console.log('📄 DOM carregado');
             try {
                 const loginButton = document.getElementById('loginButton');
                 if (!loginButton) throw new Error('Botão de login não encontrado');
                 loginButton.addEventListener('click', () => {
-                    console.log('Login clicado');
+                    console.log('🔑 Botão de login clicado');
                     auth.login(
                         document.getElementById('username').value.trim(),
                         document.getElementById('password').value.trim()
@@ -244,7 +249,7 @@
                 const registerButton = document.getElementById('registerButton');
                 if (!registerButton) throw new Error('Botão de registro não encontrado');
                 registerButton.addEventListener('click', () => {
-                    console.log('Registro clicado');
+                    console.log('📝 Botão de registro clicado');
                     auth.register(
                         document.getElementById('newUsername').value.trim(),
                         document.getElementById('newPassword').value.trim(),
@@ -254,13 +259,20 @@
 
                 const toggleRegister = document.getElementById('toggleRegister');
                 if (!toggleRegister) throw new Error('Link de registro não encontrado');
-                toggleRegister.addEventListener('click', () => ui.toggleForms());
+                toggleRegister.addEventListener('click', () => {
+                    console.log('🔄 Alternando para registro');
+                    ui.toggleForms();
+                });
 
                 const toggleLogin = document.getElementById('toggleLogin');
                 if (!toggleLogin) throw new Error('Link de login não encontrado');
-                toggleLogin.addEventListener('click', () => ui.toggleForms());
+                toggleLogin.addEventListener('click', () => {
+                    console.log('🔑 Alternando para login');
+                    ui.toggleForms();
+                });
             } catch (err) {
-                console.error('Erro ao configurar eventos:', err);
+                console.error('❌ Erro ao configurar eventos:', err);
+                ui.showNotification('Erro ao inicializar a interface.', 'error');
             }
         });
     </script>

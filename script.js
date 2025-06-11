@@ -16,12 +16,25 @@ const state = {
 
 const SUPABASE_URL = 'https://iritzeslrciinopmhqgn.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyaXR6ZXNscmNpaW5vcG1ocWduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjkxMjYyNjQsImV4cCI6MjA2NDcwMjI2MH0.me1stNa7TUuR0tdpLlJT1hVjVvePTzReYfY8_jRO1xo';
+let supabaseClient = null;
+
 try {
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.log('Supabase inicializado:', SUPABASE_URL);
-    window.supabaseClient = supabase; // Expor globalmente para testes
+    if (!window.supabase) {
+        throw new Error('Biblioteca Supabase não carregada.');
+    }
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('✅ Supabase inicializado:', SUPABASE_URL);
+    window.supabaseClient = supabaseClient;
+    // Testar conexão
+    supabaseClient.from('users').select('count', { head: true }).then(({ error }) => {
+        if (error) {
+            console.error('❌ Teste de conexão falhou:', error);
+        } else {
+            console.log('✅ Conexão com Supabase bem-sucedida.');
+        }
+    });
 } catch (err) {
-    console.error('Erro ao inicializar Supabase:', err);
+    console.error('❌ Erro ao inicializar Supabase:', err);
 }
 
 const utils = {
@@ -30,7 +43,7 @@ const utils = {
             try {
                 return await fn();
             } catch (error) {
-                console.warn(`Tentativa ${attempt} falhou:`, error);
+                console.warn(`⚠️ Tentativa ${attempt} falhou:`, error);
                 if (attempt === retries) throw error;
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
@@ -38,22 +51,22 @@ const utils = {
     },
 
     checkAuth() {
-        console.log('Verificando autenticação...');
+        console.log('🔍 Verificando autenticação...');
         const sessionStart = localStorage.getItem('sessionStart');
         if (!sessionStart) {
-            console.log('Nenhuma sessão encontrada.');
+            console.log('No session found.');
             return false;
         }
-        const elapsedMinutes = (Date.now() - parseInt(sessionStart)) / (1000 * 60);
-        if (elapsedMinutes > CONFIG.SESSION_DURATION_MINUTES) {
-            console.log('Sessão expirada.');
+        const elapsedMinutes = (Date.now() - parseInt(sessionStartsession)) / (1000 * 60);
+        if (elapsedMinutes > CONFIG.SESSISION_DURATION_MINUTES) {
+            console.log('Session expired.');
             localStorage.removeItem('currentUser');
             localStorage.removeItem('sessionStart');
             state.currentUser = null;
             return false;
         }
         state.currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        console.log('Usuário autenticado:', state.currentUser);
+        console.log('✅ Authenticated user:', state.currentUser});
         return !!state.currentUser.username;
     },
 
@@ -64,7 +77,7 @@ const utils = {
             '<': '&lt;',
             '>': '&gt;',
             '"': '&quot;',
-            "'": '&#39;'
+            "'": '&apos;'
         })[char]);
     },
 
@@ -102,8 +115,8 @@ const utils = {
             state.lastAction = Date.now();
             return true;
         }
-        const now = Date.now();
-        if (now - state.lastAction >= CONFIG.DEBOUNCE_MS) {
+        const now = new Date.now();
+        if (now - state.lastAction >= CONFIG.DEBOUNCE_MSMS) {
             state.lastAction = now;
             return true;
         }

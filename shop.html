@@ -1,171 +1,403 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LOGAN CC's - Loja</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.9/purify.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/inputmask/5.0.8/inputmask.min.js"></script>
-    <script src="script.js" defer></script>
-    <script src="shop.js" defer></script>
+    <!-- Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .notification {
+            position: relative;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+            transition: opacity 0.3s ease;
+            opacity: 1;
+            max-width: 300px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 1;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0,0.8);
+            z-index: 1;
+        }
+        .modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen">
-    <div id="globalLoader">
-        <div class="spinner"></div>
-    </div>
-    <div id="notifications" class="fixed top-4 right-4 z-[10000] space-y-2"></div>
-    <header class="bg-gray-800 p-4 flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-green-500">LOGAN CC's</h1>
+<body class="bg-gray-900 text-white">
+    <!-- Div para notificações -->
+    <div id="notifications" class="fixed top-4 right-4 space-y-2 z-10"></div>
+
+    <!-- Cabeçalho -->
+    <header class="bg-blue-800 p-4 flex justify-between items-center">
+        <h1 class="text-xl font-bold">LOGAN CC's - Loja</h1>
         <div class="flex items-center space-x-4">
-            <span id="userBalanceHeader" class="text-green-500"><i class="fas fa-coins mr-2"></i>R$0.00</span>
-            <button type="button" id="accountButton" class="text-gray-300 hover:text-green-500"><i class="fas fa-user"></i> Conta</button>
-            <button type="button" id="walletButton" class="text-gray-300 hover:text-green-500"><i class="fas fa-wallet"></i> Carteira</button>
-            <button type="button" id="addBalanceButton" class="text-gray-300 hover:text-green-500"><i class="fas fa-plus-circle"></i> Adicionar Saldo</button>
-            <button type="button" id="adminButton" class="text-gray-300 hover:text-green-500 hidden"><i class="fas fa-crown"></i> Admin</button>
-            <button type="button" id="logoutButton" class="text-gray-300 hover:text-red-500"><i class="fas fa-sign-out-alt"></i> Sair</button>
+            <span id="username">Usuário</span>
+            <span id="balance">Saldo: R$0.00</span>
+            <button id="accountButton" class="btn bg-blue-600 hover:bg-blue-700 p-2 px-2 rounded">Conta</button>
+            <button id="walletButton" class="btn bg-blue-600 hover:bg-blue-700 p-2 px-2 rounded">Carteira</button>
+            <button id="addBalanceBtn" class="btn bg-blue-600 hover:bg-blue-700 p-2 px-2 rounded">Adicionar R$</button>
+            <button id="adminButton" class="btn bg-purple-600 hover:bg-purple-700 p-2 px-2 rounded hidden">Admin</button>
+            <button id="logoutButton" class="btn bg-red-600 hover:bg-red-700 p-2 px-2 rounded">Sair</button>
         </div>
     </header>
-    <main class="container mx-auto p-6">
-        <!-- Filtros -->
-        <form class="bg-gray-800 p-4 rounded-lg mb-6" novalidate>
-            <h2 class="text-xl font-semibold mb-4"><i class="fas fa-filter mr-2"></i>Filtros</h2>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                    <label for="binFilter" class="block text-sm font-medium">BIN</label>
-                    <input type="text" id="binFilter" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: 453212" pattern="\d{6}" maxlength="6" inputmode="numeric" aria-describedby="binFilterError">
-                    <p id="binFilterError" class="text-red-500 text-sm hidden" role="alert"></p>
-                </div>
-                <div>
-                    <label for="brandFilter" class="block text-sm font-medium">Bandeira</label>
-                    <select id="brandFilter" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded">
-                        <option value="all">Todas</option>
-                        <option value="Visa">Visa</option>
-                        <option value="Mastercard">Mastercard</option>
-                        <option value="Amex">Amex</option>
-                        <option value="Elo">Elo</option>
-                        <option value="Hipercard">Hipercard</option>
-                        <option value="Diners Club">Diners Club</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="bankFilter" class="block text-sm font-medium">Banco</label>
-                    <select id="bankFilter" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded">
-                        <option value="all">Todos</option>
-                        <option value="Nubank">Nubank</option>
-                        <option value="Itaú">Itaú</option>
-                        <option value="Bradesco">Bradesco</option>
-                        <option value="Santander">Santander</option>
-                        <option value="Banco do Brasil">Banco do Brasil</option>
-                        <option value="Caixa Econômica Federal">Caixa Econômica Federal</option>
-                        <option value="Sicredi">Sicredi</option>
-                        <option value="Sicoob">Sicoob</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="levelFilter" class="block text-sm font-medium">Nível</label>
-                    <select id="levelFilter" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded">
-                        <option value="all">Todos</option>
-                        <option value="Classic">Classic</option>
-                        <option value="Gold">Gold</option>
-                        <option value="Platinum">Platinum</option>
-                        <option value="Black">Black</option>
-                    </select>
-                </div>
-            </div>
-            <button type="button" id="clearFiltersButton" class="mt-4 py-2 px-4 bg-red-500 text-white rounded hover:bg-red-600"><i class="fas fa-times mr-2"></i>Limpar Filtros</button>
-        </form>
-        <!-- Lista de Cartões -->
-        <div id="cardList" class="space-y-4"></div>
-        <!-- Informações da Conta -->
-        <div id="accountInfo" class="bg-gray-800 p-4 rounded-lg hidden">
-            <h2 class="text-xl font-semibold mb-4"><i class="fas fa-user mr-2"></i>Minha Conta</h2>
-            <p><strong>Usuário:</strong> <span id="userNameAccount">N/A</span></p>
-            <p><strong>Saldo:</strong> <span id="userBalanceAccount">R$0.00</span></p>
-            <h3 class="text-lg font-semibold mt-4">Cartões Adquiridos</h3>
-            <div id="userCards" class="space-y-4 mt-2"></div>
+
+    <!-- Filtros -->
+    <div class="p-4">
+        <h2 class="text-lg font-semibold mb-4">Filtros</h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <input id="binFilter" type="text" class="p-2 bg-gray-700 rounded border border-gray-600" placeholder="BIN (ex: 453201)">
+            <select id="bandeiraFilter" class="p-2 bg-gray-700 rounded border border-gray-600">
+                <option value="">Bandeira</option>
+                <option value="Visa">Visa</option>
+                <option value="Mastercard">Mastercard</option>
+                <option value="Amex">Amex</option>
+                <option value="Elo">Elo</option>
+                <option value="Hipercard">Hipercard</option>
+                <option value="Diners Club">Diners Club</option>
+            </select>
+            <select id="bancoFilter" class="p-2 bg-gray-700 rounded border border-gray-600">
+                <option value="">Banco</option>
+                <option value="Nubank">Nubank</option>
+                <option value="Itaú">Itaú</option>
+                <option value="Bradesco">Bradesco</option>
+                <option value="Santander">Santander</option>
+                <option value="Banco do Brasil">Banco do Brasil</option>
+                <option value="Caixa Econômica Federal">Caixa Econômica Federal</option>
+                <option value="Sicredi">Sicredi</option>
+                <option value="Sicoob">Sicoob</option>
+            </select>
+            <select id="nivelFilter" class="p-2 bg-gray-700 rounded border border-gray-600">
+                <option value="">Nível</option>
+                <option value="Classic">Classic</option>
+                <option value="Gold">Gold</option>
+                <option value="Platinum">Platinum</option>
+                <option value="Black">Black</option>
+            </select>
         </div>
-    </main>
+    </div>
+
+    <!-- Lista de Cartões -->
+    <div id="cardsContainer" class="p-4 grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+
     <!-- Modal de Confirmação de Compra -->
-    <div id="confirmPurchaseModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmPurchaseTitle">
-        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="confirmPurchaseTitle" class="text-xl font-semibold mb-4"><i class="fas fa-shopping-cart mr-2"></i>Confirmar Compra</h2>
-            <div id="confirmCardDetails" class="mb-4"></div>
-            <p><strong>Total:</strong> R$<span id="confirmTotalAmount">0.00</span></p>
-            <p><strong>Saldo Disponível:</strong> R$<span id="confirmUserBalance">0.00</span></p>
-            <p id="purchaseError" class="text-red-500 text-sm hidden" role="alert"></p>
-            <div class="flex justify-end space-x-2 mt-4">
-                <button type="button" id="cancelPurchaseButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
-                <button type="button" id="confirmPurchaseButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-check mr-2"></i>Confirmar</button>
-            </div>
-        </div>
-    </div>
-    <!-- Modal de Carteira -->
-    <div id="walletModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="walletTitle">
-        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="walletTitle" class="text-xl font-semibold mb-4"><i class="fas fa-wallet mr-2"></i>Minha Carteira</h2>
-            <div id="userCardsWallet" class="space-y-4 mb-4"></div>
-            <div class="flex justify-end">
-                <button type="button" id="closeWalletButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Fechar</button>
-            </div>
-        </div>
-    </div>
-    <!-- Modal de Recarga -->
-    <div id="rechargeModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="rechargeTitle">
-        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="rechargeTitle" class="text-xl font-semibold mb-4"><i class="fas fa-coins mr-2"></i>Adicionar Saldo</h2>
-            <div class="mb-4">
-                <label for="rechargeAmount" class="block text-sm font-medium">Valor</label>
-                <input type="number" id="rechargeAmount" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: 100.00" step="0.01" min="0.01" required aria-describedby="rechargeError">
-            </div>
-            <p id="rechargeError" class="text-red-500 text-sm hidden" role="alert"></p>
+    <div id="purchaseModal" class="modal hidden flex items-center justify-center">
+        <div class="bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h3 class="text-lg font-semibold mb-4">Confirmar Compra</h3>
+            <p id="purchaseDetails" class="mb-4"></p>
             <div class="flex justify-end space-x-2">
-                <button type="button" id="cancelRechargeButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
-                <button type="button" id="addBalanceConfirmButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-check mr-2"></i>Adicionar</button>
+                <button id="confirmPurchase" class="bg-green-500 hover:bg-green-600 p-2 rounded">Confirmar</button>
+                <button id="cancelPurchase" class="bg-red-500 hover:bg-red-600 p-2 rounded">Cancelar</button>
             </div>
         </div>
     </div>
+
+    <!-- Modal de Carteira -->
+    <div id="walletModal" class="modal hidden flex items-center justify-center">
+        <div class="bg-gray-800 p-6 rounded-lg max-w-lg w-full">
+            <h3 class="text-lg font-semibold mb-4">Carteira</h3>
+            <div id="walletCards" class="space-y-2"></div>
+            <div class="flex justify-end mt-4">
+                <button id="closeWallet" class="bg-blue-500 hover:bg-blue-600 p-2 rounded">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Adicionar Saldo -->
+    <div id="balanceModal" class="modal hidden flex items-center justify-center">
+        <div class="bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h3 class="text-lg font-semibold mb-4">Adicionar Saldo</h3>
+            <input id="balanceAmount" type="number" step="0.01" min="0" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-4" placeholder="Valor (R$)">
+            <div class="flex justify-end space-x-2">
+                <button id="confirmBalance" class="bg-green-500 hover:bg-green-600 p-2 rounded">Adicionar</button>
+                <button id="cancelBalance" class="bg-red-500 hover:bg-red-600 p-2 rounded">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Conta -->
+    <div id="accountModal" class="modal hidden flex items-center justify-center">
+        <div class="bg-gray-800 p-6 rounded-lg max-w-lg w-full">
+            <h3 class="text-lg font-semibold mb-4">Conta</h3>
+            <p id="accountDetails" class="mb-4"></p>
+            <div class="flex justify-end">
+                <button id="closeAccount" class="bg-blue-500 hover:bg-blue-600 p-2 rounded">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" integrity="sha512-6n1/EF5T+kwuZSOv0V29A3tM0zNRh0Yz2v0T2BRbEboNs0yHOeI0z7D7o4ZQmCVoex7/0zGWNUkW+YSUOxv3bNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- Configurações Globais -->
+    <script src="script.js"></script>
+    <!-- Lógica da Página -->
+    <script>
+        const shop = {
+            async loadCards(filters = {}) {
+                try {
+                    let query = supabase.from('cards').select('*').eq('acquired', false);
+                    if (filters.bin) query = query.ilike('bin', `${filters.bin}%`);
+                    if (filters.bandeira) query = query.eq('bandeira', filters.bandeira);
+                    if (filters.banco) query = query.eq('banco', filters.banco);
+                    if (filters.nivel) query = query.eq('nivel', filters.nivel);
+                    const { data, error } = await utils.withRetry(() => query);
+                    if (error) throw error;
+                    ui.renderCards(data);
+                } catch (err) {
+                    console.error('Erro ao carregar cartões:', err);
+                    ui.showNotification(`Erro ao carregar cartões: ${err.message}`, 'error');
+                }
+            },
+
+            async purchaseCard(cardId) {
+                if (!utils.debounce()) {
+                    ui.showNotification('Aguarde antes de tentar novamente.', 'error');
+                    return;
+                }
+                try {
+                    const { data: card, error: cardError } = await utils.withRetry(() =>
+                        supabase.from('cards').select('price, numero, bandeira, banco, nivel').eq('id', cardId).single()
+                    );
+                    if (cardError) throw cardError;
+                    if (state.currentUser.balance < card.price) {
+                        ui.showNotification('Saldo insuficiente.', 'error');
+                        return;
+                    }
+                    ui.showPurchaseModal(card, cardId);
+                } catch (err) {
+                    console.error('Erro ao iniciar compra:', err);
+                    ui.showNotification(`Erro ao iniciar compra: ${err.message}`, 'error');
+                }
+            },
+
+            async confirmPurchase(cardId, cardPrice) {
+                try {
+                    const { error: updateError } = await utils.withRetry(() =>
+                        supabase.from('cards').update({ acquired: true, user_id: state.currentUser.id }).eq('id', cardId)
+                    );
+                    if (updateError) throw updateError;
+                    const { error: balanceError } = await utils.withRetry(() =>
+                        supabase.from('users').update({ balance: state.currentUser.balance - cardPrice }).eq('id', state.currentUser.id)
+                    );
+                    if (balanceError) throw balanceError;
+                    state.currentUser.balance -= cardPrice;
+                    localStorage.setItem('currentUser', JSON.stringify(state.currentUser));
+                    document.getElementById('balance').textContent = `Saldo: R$${state.currentUser.balance.toFixed(2)}`;
+                    ui.showNotification('Compra realizada com sucesso!', 'success');
+                    shop.loadCards();
+                    ui.closeModal('purchaseModal');
+                } catch (err) {
+                    console.error('Erro na compra:', err);
+                    ui.showNotification(`Erro ao realizar compra: ${err.message}`, 'error');
+                }
+            },
+
+            async addBalance(amount) {
+                if (!utils.debounce()) {
+                    ui.showNotification('Aguarde antes de tentar novamente.', 'error');
+                    return;
+                }
+                const parsedAmount = parseFloat(amount);
+                if (isNaN(parsedAmount) || parsedAmount <= 0) {
+                    ui.showNotification('Valor inválido.', 'error');
+                    return;
+                }
+                try {
+                    const { error } = await utils.withRetry(() =>
+                        supabase.from('users').update({ balance: state.currentUser.balance + parsedAmount }).eq('id', state.currentUser.id)
+                    );
+                    if (error) throw error;
+                    state.currentUser.balance += parsedAmount;
+                    localStorage.setItem('currentUser', JSON.stringify(state.currentUser));
+                    document.getElementById('balance').textContent = `Saldo: R$${state.currentUser.balance.toFixed(2)}`;
+                    ui.showNotification('Saldo adicionado com sucesso!', 'success');
+                    ui.closeModal('balanceModal');
+                } catch (err) {
+                    console.error('Erro ao adicionar saldo:', err);
+                    ui.showNotification(`Erro ao adicionar saldo: ${err.message}`, 'error');
+                }
+            },
+
+            async loadWallet() {
+                try {
+                    const { data, error } = await utils.withRetry(() =>
+                        supabase.from('cards').select('*').eq('user_id', state.currentUser.id)
+                    );
+                    if (error) throw error;
+                    ui.renderWallet(data);
+                } catch (err) {
+                    console.error('Erro ao carregar carteira:', err);
+                    ui.showNotification(`Erro ao carregar carteira: ${err.message}`, 'error');
+                }
+            },
+
+            async loadAccount() {
+                try {
+                    const { data, error } = await utils.withRetry(() =>
+                        supabase.from('users').select('username, balance, is_admin').eq('id', state.currentUser.id).single()
+                    );
+                    if (error) throw error;
+                    ui.renderAccount(data);
+                } catch (err) {
+                    console.error('Erro ao carregar conta:', err);
+                    ui.showNotification(`Erro ao carregar conta: ${err.message}`, 'error');
+                }
+            }
+        };
+
+        const ui = {
+            showNotification(message, type = 'error') {
+                const notificationsDiv = document.getElementById('notifications');
+                if (!notificationsDiv) return;
+                const notification = document.createElement('div');
+                notification.className = `notification p-4 rounded text-white shadow-lg ${type === 'error' ? 'bg-red-500' : type === 'success' ? 'bg-green-500' : 'bg-blue-500'}`;
+                notification.textContent = utils.sanitizeInput(message);
+                notificationsDiv.appendChild(notification);
+                setTimeout(() => notification.remove(), CONFIG.NOTIFICATION_DURATION_MS);
+            },
+
+            renderCards(cards) {
+                const cardsContainer = document.getElementById('cardsContainer');
+                if (!cardsContainer) return;
+                cardsContainer.innerHTML = '';
+                cards.forEach(card => {
+                    const cardElement = document.createElement('div');
+                    cardElement.className = 'p-4 bg-gray-800 rounded-lg shadow-lg';
+                    cardElement.innerHTML = `
+                        <p class="mb-2">Cartão: **** **** **** ${utils.sanitizeInput(card.numero.slice(-4))}</p>
+                        <p class="mb-2">Bandeira: ${utils.sanitizeInput(card.bandeira)}</p>
+                        <p class="mb-2">Banco: ${utils.sanitizeInput(card.banco)}</p>
+                        <p class="mb-2">Nível: ${utils.sanitizeInput(card.nivel)}</p>
+                        <p class="mb-2">Preço: R$${card.price.toFixed(2)}</p>
+                        <button class="buyButton bg-green-500 hover:bg-green-600 p-2 rounded w-full" data-id="${utils.sanitizeInput(card.id)}">Comprar</button>
+                    `;
+                    cardsContainer.appendChild(cardElement);
+                });
+                document.querySelectorAll('.buyButton').forEach(button => {
+                    button.addEventListener('click', () => shop.purchaseCard(button.dataset.id));
+                });
+            },
+
+            showPurchaseModal(card, cardId) {
+                const modal = document.getElementById('purchaseModal');
+                const details = document.getElementById('purchaseDetails');
+                details.innerHTML = `
+                    Cartão: **** **** **** ${utils.sanitizeInput(card.numero.slice(-4))}<br>
+                    Bandeira: ${utils.sanitizeInput(card.bandeira)}<br>
+                    Banco: ${utils.sanitizeInput(card.banco)}<br>
+                    Nível: ${utils.sanitizeInput(card.nivel)}<br>
+                    Preço: R$${card.price.toFixed(2)}
+                `;
+                modal.classList.remove('hidden');
+                modal.classList.add('show');
+                document.getElementById('confirmPurchase').onclick = () => shop.confirmPurchase(cardId, card.price);
+                document.getElementById('cancelPurchase').onclick = () => ui.closeModal('purchaseModal');
+            },
+
+            renderWallet(cards) {
+                const walletCards = document.getElementById('walletCards');
+                walletCards.innerHTML = '';
+                if (cards.length === 0) {
+                    walletCards.innerHTML = '<p>Nenhum cartão na carteira.</p>';
+                } else {
+                    cards.forEach(card => {
+                        const cardElement = document.createElement('div');
+                        cardElement.className = 'p-2 bg-gray-700 rounded';
+                        cardElement.innerHTML = `
+                            Cartão: **** **** **** ${utils.sanitizeInput(card.numero.slice(-4))}<br>
+                            Bandeira: ${utils.sanitizeInput(card.bandeira)}<br>
+                            Banco: ${utils.sanitizeInput(card.banco)}<br>
+                            Nível: ${utils.sanitizeInput(card.nivel)}
+                        `;
+                        walletCards.appendChild(cardElement);
+                    });
+                }
+                document.getElementById('walletModal').classList.remove('hidden');
+                document.getElementById('walletModal').classList.add('show');
+                document.getElementById('closeWallet').onclick = () => ui.closeModal('walletModal');
+            },
+
+            renderAccount(user) {
+                const accountDetails = document.getElementById('accountDetails');
+                accountDetails.innerHTML = `
+                    Usuário: ${utils.sanitizeInput(user.username)}<br>
+                    Saldo: R$${user.balance.toFixed(2)}<br>
+                    Admin: ${user.is_admin ? 'Sim' : 'Não'}
+                `;
+                document.getElementById('accountModal').classList.remove('hidden');
+                document.getElementById('accountModal').classList.add('show');
+                document.getElementById('closeAccount').onclick = () => ui.closeModal('accountModal');
+            },
+
+            closeModal(modalId) {
+                const modal = document.getElementById(modalId);
+                modal.classList.add('hidden');
+                modal.classList.remove('show');
+            }
+        };
+
+        // Interceptar erros do console
+        const originalConsoleError = console.error;
+        console.error = function (...args) {
+            const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
+            ui.showNotification(`Erro: ${message}`, 'error');
+            originalConsoleError.apply(console, args);
+        };
+
+        window.onerror = function (msg, url, lineNo, columnNo, error) {
+            ui.showNotification(`Erro: ${msg}`, 'error');
+            return false;
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!utils.checkAuth()) {
+                window.location.href = 'index.html';
+                return;
+            }
+            document.getElementById('username').textContent = utils.sanitizeInput(state.currentUser.username);
+            document.getElementById('balance').textContent = `Saldo: R$${state.currentUser.balance.toFixed(2)}`;
+            if (state.currentUser.is_admin) {
+                document.getElementById('adminButton').classList.remove('hidden');
+                document.getElementById('adminButton').onclick = () => window.location.href = 'dashboard.html';
+            }
+            shop.loadCards();
+            document.getElementById('logoutButton').onclick = () => {
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('sessionStart');
+                state.currentUser = null;
+                window.location.href = 'index.html';
+            };
+            document.getElementById('accountButton').onclick = () => shop.loadAccount();
+            document.getElementById('walletButton').onclick = () => shop.loadWallet();
+            document.getElementById('addBalanceBtn').onclick = () => {
+                document.getElementById('balanceModal').classList.remove('hidden');
+                document.getElementById('balanceModal').classList.add('show');
+            };
+            document.getElementById('confirmBalance').onclick = () => shop.addBalance(document.getElementById('balanceAmount').value);
+            document.getElementById('cancelBalance').onclick = () => ui.closeModal('balanceModal');
+            const filters = ['binFilter', 'bandeiraFilter', 'bancoFilter', 'nivelFilter'];
+            filters.forEach(filterId => {
+                document.getElementById(filterId).addEventListener('input', () => {
+                    shop.loadCards({
+                        bin: document.getElementById('binFilter').value.trim(),
+                        bandeira: document.getElementById('bandeiraFilter').value,
+                        banco: document.getElementById('bancoFilter').value,
+                        nivel: document.getElementById('nivelFilter').value
+                    });
+                });
+            });
+        });
+    </script>
 </body>
 </html>

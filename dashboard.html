@@ -1,333 +1,535 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LOGAN CC's - Dashboard</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.9/purify.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/inputmask/5.0.8/inputmask.min.js"></script>
-    <script src="script.js" defer></script>
-    <script src="dashboard.js" defer></script>
+    <!-- Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .notification {
+            position: relative;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+            transition: opacity 0.3s ease;
+            opacity: 1;
+            max-width: 300px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            overflow: auto;
+        }
+        .modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #4b5563;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #374151;
+        }
+    </style>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen">
-    <div id="globalLoader">
-        <div class="spinner"></div>
-    </div>
-    <div id="notifications" class="fixed top-4 right-4 z-[10000] space-y-2"></div>
-    <header class="bg-gray-800 p-4 flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-green-500">LOGAN CC's - Admin</h1>
+<body class="bg-gray-900 text-white">
+    <!-- Div para notificações -->
+    <div id="notifications" class="fixed top-4 right-4 space-y-2 z-50"></div>
+
+    <!-- Cabeçalho -->
+    <header class="bg-blue-800 p-4 flex justify-between items-center">
+        <h1 class="text-xl font-bold">LOGAN CC's - Dashboard Admin</h1>
         <div class="flex items-center space-x-4">
-            <button type="button" id="shopButton" class="text-gray-300 hover:text-green-500"><i class="fas fa-store mr-2"></i>Loja</button>
-            <button type="button" id="logoutButton" class="text-gray-300 hover:text-red-500"><i class="fas fa-sign-out-alt"></i>Sair</button>
+            <span id="username">Usuário</span>
+            <button id="shopButton" class="bg-blue-600 hover:bg-blue-700 p-2 rounded">Loja</button>
+            <button id="logoutButton" class="bg-red-600 hover:bg-red-700 p-2 rounded">Sair</button>
         </div>
     </header>
-    <main class="container mx-auto p-6">
-        <!-- Gerenciamento de Usuários -->
-        <div class="bg-gray-800 p-4 rounded-lg mb-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold"><i class="fas fa-users mr-2"></i>Usuários</h2>
-                <button type="button" id="addUserButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-user-plus mr-2"></i>Adicionar Usuário</button>
-            </div>
-            <div id="userList" class="overflow-x-auto">
-                <table>
-                    <thead>
-                        <tr>
-                            <th scope="col">Usuário</th>
-                            <th scope="col">Saldo</th>
-                            <th scope="col">Admin</th>
-                            <th scope="col">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-        <!-- Gerenciamento de Cartões -->
-        <div class="bg-gray-800 p-4 rounded-lg">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold"><i class="fas fa-credit-card mr-2"></i>Cartões</h2>
-                <button type="button" id="addCardButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-plus mr-2"></i>Adicionar Cartão</button>
-            </div>
-            <div id="adminCardList" class="overflow-x-auto">
-                <table>
-                    <thead>
-                        <tr>
-                            <th scope="col">Número</th>
-                            <th scope="col">Bandeira</th>
-                            <th scope="col">Banco</th>
-                            <th scope="col">Nível</th>
-                            <th scope="col">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-    </main>
-    <!-- Modal Editar Saldo -->
-    <div id="editBalanceModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editBalanceTitle">
-        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="editBalanceTitle" class="text-xl font-semibold mb-4"><i class="fas fa-coins mr-2"></i>Editar Saldo</h2>
-            <div class="mb-4">
-                <label for="editBalanceAmount" class="block text-sm font-medium">Novo Saldo</label>
-                <input type="number" id="editBalanceAmount" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: 100.00" step="0.01" min="0" required aria-describedby="editBalanceError">
-            </div>
-            <p id="editBalanceError" class="text-red-500 text-sm hidden" role="alert"></p>
+
+    <!-- Seção de Usuários -->
+    <div class="p-4">
+        <h2 class="text-lg font-semibold mb-4">Gerenciar Usuários</h2>
+        <button id="addUserButton" class="bg-green-500 hover:bg-green-600 p-2 rounded mb-4">Adicionar Usuário</button>
+        <table class="bg-gray-800 rounded-lg">
+            <thead>
+                <tr>
+                    <th>Usuário</th>
+                    <th>Saldo</th>
+                    <th>Admin</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="usersTable"></tbody>
+        </table>
+    </div>
+
+    <!-- Seção de Cartões -->
+    <div class="p-4">
+        <h2 class="text-lg font-semibold mb-4">Gerenciar Cartões</h2>
+        <button id="addCardButton" class="bg-green-500 hover:bg-green-600 p-2 rounded mb-4">Adicionar Cartão</button>
+        <table class="bg-gray-800 rounded-lg">
+            <thead>
+                <tr>
+                    <th>Cartão</th>
+                    <th>Bandeira</th>
+                    <th>Banco</th>
+                    <th>Nível</th>
+                    <th>Preço</th>
+                    <th>Adquirido</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="cardsTable"></tbody>
+        </table>
+    </div>
+
+    <!-- Modal de Adicionar/Editar Usuário -->
+    <div id="userModal" class="modal hidden flex items-center justify-center">
+        <div class="bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h3 id="userModalTitle" class="text-lg font-semibold mb-4">Adicionar Usuário</h3>
+            <input id="userUsername" type="text" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2" placeholder="Usuário">
+            <input id="userPassword" type="password" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2" placeholder="Senha">
+            <input id="userBalance" type="number" step="0.01" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2" placeholder="Saldo">
+            <label class="flex items-center mb-4">
+                <input id="userIsAdmin" type="checkbox" class="mr-2">
+                Administrador
+            </label>
             <div class="flex justify-end space-x-2">
-                <button type="button" id="cancelBalanceButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
-                <button type="button" id="saveBalanceButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-save mr-2"></i>Salvar</button>
+                <button id="saveUser" class="bg-green-500 hover:bg-green-600 p-2 rounded">Salvar</button>
+                <button id="cancelUser" class="bg-red-500 hover:bg-red-600 p-2 rounded">Cancelar</button>
             </div>
         </div>
     </div>
-    <!-- Modal Editar Usuário -->
-    <div id="editUserModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editUserTitle">
-        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="editUserTitle" class="text-xl font-semibold mb-4"><i class="fas fa-user-edit mr-2"></i>Editar Usuário</h2>
-            <div class="space-y-4">
-                <div>
-                    <label for="editUsername" class="block text-sm font-medium">Usuário</label>
-                    <input type="text" id="editUsername" readonly class="mt-1 w-full p-2 bg-gray-600 rounded">
-                </div>
-                <div>
-                    <label for="editPassword" class="block text-sm font-medium">Nova Senha (opcional)</label>
-                    <input type="password" id="editPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Deixe em branco para manter" minlength="4" aria-describedby="editUserError">
-                </div>
-                <div>
-                    <label for="editBalance" class="block text-sm font-medium">Saldo</label>
-                    <input type="number" id="editBalance" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" step="0.01" min="0" required aria-describedby="editUserError">
-                </div>
-                <div>
-                    <label for="editIsAdmin" class="block text-sm font-medium">Admin</label>
-                    <select id="editIsAdmin" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded">
-                        <option value="true">Sim</option>
-                        <option value="false">Não</option>
-                    </select>
-                </div>
-            </div>
-            <p id="editUserError" class="text-red-500 text-sm hidden" role="alert"></p>
-            <div class="flex justify-end space-x-2 mt-4">
-                <button type="button" id="cancelUserButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
-                <button type="button" id="saveUserButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-save mr-2"></i>Salvar</button>
-            </div>
-        </div>
-    </div>
-    <!-- Modal Adicionar Usuário -->
-    <div id="addUserModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="addUserTitle">
-        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="addUserTitle" class="text-xl font-semibold mb-4"><i class="fas fa-user-plus mr-2"></i>Adicionar Usuário</h2>
-            <div class="space-y-4">
-                <div>
-                    <label for="newUsername" class="block text-sm font-medium">Usuário</label>
-                    <input type="text" id="newUsername" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Nome do usuário" required pattern="[a-zA-Z0-9]{3,}" aria-describedby="addUserError">
-                </div>
-                <div>
-                    <label for="newPassword" class="block text-sm font-medium>Senha</label>
-                    <input type="password" id="newPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Nova senha" required minlength="4" aria-describedby="addUserError">
-                </div>
-                <div>
-            <label for="newBalance" class="block text-sm font-medium>Saldo Inicial</label>
-            <input type="number" id="newBalance" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: 0.00" step="0.01 min="0" required aria-describedby="addUserError">
-            <div>
-                <div>
-                    <label for="newIsAdmin" class="block text-sm font-medium">Admin</label>
-                    <select id="newIsAdmin" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded">
-                        <option value="true">Sim</option>
-                        <option value="false">Não</option>
-                    </select>
-                </div>
-            </div>
-            <p id="addUserError" class="text-red-500 text-sm hidden" role="alert"></p>
-            <div class="flex justify-end space-x-2 mt-4">
-                <button type="button" id="cancelAddUserButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
-                <button type="button" id="addUserConfirmButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-save mr-2"></i>Adicionar</button>
+
+    <!-- Modal de Adicionar/Editar Cartão -->
+    <div id="cardModal" class="modal hidden flex items-center justify-center">
+        <div class="bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h3 id="cardModalTitle" class="text-lg font-semibold mb-4">Adicionar Cartão</h3>
+            <input id="cardNumero" type="text" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2" placeholder="Número (16 dígitos)">
+            <input id="cardCVV" type="text" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2" placeholder="CVV (3 dígitos)">
+            <input id="cardExpiry" type="text" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2" placeholder="Validade (MM/AA)">
+            <input id="cardName" type="text" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2" placeholder="Nome">
+            <input id="cardCPF" type="text" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2" placeholder="CPF (11 dígitos)">
+            <select id="cardBandeira" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2">
+                <option value="">Bandeira</option>
+                <option value="Visa">Visa</option>
+                <option value="Mastercard">Mastercard</option>
+                <option value="Amex">Amex</option>
+                <option value="Elo">Elo</option>
+                <option value="Hipercard">Hipercard</option>
+                <option value="Diners Club">Diners Club</option>
+            </select>
+            <select id="cardBanco" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2">
+                <option value="">Banco</option>
+                <option value="Nubank">Nubank</option>
+                <option value="Itaú">Itaú</option>
+                <option value="Bradesco">Bradesco</option>
+                <option value="Santander">Santander</option>
+                <option value="Banco do Brasil">Banco do Brasil</option>
+                <option value="Caixa Econômica Federal">Caixa Econômica Federal</option>
+                <option value="Sicredi">Sicredi</option>
+                <option value="Sicoob">Sicoob</option>
+            </select>
+            <select id="cardNivel" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2">
+                <option value="">Nível</option>
+                <option value="Classic">Classic</option>
+                <option value="Gold">Gold</option>
+                <option value="Platinum">Platinum</option>
+                <option value="Black">Black</option>
+            </select>
+            <input id="cardPrice" type="number" step="0.01" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2" placeholder="Preço">
+            <div class="flex justify-end space-x-2">
+                <button id="saveCard" class="bg-green-500 hover:bg-green-600 p-2 rounded">Salvar</button>
+                <button id="cancelCard" class="bg-red-500 hover:bg-red-600 p-2 rounded">Cancelar</button>
             </div>
         </div>
     </div>
-    <!-- Modal Editar Cartão -->
-    <div id="editCardModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editCardTitle">
-        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="editCardTitle" class="text-xl font-semibold mb-4"><i class="fas fa-credit-card mr-2"></i>Editar Cartão</h2>
-            <div class="space-y-4">
-                <div>
-                    <label for="editCardNumber" class="block text-sm font-medium>Número</label>
-                    <input type="text" id="editCardNumber" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: 4532123456789012" required pattern="\d{16}" inputmode="numeric" aria-describedby="editCardError">
-                </div>
-                <div>
-                    <label for="editCardCvv" class="block text-sm font-medium">CVV</label>
-                    <input type="text" id="editCardCvv" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: 123" required pattern="\d{3}" inputmode="numeric" aria-describedby="editCardError">
-                </div>
-                <div>
-                    <label for="editCardExpiry" class="block text-sm font-medium>Validade</label>
-                    <input type="text" id="editCardExpiry" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: MM/AA" required pattern="\d{2}/\d{2}" aria-describedby="editCardError">
-                </div>
-                <div>
-                    <label for="editCardName" class="block text-sm font-medium>Nome</label>
-                    <input type="text" id="editCardName" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required aria-describedby="editCardError">
-                </div>
-                <div>
-                    <label for="editCardCpf" class="block text-sm font-medium>CPF</label>
-                    <input type="text" id="editCardCpf" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: 123.456.789-01" required pattern="\d{11}" inputmode="numeric" aria-describedby="editCardError">
-                </div>
-                <div>
-                    <label for="editCardBandeira" class="block text-sm font-medium">Bandeira</label>
-                    <select id="editCardBandeira" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required>
-                        <option value="Visa">Visa</option>
-                        <option value="Mastercard">Mastercard</option>
-                        <option value="Amex">Amex</option>
-                        <option value="Elo">Elo</option>
-                        <option value="Hipercard">Hipercard</option>
-                        <option value="Diners Club">Diners Club</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="editCardBanco" class="block text-sm font-medium>Banco</label>
-                    <select id="select id="editCardBanco" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required>
-                        <option value="Nubank">Nubank</option>
-                        <option value="Itaú">Itaú</option>
-                        <option value="Bradesco">Bradesco</option>
-                        <option value="Santander">Santander</option>
-                        <option value="Banco do Brasil">Banco do Brasil</option>
-                        <option value="Caixa Econômica Federal">Caixa Econômica Federal</option>
-                        <option value="Sicredi">Sicredi</option>
-                        <option value="Sicoob">Sicoob</option>
-                    </select>
-                </select>
-                </div>
-                <div>
-                    <label for="editCardNivel" class="block text-sm font-medium">Nível</label>
-                    <select id="editCardNivel" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required>
-                        <option value="Classic">Classic</option>
-                        <option value="Gold">Gold</option>
-                        <option value="Platinum">Platinum</option>
-                        <option value="Black">Black</option>
-                    </select>
-                </div>
-                </div>
-                <div>
-                    <label for="editCardPrice" class="block text-sm font-medium">Preço</label>
-                    <div>
-                    <input type="number" id="editCardPrice" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: 10.00" step="0.01" min="0.01" required aria-describedby="editCardError">
-                    <p id="editCardError" class="text-red-500 text-sm hidden" role="alert"></p>
-                    <div class="flex justify-end space-x-2 mt-4">
-                        <button type="button" id="cancelCardButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
-                        <button type="button" id="saveCardButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-save mr-2"></i>Salvar</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    <!-- Modal Adicionar Cartão -->
-    </div>
-    <div id="addCardModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="addCardTitle">
-        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="addCardTitle" class="text-xl font-semibold mb-4"><i class="fas fa-plus mr-2"></i>Adicionar Cartão</h2>
-            <div class="space-y-4">
-                <div>
-                    <label for="cardNumber" class="block text-sm font-medium">Número</label>
-                    <input type="text" id="cardNumber" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required pattern="\d{16}" inputmode="numeric" aria-describedby="addCardError">
-                </div>
-                <div>
-                    <label for="cardCvv" class="block text-sm font-medium">CVV</label>
-                    <input type="text" id="cardCvv" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: 123" required pattern="\d{3}" inputmode="numeric" aria-describedby="addCardError">
-                </div>
-                <div>
-                    <label for="cardExpiry" class="block text-sm font-medium">Validade</label>
-                    <input type="text" id="cardExpiry" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: MM/AA" required pattern="\d{2}/\d{2}" aria-describedby="addCardError">
-                </div>
-                <div>
-                    <label for="cardName" class="block text-sm font-medium">Nome</label>
-                    <input type="text" id="cardName" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required aria-describedby="addCardError">
-                </div>
-                <div>
-                    <label for="cardCpf" class="block text-sm font-medium">CPF</label>
-                    <input type="text" id="cardCpf" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: 123.456.789-01" required pattern="\d{11}" inputmode="numeric" aria-describedby="addCardError">
-                </div>
-                <div>
-                    <label for="cardBandeira" class="block text-sm font-medium">Bandeira</label>
-                    <select id="cardBandeira" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required>
-                        <option value="Visa">Visa</option>
-                        <option value="Mastercard">Mastercard</option>
-                        <option value="Amex">Amex</option>
-                        <option value="Elo">Elo</option>
-                        <option value="Hipercard">Hipercard</option>
-                        <option value="Diners Club">Diners Club</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="cardBanco" class="block text-sm font-medium">Banco</label>
-                    <select id="cardBanco" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required>
-                        <option value="Nubank">Nubank</option>
-                        <option value="Itaú">Itaú</option>
-                        <option value="Bradesco">Bradesco</option>
-                        <option value="Santander">Santander</option>
-                        <option value="Banco do Brasil">Banco do Brasil</option>
-                        <option value="Caixa Econômica Federal">Caixa Econômica Federal</option>
-                        <option value="Sicredi">Sicredi</option>
-                        <option value="Sicoob">Sicoob</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="cardNivel" class="block text-sm font-medium">Nível</label>
-                    <select id="cardNivel" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required>
-                        <option value="Classic">Classic</option>
-                        <option value="Gold">Gold</option>
-                        <option value="Platinum">Platinum</option>
-                        <option value="Black">Black</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="cardPrice" class="block text-sm font-medium">Preço</label>
-                    <input type="number" id="cardPrice" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="Ex: 10.00" step="0.01" min="0.01" required aria-describedby="addCardError">
-                </div>
-            </div>
-            <p id="addCardError" class="text-red-500 text-sm hidden" role="alert"></p>
-            <div class="flex justify-end space-x-2 mt-4">
-                <button type="button" id="cancelAddCardButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
-                <button type="button" id="addCardConfirmButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-save mr-2"></i>Adicionar</button>
-            </div>
-        </div>
-    </div>
+
+    <!-- Scripts -->
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" integrity="sha512-6n1/EF5T+kwuZSOv0V29A3tM0zNRh0Yz2v0T2BRbEboNs0yHOeI0z7D7o4ZQmCVoex7/0zGWNUkW+YSUOxv3bNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- Configurações Globais -->
+    <script src="script.js"></script>
+    <!-- Lógica da Página -->
+    <script>
+        const admin = {
+            async loadUsers() {
+                try {
+                    const { data, error } = await utils.withRetry(() =>
+                        supabase.from('users').select('id, username, balance, is_admin')
+                    );
+                    if (error) throw error;
+                    ui.renderUsers(data);
+                } catch (err) {
+                    console.error('Erro ao carregar usuários:', err);
+                    ui.showNotification(`Erro ao carregar usuários: ${err.message}`, 'error');
+                }
+            },
+
+            async loadCards() {
+                try {
+                    const { data, error } = await utils.withRetry(() =>
+                        supabase.from('cards').select('*')
+                    );
+                    if (error) throw error;
+                    ui.renderCards(data);
+                } catch (err) {
+                    console.error('Erro ao carregar cartões:', err);
+                    ui.showNotification(`Erro ao carregar cartões: ${err.message}`, 'error');
+                }
+            },
+
+            async updateUser(userId, updates) {
+                try {
+                    const { error } = await utils.withRetry(() =>
+                        supabase.from('users').update(updates).eq('id', userId)
+                    );
+                    if (error) throw error;
+                    ui.showNotification('Usuário atualizado com sucesso!', 'success');
+                    admin.loadUsers();
+                    ui.closeModal('userModal');
+                } catch (err) {
+                    console.error('Erro ao atualizar usuário:', err);
+                    ui.showNotification(`Erro ao atualizar usuário: ${err.message}`, 'error');
+                }
+            },
+
+            async deleteUser(userId) {
+                if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
+                try {
+                    const { error } = await utils.withRetry(() =>
+                        supabase.from('users').delete().eq('id', userId)
+                    );
+                    if (error) throw error;
+                    ui.showNotification('Usuário excluído com sucesso!', 'success');
+                    admin.loadUsers();
+                } catch (err) {
+                    console.error('Erro ao excluir usuário:', err);
+                    ui.showNotification(`Erro ao excluir usuário: ${err.message}`, 'error');
+                }
+            },
+
+            async addCard(cardData) {
+                try {
+                    if (!utils.validateCardNumber(cardData.numero)) {
+                        ui.showNotification('Número do cartão inválido.', 'error');
+                        return;
+                    }
+                    if (!utils.validateCVV(cardData.cvv)) {
+                        ui.showNotification('CVV inválido.', 'error');
+                        return;
+                    }
+                    if (!utils.validateExpiry(cardData.expiry)) {
+                        ui.showNotification('Validade inválida (MM/AA).', 'error');
+                        return;
+                    }
+                    if (!utils.validateCPF(cardData.cpf)) {
+                        ui.showNotification('CPF inválido (11 dígitos).', 'error');
+                        return;
+                    }
+                    if (!cardData.bandeira || !cardData.banco || !cardData.nivel || cardData.price <= 0) {
+                        ui.showNotification('Todos os campos são obrigatórios e preço deve ser maior que 0.', 'error');
+                        return;
+                    }
+                    const { error } = await utils.withRetry(() =>
+                        supabase.from('cards').insert([cardData])
+                    );
+                    if (error) throw error;
+                    ui.showNotification('Cartão adicionado com sucesso!', 'success');
+                    admin.loadCards();
+                    ui.closeModal('cardModal');
+                } catch (err) {
+                    console.error('Erro ao adicionar cartão:', err);
+                    ui.showNotification(`Erro ao adicionar cartão: ${err.message}`, 'error');
+                }
+            },
+
+            async updateCard(cardId, cardData) {
+                try {
+                    if (!utils.validateCardNumber(cardData.numero)) {
+                        ui.showNotification('Número do cartão inválido.', 'error');
+                        return;
+                    }
+                    if (!utils.validateCVV(cardData.cvv)) {
+                        ui.showNotification('CVV inválido.', 'error');
+                        return;
+                    }
+                    if (!utils.validateExpiry(cardData.expiry)) {
+                        ui.showNotification('Validade inválida (MM/AA).', 'error');
+                        return;
+                    }
+                    if (!utils.validateCPF(cardData.cpf)) {
+                        ui.showNotification('CPF inválido (11 dígitos).', 'error');
+                        return;
+                    }
+                    if (!cardData.bandeira || !cardData.banco || !cardData.nivel || cardData.price <= 0) {
+                        ui.showNotification('Todos os campos são obrigatórios e preço deve ser maior que 0.', 'error');
+                        return;
+                    }
+                    const { error } = await utils.withRetry(() =>
+                        supabase.from('cards').update(cardData).eq('id', cardId)
+                    );
+                    if (error) throw error;
+                    ui.showNotification('Cartão atualizado com sucesso!', 'success');
+                    admin.loadCards();
+                    ui.closeModal('cardModal');
+                } catch (err) {
+                    console.error('Erro ao atualizar cartão:', err);
+                    ui.showNotification(`Erro ao atualizar cartão: ${err.message}`, 'error');
+                }
+            },
+
+            async deleteCard(cardId) {
+                if (!confirm('Tem certeza que deseja excluir este cartão?')) return;
+                try {
+                    const { error } = await utils.withRetry(() =>
+                        supabase.from('cards').delete().eq('id', cardId)
+                    );
+                    if (error) throw error;
+                    ui.showNotification('Cartão excluído com sucesso!', 'success');
+                    admin.loadCards();
+                } catch (err) {
+                    console.error('Erro ao excluir cartão:', err);
+                    ui.showNotification(`Erro ao excluir cartão: ${err.message}`, 'error');
+                }
+            }
+        };
+
+        const ui = {
+            showNotification(message, type = 'error') {
+                const notificationsDiv = document.getElementById('notifications');
+                if (!notificationsDiv) return;
+                const notification = document.createElement('div');
+                notification.className = `notification p-4 rounded-lg text-white shadow-lg ${type === 'error' ? 'bg-red-500' : type === 'success' ? 'bg-green-500' : 'bg-blue-500'}`;
+                notification.textContent = utils.sanitizeInput(message);
+                notificationsDiv.appendChild(notification);
+                setTimeout(() => notification.remove(), CONFIG.NOTIFICATION_DURATION_MS);
+            },
+
+            renderUsers(users) {
+                const usersTable = document.getElementById('usersTable');
+                if (!usersTable) return;
+                usersTable.innerHTML = '';
+                users.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${utils.sanitizeInput(user.username)}</td>
+                        <td>R$${user.balance.toFixed(2)}</td>
+                        <td>${user.is_admin ? 'Sim' : 'Não'}</td>
+                        <td>
+                            <button class="editUser bg-blue-500 hover:bg-blue-600 p-1 rounded mr-2" data-id="${utils.sanitizeInput(user.id)}">Editar</button>
+                            <button class="deleteUser bg-red-500 hover:bg-red-600 p-1 rounded" data-id="${utils.sanitizeInput(user.id)}">Excluir</button>
+                        </td>
+                    `;
+                    usersTable.appendChild(row);
+                });
+                document.querySelectorAll('.editUser').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const userId = button.dataset.id;
+                        supabase.from('users').select('*').eq('id', userId).single().then(({ data }) => {
+                            document.getElementById('userModalTitle').textContent = 'Editar Usuário';
+                            document.getElementById('userUsername').value = utils.sanitizeInput(data.username);
+                            document.getElementById('userPassword').value = '';
+                            document.getElementById('userBalance').value = data.balance;
+                            document.getElementById('userIsAdmin').checked = data.is_admin;
+                            document.getElementById('userModal').classList.remove('hidden');
+                            document.getElementById('userModal').classList.add('show');
+                            document.getElementById('saveUser').onclick = () => {
+                                const updates = {
+                                    username: document.getElementById('userUsername').value.trim(),
+                                    balance: parseFloat(document.getElementById('userBalance').value) || 0,
+                                    is_admin: document.getElementById('userIsAdmin').checked
+                                };
+                                if (document.getElementById('userPassword').value) {
+                                    updates.password = document.getElementById('userPassword').value.trim();
+                                }
+                                admin.updateUser(userId, updates);
+                            };
+                        });
+                    });
+                });
+                document.querySelectorAll('.deleteUser').forEach(button => {
+                    button.addEventListener('click', () => admin.deleteUser(button.dataset.id));
+                });
+            },
+
+            renderCards(cards) {
+                const cardsTable = document.getElementById('cardsTable');
+                if (!cardsTable) return;
+                cardsTable.innerHTML = '';
+                cards.forEach(card => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>**** **** **** ${utils.sanitizeInput(card.numero.slice(-4))}</td>
+                        <td>${utils.sanitizeInput(card.bandeira)}</td>
+                        <td>${utils.sanitizeInput(card.banco)}</td>
+                        <td>${utils.sanitizeInput(card.nivel)}</td>
+                        <td>R$${card.price.toFixed(2)}</td>
+                        <td>${card.acquired ? 'Sim' : 'Não'}</td>
+                        <td>
+                            <button class="editCard bg-blue-500 hover:bg-blue-600 p-1 rounded mr-2" data-id="${utils.sanitizeInput(card.id)}">Editar</button>
+                            <button class="deleteCard bg-red-500 hover:bg-red-600 p-1 rounded" data-id="${utils.sanitizeInput(card.id)}">Excluir</button>
+                        </td>
+                    `;
+                    cardsTable.appendChild(row);
+                });
+                document.querySelectorAll('.editCard').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const cardId = button.dataset.id;
+                        supabase.from('cards').select('*').eq('id', cardId).single().then(({ data }) => {
+                            document.getElementById('cardModalTitle').textContent = 'Editar Cartão';
+                            document.getElementById('cardNumero').value = utils.sanitizeInput(data.numero);
+                            document.getElementById('cardCVV').value = utils.sanitizeInput(data.cvv);
+                            document.getElementById('cardExpiry').value = utils.sanitizeInput(data.expiry);
+                            document.getElementById('cardName').value = utils.sanitizeInput(data.name);
+                            document.getElementById('cardCPF').value = utils.sanitizeInput(data.cpf);
+                            document.getElementById('cardBandeira').value = utils.sanitizeInput(data.bandeira);
+                            document.getElementById('cardBanco').value = utils.sanitizeInput(data.banco);
+                            document.getElementById('cardNivel').value = utils.sanitizeInput(data.nivel);
+                            document.getElementById('cardPrice').value = data.price;
+                            document.getElementById('cardModal').classList.remove('hidden');
+                            document.getElementById('cardModal').classList.add('show');
+                            document.getElementById('saveCard').onclick = () => {
+                                const cardData = {
+                                    numero: document.getElementById('cardNumero').value.trim(),
+                                    cvv: document.getElementById('cardCVV').value.trim(),
+                                    expiry: document.getElementById('cardExpiry').value.trim(),
+                                    name: document.getElementById('cardName').value.trim(),
+                                    cpf: document.getElementById('cardCPF').value.trim(),
+                                    bandeira: document.getElementById('cardBandeira').value,
+                                    banco: document.getElementById('cardBanco').value,
+                                    nivel: document.getElementById('cardNivel').value,
+                                    price: parseFloat(document.getElementById('cardPrice').value) || 0
+                                };
+                                admin.updateCard(cardId, cardData);
+                            };
+                        });
+                    });
+                });
+                document.querySelectorAll('.deleteCard').forEach(button => {
+                    button.addEventListener('click', () => admin.deleteCard(button.dataset.id));
+                });
+            },
+
+            closeModal(modalId) {
+                const modal = document.getElementById(modalId);
+                modal.classList.add('hidden');
+                modal.classList.remove('show');
+            }
+        };
+
+        // Interceptar erros do console
+        const originalConsoleError = console.error;
+        console.error = function (...args) {
+            const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
+            ui.showNotification(`Erro: ${message}`, 'error');
+            originalConsoleError.apply(console, args);
+        };
+
+        window.onerror = function (msg, url, lineNo, columnNo, error) {
+            ui.showNotification(`Erro: ${msg}`, 'error');
+            return false;
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!utils.checkAuth() || !state.currentUser.is_admin) {
+                window.location.href = 'index.html';
+                return;
+            }
+            document.getElementById('username').textContent = utils.sanitizeInput(state.currentUser.username);
+            admin.loadUsers();
+            admin.loadCards();
+            document.getElementById('shopButton').onclick = () => window.location.href = 'shop.html';
+            document.getElementById('logoutButton').onclick = () => {
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('sessionStart');
+                state.currentUser = null;
+                window.location.href = 'index.html';
+            };
+            document.getElementById('addUserButton').onclick = () => {
+                document.getElementById('userModalTitle').textContent = 'Adicionar Usuário';
+                document.getElementById('userUsername').value = '';
+                document.getElementById('userPassword').value = '';
+                document.getElementById('userBalance').value = '0';
+                document.getElementById('userIsAdmin').checked = false;
+                document.getElementById('userModal').classList.remove('hidden');
+                document.getElementById('userModal').classList.add('show');
+                document.getElementById('saveUser').onclick = () => {
+                    const userData = {
+                        username: document.getElementById('userUsername').value.trim(),
+                        password: document.getElementById('userPassword').value.trim(),
+                        balance: parseFloat(document.getElementById('userBalance').value) || 0,
+                        is_admin: document.getElementById('userIsAdmin').checked
+                    };
+                    if (!userData.username || !userData.password || userData.balance < 0) {
+                        ui.showNotification('Todos os campos são obrigatórios e saldo não pode ser negativo.', 'error');
+                        return;
+                    }
+                    if (userData.username.length < 3 || !/^[a-zA-Z0-9]+$/.test(userData.username)) {
+                        ui.showNotification('Usuário deve ter pelo menos 3 caracteres alfanuméricos.', 'error');
+                        return;
+                    }
+                    if (userData.password.length < 6) {
+                        ui.showNotification('Senha deve ter pelo menos 6 caracteres.', 'error');
+                        return;
+                    }
+                    supabase.from('users').insert([userData]).then(({ error }) => {
+                        if (error) {
+                            ui.showNotification(`Erro ao adicionar usuário: ${error.message}`, 'error');
+                        } else {
+                            ui.showNotification('Usuário adicionado com sucesso!', 'success');
+                            admin.loadUsers();
+                            ui.closeModal('userModal');
+                        }
+                    });
+                };
+            };
+            document.getElementById('addCardButton').onclick = () => {
+                document.getElementById('cardModalTitle').textContent = 'Adicionar Cartão';
+                document.getElementById('cardNumero').value = '';
+                document.getElementById('cardCVV').value = '';
+                document.getElementById('cardExpiry').value = '';
+                document.getElementById('cardName').value = '';
+                document.getElementById('cardCPF').value = '';
+                document.getElementById('cardBandeira').value = '';
+                document.getElementById('cardBanco').value = '';
+                document.getElementById('cardNivel').value = '';
+                document.getElementById('cardPrice').value = '';
+                document.getElementById('cardModal').classList.remove('hidden');
+                document.getElementById('cardModal').classList.add('show');
+                document.getElementById('saveCard').onclick = () => {
+                    const cardData = {
+                        numero: document.getElementById('cardNumero').value.trim(),
+                        cvv: document.getElementById('cardCVV').value.trim(),
+                        expiry: document.getElementById('cardExpiry').value.trim(),
+                        name: document.getElementById('cardName').value.trim(),
+                        cpf: document.getElementById('cardCPF').value.trim(),
+                        bandeira: document.getElementById('cardBandeira').value,
+                        banco: document.getElementById('cardBanco').value,
+                        nivel: document.getElementById('cardNivel').value,
+                        price: parseFloat(document.getElementById('cardPrice').value) || 0
+                    };
+                    admin.addCard(cardData);
+                };
+            };
+            document.getElementById('cancelUser').onclick = () => ui.closeModal('userModal');
+            document.getElementById('cancelCard').onclick = () => ui.closeModal('cardModal');
+        });
+    </script>
 </body>
 </html>

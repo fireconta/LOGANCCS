@@ -1,113 +1,102 @@
 /**
- * script.js - Configurações Globais
- * Contém configurações, estado global, inicialização do Supabase e utilitários.
+ * script.js - Configurações globais, estado, Supabase e utilitários para LOGAN CC's
  */
-
-// --- Configuração ---
 const CONFIG = {
-    SESSION_TIMEOUT_MINUTES: 60,
-    MIN_PASSWORD_LENGTH: 6,
-    MAX_LOGIN_ATTEMPTS: 5,
-    LOGIN_BLOCK_TIME_MS: 300000,
+    API_RETRY_COUNT: 3,
+    API_RETRY_DELAY_MS: 1000,
     NOTIFICATION_DURATION_MS: 5000,
-    SUPABASE_URL: 'https://iritzeslrciinopmhqgn.supabase.co',
-    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyaXR6ZXNscmNpaW5vcG1ocWduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjkxMjYyNjQsImV4cCI6MjA2NDcwMjI2MH0.me1stNa7TUuR0tdpLlJT1hVjVvePTzReYfY8_jRO1xo',
-    RETRY_ATTEMPTS: 3,
-    RETRY_DELAY_MS: 1000,
-    DEBOUNCE_DELAY_MS: 500
+    SESSION_DURATION_MINUTES: 60,
+    DEBOUNCE_MS: 500
 };
 
-// --- Estado ---
 const state = {
-    currentUser: JSON.parse(localStorage.getItem('currentUser')) || null,
-    isAdmin: false,
-    loginAttempts: 0,
-    loginBlockedUntil: 0,
-    sessionStart: parseInt(localStorage.getItem('sessionStart')) || 0,
-    lastActionTime: 0,
-    cards: [],
-    userCards: []
+    currentUser: null,
+    lastAction: null
 };
 
-// --- Cliente Supabase ---
-const supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-console.log('Supabase inicializado:', CONFIG.SUPABASE_URL);
+const SUPABASE_URL = 'https://iritzeslrciinopmhqgn.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyaXR6ZXNscmNpaW5vcG1ocWduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjkxMjYyNjQsImV4cCI6MjA2NDcwMjI2MH0.me1stNa7TUuR0tdpLlJT1hVjVvePTzReYfY8_jRO1xo';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+console.log('Supabase inicializado:', SUPABASE_URL);
 
-// --- Funções Utilitárias ---
 const utils = {
-    async withRetry(queryFn, attempts = CONFIG.RETRY_ATTEMPTS) {
-        for (let i = 0; i <= attempts; i++) {
+    async withRetry(fn, retries = CONFIG.API_RETRY_COUNT, delay = CONFIG.API_RETRY_DELAY_MS) {
+        for (let attempt = 1; attempt <= retries; attempt++) {
             try {
-                return await queryFn();
+                return await fn();
             } catch (error) {
-                if (i === attempts) throw error;
-                console.warn(`Tentativa ${i + 1} falhou: ${error.message}. Retentando...`);
-                await new Promise(resolve => setTimeout(resolve, CONFIG.RETRY_DELAY_MS));
+                if (attempt === retries) throw error;
+                console.warn(`Tentativa ${attempt} falhou:`, error);
+                await new Promise(resolve => setTimeout(resolve, delay));
             }
         }
     },
 
     checkAuth() {
-        if (!state.currentUser?.id) {
-            console.warn('checkAuth: Usuário não logado.');
+        const sessionStart = localStorage.getItem('sessionStart');
+        if (!sessionStart) return false;
+        const elapsedMinutes = (Date.now() - parseInt(sessionStart)) / (1000 * 60);
+        if (elapsedMinutes > CONFIG.SESSION_DURATION_MINUTES) {
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('sessionStart');
+            state.currentUser = null;
             return false;
         }
-        const sessionDuration = (Date.now() - state.sessionStart) / 1000 / 60;
-        if (sessionDuration > CONFIG.SESSION_TIMEOUT_MINUTES) {
-            console.warn('checkAuth: Sessão expirada.');
-            auth.logout();
-            return false;
-        }
-        return true;
+        state.currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        return !!state.currentUser;
     },
 
     sanitizeInput(input) {
-        return DOMPurify.sanitize(input || '');
+        if (typeof input !== 'string') return '';
+        return input.replace(/[&<>"'\/]/g, char => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+            '/': '&#x2F;'
+        })[char] || char);
     },
 
-    validateCardNumber(number) {
-        const cleaned = number.replace(/\s/g, '');
-        if (cleaned.length !== 16 || !/^\d+$/.test(cleaned)) return false;
-        // Algoritmo de Luhn
+    validateCardNumber(cardNumber) {
+        const digits = cardNumber.replace(/\D/g, '');
+        if (digits.length !== 16) return false;
         let sum = 0;
-        for (let i = 0; i < cleaned.length; i++) {
-            let digit = parseInt(cleaned[i]);
-            if (i % 2 === 0) {
+        let isEven = false;
+        for (let i = digits.length - 1; i >= 0; i--) {
+            let digit = parseInt(digits[i]);
+            if (isEven) {
                 digit *= 2;
                 if (digit > 9) digit -= 9;
             }
             sum += digit;
+            isEven = !isEven;
         }
         return sum % 10 === 0;
     },
 
-    validateCardCvv(cvv) {
-        return cvv.length === 3 && /^\d+$/.test(cvv);
+    validateCVV(cvv) {
+        return /^\d{3}$/.test(cvv);
     },
 
-    validateCardExpiry(expiry) {
-        const [month, year] = expiry.split('/');
-        if (!month || !year || month.length !== 2 || year.length !== 2) return false;
-        const monthNum = parseInt(month, 10);
-        const yearNum = parseInt(`20${year}`, 10);
-        if (monthNum < 1 || monthNum > 12) return false;
-        const currentDate = new Date();
-        const expiryDate = new Date(yearNum, monthNum - 1, 1);
-        return expiryDate >= currentDate;
+    validateExpiry(expiry) {
+        return /^\d{2}\/\d{2}$/.test(expiry);
     },
 
-    validateCardCpf(cpf) {
-        const cleaned = cpf.replace(/[\.-]/g, '');
-        return cleaned.length === 11 && /^\d+$/.test(cleaned);
+    validateCPF(cpf) {
+        return /^\d{11}$/.test(cpf);
     },
 
     debounce() {
-        const now = Date.now();
-        if (now - state.lastActionTime < CONFIG.DEBOUNCE_DELAY_MS) {
-            console.warn('Ação bloqueada por debounce.');
-            return false;
+        if (!state.lastAction) {
+            state.lastAction = Date.now();
+            return true;
         }
-        state.lastActionTime = now;
-        return true;
+        const now = Date.now();
+        if (now - state.lastAction >= CONFIG.DEBOUNCE_MS) {
+            state.lastAction = now;
+            return true;
+        }
+        return false;
     }
 };

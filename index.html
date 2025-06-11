@@ -8,7 +8,9 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         .notification {
-            position: relative;
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
             padding: 1rem;
             border-radius: 0.5rem;
             color: white;
@@ -18,11 +20,54 @@
             max-width: 300px;
             z-index: 1000;
         }
+        #logModal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            overflow: auto;
+        }
+        #logModal .modal-content {
+            background: #1f2937;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            width: 90%;
+            max-width: 600px;
+        }
+        #logContent {
+            max-height: 400px;
+            overflow-y: auto;
+            background: #111827;
+            padding: 1rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            color: #d1d5db;
+        }
+        #logContent .log {
+            color: #d1d5db;
+        }
+        #logContent .error {
+            color: #f87171;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
     <!-- Div para notificações -->
     <div id="notifications" class="fixed top-4 right-4 space-y-2 z-50"></div>
+
+    <!-- Botão LOG -->
+    <button id="logButton" class="fixed top-4 left-4 p-2 bg-blue-500 hover:bg-blue-600 rounded-md font-semibold transition duration-200">LOG</button>
+
+    <!-- Modal de Logs -->
+    <div id="logModal">
+        <div class="modal-content">
+            <h2 class="text-xl font-bold mb-4">Logs do Sistema</h2>
+            <div id="logContent"></div>
+            <button id="closeLogModal" class="mt-4 p-2 bg-red-500 hover:bg-red-600 rounded-md font-semibold transition duration-200">Fechar</button>
+        </div>
+    </div>
 
     <!-- Formulário de Login -->
     <div id="loginContainer" class="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md">
@@ -58,10 +103,10 @@
     <script>
         const ui = {
             showNotification(message, type = 'error') {
-                console.log('🔵 Notificação:', { message, type });
+                addLog(`Notificação: ${message} (${type})`);
                 const notificationsDiv = document.getElementById('notifications');
                 if (!notificationsDiv) {
-                    console.error('❌ Div #notifications não encontrada');
+                    addLog('Div #notifications não encontrada', 'error');
                     return;
                 }
                 const notification = document.createElement('div');
@@ -75,7 +120,7 @@
             },
 
             showError(context, message) {
-                console.log('🛑 Erro:', { context, message });
+                addLog(`Erro em ${context}: ${message}`, 'error');
                 this.showNotification(message, 'error');
                 const errorElement = document.getElementById(`${context}Error`);
                 if (errorElement) {
@@ -85,7 +130,7 @@
             },
 
             showSuccess(message) {
-                console.log('✅ Sucesso:', message);
+                addLog(`Sucesso: ${message}`);
                 this.showNotification(message, 'success');
             },
 
@@ -98,7 +143,7 @@
             },
 
             toggleForms() {
-                console.log('🔄 Alternando formulários');
+                addLog('Alternando formulários');
                 const loginContainer = document.getElementById('loginContainer');
                 const registerContainer = document.getElementById('registerContainer');
                 if (loginContainer && registerContainer) {
@@ -107,14 +152,24 @@
                     document.getElementById('loginError').classList.add('hidden');
                     document.getElementById('registerError').classList.add('hidden');
                 } else {
-                    console.error('❌ Contêineres de login ou registro não encontrados');
+                    addLog('Contêineres de login ou registro não encontrados', 'error');
+                }
+            },
+
+            updateLogModal() {
+                const logContent = document.getElementById('logContent');
+                if (logContent) {
+                    logContent.innerHTML = state.logs
+                        .map(log => `<div class="${log.type}">${log.timestamp} - ${log.message}</div>`)
+                        .join('');
+                    logContent.scrollTop = logContent.scrollHeight;
                 }
             }
         };
 
         const auth = {
             async login(username, password) {
-                console.log('🔑 Tentando login:', username);
+                addLog(`Tentando login: ${username}`);
                 if (!utils.debounce()) {
                     ui.showError('login', 'Aguarde antes de tentar novamente.');
                     return;
@@ -134,7 +189,7 @@
                     const { data, error } = await utils.withRetry(() =>
                         window.supabaseClient.from('users').select('id, username, password, balance, is_admin').eq('username', username).single()
                     );
-                    console.log('📡 Resposta do Supabase:', { data, error });
+                    addLog(`Resposta do Supabase: ${JSON.stringify({ data, error })}`);
                     if (error) {
                         throw error;
                     }
@@ -156,11 +211,11 @@
                     localStorage.setItem('sessionStart', Date.now().toString());
                     ui.showSuccess(`Bem-vindo, ${username}!`);
                     setTimeout(() => {
-                        console.log('➡️ Redirecionando para shop.html');
+                        addLog('Redirecionando para shop.html');
                         window.location.href = 'shop.html';
                     }, 1000);
                 } catch (err) {
-                    console.error('❌ Erro no login:', err);
+                    addLog(`Erro no login: ${err.message}`, 'error');
                     ui.showError('login', `Erro: ${err.message || 'Falha na conexão com o servidor.'}`);
                 } finally {
                     ui.toggleLoading('loginButton', false);
@@ -168,7 +223,7 @@
             },
 
             async register(username, password, confirmPassword) {
-                console.log('📝 Tentando registro:', username);
+                addLog(`Tentando registro: ${username}`);
                 if (!utils.debounce()) {
                     ui.showError('register', 'Aguarde antes de tentar novamente.');
                     return;
@@ -212,7 +267,7 @@
                     ui.showSuccess('Conta criada com sucesso! Faça login.');
                     ui.toggleForms();
                 } catch (err) {
-                    console.error('❌ Erro no registro:', err);
+                    addLog(`Erro no registro: ${err.message}`, 'error');
                     ui.showError('register', `Erro: ${err.message || 'Falha na conexão com o servidor.'}`);
                 } finally {
                     ui.toggleLoading('registerButton', false);
@@ -220,26 +275,58 @@
             }
         };
 
-        // Interceptar erros do console
+        // Interceptar console.log e console.error
+        const originalConsoleLog = console.log;
+        console.log = function (...args) {
+            const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
+            addLog(message);
+            originalConsoleLog.apply(console, args);
+        };
+
         const originalConsoleError = console.error;
         console.error = function (...args) {
             const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
-            ui.showNotification(`Erro: ${message}`, 'error');
+            addLog(message, 'error');
             originalConsoleError.apply(console, args);
         };
 
         window.onerror = function (msg, url, lineNo, columnNo, error) {
+            addLog(`Erro global: ${msg}`, 'error');
             ui.showNotification(`Erro: ${msg}`, 'error');
             return false;
         };
 
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('📄 DOM carregado');
+            addLog('DOM carregado');
             try {
+                // Configurar botão LOG
+                const logButton = document.getElementById('logButton');
+                const logModal = document.getElementById('logModal');
+                const closeLogModal = document.getElementById('closeLogModal');
+                if (logButton && logModal && closeLogModal) {
+                    logButton.addEventListener('click', () => {
+                        addLog('Abrindo modal de logs');
+                        ui.updateLogModal();
+                        logModal.style.display = 'block';
+                    });
+                    closeLogModal.addEventListener('click', () => {
+                        addLog('Fechando modal de logs');
+                        logModal.style.display = 'none';
+                    });
+                    window.addEventListener('click', (event) => {
+                        if (event.target === logModal) {
+                            addLog('Fechando modal de logs (clique fora)');
+                            logModal.style.display = 'none';
+                        }
+                    });
+                } else {
+                    addLog('Elementos do modal de logs não encontrados', 'error');
+                }
+
                 const loginButton = document.getElementById('loginButton');
                 if (!loginButton) throw new Error('Botão de login não encontrado');
                 loginButton.addEventListener('click', () => {
-                    console.log('🔑 Botão de login clicado');
+                    addLog('Botão de login clicado');
                     auth.login(
                         document.getElementById('username').value.trim(),
                         document.getElementById('password').value.trim()
@@ -249,7 +336,7 @@
                 const registerButton = document.getElementById('registerButton');
                 if (!registerButton) throw new Error('Botão de registro não encontrado');
                 registerButton.addEventListener('click', () => {
-                    console.log('📝 Botão de registro clicado');
+                    addLog('Botão de registro clicado');
                     auth.register(
                         document.getElementById('newUsername').value.trim(),
                         document.getElementById('newPassword').value.trim(),
@@ -260,18 +347,18 @@
                 const toggleRegister = document.getElementById('toggleRegister');
                 if (!toggleRegister) throw new Error('Link de registro não encontrado');
                 toggleRegister.addEventListener('click', () => {
-                    console.log('🔄 Alternando para registro');
+                    addLog('Alternando para registro');
                     ui.toggleForms();
                 });
 
                 const toggleLogin = document.getElementById('toggleLogin');
                 if (!toggleLogin) throw new Error('Link de login não encontrado');
                 toggleLogin.addEventListener('click', () => {
-                    console.log('🔑 Alternando para login');
+                    addLog('Alternando para login');
                     ui.toggleForms();
                 });
             } catch (err) {
-                console.error('❌ Erro ao configurar eventos:', err);
+                addLog(`Erro ao configurar eventos: ${err.message}`, 'error');
                 ui.showNotification('Erro ao inicializar a interface.', 'error');
             }
         });

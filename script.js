@@ -11,30 +11,39 @@ const CONFIG = {
 
 const state = {
     currentUser: null,
-    lastAction: null
+    lastAction: null,
+    logs: [] // Armazena logs para o modal
 };
 
 const SUPABASE_URL = 'https://iritzeslrciinopmhqgn.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyaXR6ZXNscmNpaW5vcG1ocWduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjkxMjYyNjQsImV4cCI6MjA2NDcwMjI2MH0.me1stNa7TUuR0tdpLlJT1hVjVvePTzReYfY8_jRO1xo';
 let supabaseClient = null;
 
+// Função para adicionar logs ao estado
+function addLog(message, type = 'log') {
+    const timestamp = new Date().toLocaleTimeString();
+    state.logs.push({ message, type, timestamp });
+    if (state.logs.length > 100) state.logs.shift(); // Limita a 100 logs
+    console[type === 'error' ? 'error' : 'log'](`[${timestamp}] ${message}`);
+}
+
 try {
     if (!window.supabase) {
         throw new Error('Biblioteca Supabase não carregada.');
     }
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.log('✅ Supabase inicializado:', SUPABASE_URL);
+    addLog('Supabase inicializado: ' + SUPABASE_URL);
     window.supabaseClient = supabaseClient;
     // Testar conexão
     supabaseClient.from('users').select('count', { head: true }).then(({ error }) => {
         if (error) {
-            console.error('❌ Teste de conexão falhou:', error);
+            addLog('Teste de conexão falhou: ' + error.message, 'error');
         } else {
-            console.log('✅ Conexão com Supabase bem-sucedida.');
+            addLog('Conexão com Supabase bem-sucedida.');
         }
     });
 } catch (err) {
-    console.error('❌ Erro ao inicializar Supabase:', err);
+    addLog('Erro ao inicializar Supabase: ' + err.message, 'error');
 }
 
 const utils = {
@@ -43,7 +52,7 @@ const utils = {
             try {
                 return await fn();
             } catch (error) {
-                console.warn(`⚠️ Tentativa ${attempt} falhou:`, error);
+                addLog(`Tentativa ${attempt} falhou: ${error.message}`, 'error');
                 if (attempt === retries) throw error;
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
@@ -51,33 +60,33 @@ const utils = {
     },
 
     checkAuth() {
-        console.log('🔍 Verificando autenticação...');
+        addLog('Verificando autenticação...');
         const sessionStart = localStorage.getItem('sessionStart');
         if (!sessionStart) {
-            console.log('No session found.');
+            addLog('Nenhuma sessão encontrada.');
             return false;
         }
-        const elapsedMinutes = (Date.now() - parseInt(sessionStartsession)) / (1000 * 60);
-        if (elapsedMinutes > CONFIG.SESSISION_DURATION_MINUTES) {
-            console.log('Session expired.');
+        const elapsedMinutes = (Date.now() - parseInt(sessionStart)) / (1000 * 60);
+        if (elapsedMinutes > CONFIG.SESSION_DURATION_MINUTES) {
+            addLog('Sessão expirada.');
             localStorage.removeItem('currentUser');
             localStorage.removeItem('sessionStart');
             state.currentUser = null;
             return false;
         }
         state.currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        console.log('✅ Authenticated user:', state.currentUser});
+        addLog('Usuário autenticado: ' + JSON.stringify(state.currentUser));
         return !!state.currentUser.username;
     },
 
     sanitizeInput(input) {
         if (typeof input !== 'string') return '';
         return input.replace(/[&<>"']/g, char => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&apos;'
+            '&': '&',
+            '<': '<',
+            '>': '>',
+            '"': '"',
+            "'": '''
         })[char]);
     },
 
@@ -115,8 +124,8 @@ const utils = {
             state.lastAction = Date.now();
             return true;
         }
-        const now = new Date.now();
-        if (now - state.lastAction >= CONFIG.DEBOUNCE_MSMS) {
+        const now = Date.now();
+        if (now - state.lastAction >= CONFIG.DEBOUNCE_MS) {
             state.lastAction = now;
             return true;
         }

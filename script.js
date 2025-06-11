@@ -1,5 +1,5 @@
 /**
- * script.js - Configurações globais, estado, Supabase e utilitários para LOGAN CC's
+ * script.js - Configurações globais e utilitários para LOGAN CC's
  */
 const CONFIG = {
     API_RETRY_COUNT: 3,
@@ -12,38 +12,14 @@ const CONFIG = {
 const state = {
     currentUser: null,
     lastAction: null,
-    logs: [] // Armazena logs para o modal
+    logs: []
 };
 
-const SUPABASE_URL = 'https://iritzeslrciinopmhqgn.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyaXR6ZXNscmNpaW5vcG1ocWduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjkxMjYyNjQsImV4cCI6MjA2NDcwMjI2MH0.me1stNa7TUuR0tdpLlJT1hVjVvePTzReYfY8_jRO1xo';
-let supabaseClient = null;
-
-// Função para adicionar logs ao estado
 function addLog(message, type = 'log') {
     const timestamp = new Date().toLocaleTimeString();
     state.logs.push({ message, type, timestamp });
-    if (state.logs.length > 100) state.logs.shift(); // Limita a 100 logs
+    if (state.logs.length > 100) state.logs.shift();
     console[type === 'error' ? 'error' : 'log'](`[${timestamp}] ${message}`);
-}
-
-try {
-    if (!window.supabase) {
-        throw new Error('Biblioteca Supabase não carregada.');
-    }
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    addLog('Supabase inicializado: ' + SUPABASE_URL);
-    window.supabaseClient = supabaseClient;
-    // Testar conexão
-    supabaseClient.from('users').select('count', { head: true }).then(({ error }) => {
-        if (error) {
-            addLog('Teste de conexão falhou: ' + error.message, 'error');
-        } else {
-            addLog('Conexão com Supabase bem-sucedida.');
-        }
-    });
-} catch (err) {
-    addLog('Erro ao inicializar Supabase: ' + err.message, 'error');
 }
 
 const utils = {

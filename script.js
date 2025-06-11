@@ -16,8 +16,13 @@ const state = {
 
 const SUPABASE_URL = 'https://iritzeslrciinopmhqgn.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyaXR6ZXNscmNpaW5vcG1ocWduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjkxMjYyNjQsImV4cCI6MjA2NDcwMjI2MH0.me1stNa7TUuR0tdpLlJT1hVjVvePTzReYfY8_jRO1xo';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-console.log('Supabase inicializado:', SUPABASE_URL);
+try {
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('Supabase inicializado:', SUPABASE_URL);
+    window.supabaseClient = supabase; // Expor globalmente para testes
+} catch (err) {
+    console.error('Erro ao inicializar Supabase:', err);
+}
 
 const utils = {
     async withRetry(fn, retries = CONFIG.API_RETRY_COUNT, delay = CONFIG.API_RETRY_DELAY_MS) {
@@ -25,37 +30,42 @@ const utils = {
             try {
                 return await fn();
             } catch (error) {
-                if (attempt === retries) throw error;
                 console.warn(`Tentativa ${attempt} falhou:`, error);
+                if (attempt === retries) throw error;
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
         }
     },
 
     checkAuth() {
+        console.log('Verificando autenticação...');
         const sessionStart = localStorage.getItem('sessionStart');
-        if (!sessionStart) return false;
+        if (!sessionStart) {
+            console.log('Nenhuma sessão encontrada.');
+            return false;
+        }
         const elapsedMinutes = (Date.now() - parseInt(sessionStart)) / (1000 * 60);
         if (elapsedMinutes > CONFIG.SESSION_DURATION_MINUTES) {
+            console.log('Sessão expirada.');
             localStorage.removeItem('currentUser');
             localStorage.removeItem('sessionStart');
             state.currentUser = null;
             return false;
         }
-        state.currentUser = JSON.parse(localStorage.getItem('currentUser'));
-        return !!state.currentUser;
+        state.currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        console.log('Usuário autenticado:', state.currentUser);
+        return !!state.currentUser.username;
     },
 
     sanitizeInput(input) {
         if (typeof input !== 'string') return '';
-        return input.replace(/[&<>"'\/]/g, char => ({
+        return input.replace(/[&<>"']/g, char => ({
             '&': '&amp;',
             '<': '&lt;',
             '>': '&gt;',
             '"': '&quot;',
-            "'": '&#39;',
-            '/': '&#x2F;'
-        })[char] || char);
+            "'": '&#39;'
+        })[char]);
     },
 
     validateCardNumber(cardNumber) {

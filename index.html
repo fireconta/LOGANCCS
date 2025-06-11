@@ -1,108 +1,245 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LOGAN CC's - Login</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.9/purify.min.js"></script>
-    <script src="script.js" defer></script>
-    <script src="index.js" defer></script>
+    <!-- Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .notification {
+            position: relative;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+            transition: opacity 0.3s ease;
+            opacity: 1;
+            max-width: 300px;
+        }
+    </style>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center">
-    <div id="globalLoader">
-        <div class="spinner"></div>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
+    <!-- Div para notificações -->
+    <div id="notifications" class="fixed top-4 right-4 space-y-2 z-50"></div>
+
+    <!-- Formulário de Login -->
+    <div id="loginContainer" class="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md">
+        <h2 class="text-2xl font-bold mb-6 text-center">Login - LOGAN CC's</h2>
+        <div class="space-y-4">
+            <input id="username" type="text" class="w-full p-3 bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Usuário" autocomplete="username">
+            <input id="password" type="password" class="w-full p-3 bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Senha" autocomplete="current-password">
+            <button id="loginButton" class="w-full p-3 bg-green-500 hover:bg-green-600 rounded-md font-semibold transition duration-200">Entrar</button>
+            <div id="loginError" class="hidden text-red-500 text-sm mt-2 text-center"></div>
+            <p class="text-center mt-4">Não tem conta? <a id="toggleRegister" class="text-green-500 hover:underline cursor-pointer">Registre-se</a></p>
+        </div>
     </div>
-    <div id="notifications" class="fixed top-4 right-4 z-[10000] space-y-2"></div>
-    <div class="container max-w-md mx-auto p-6 bg-gray-800 rounded-lg shadow-lg">
-        <!-- Formulário de Login -->
-        <form id="loginContainer" class="space-y-4" novalidate>
-            <h1 class="text-3xl font-bold text-center text-green-500">LOGAN CC's</h1>
-            <div class="space-y-4">
-                <div>
-                    <label for="username" class="block text-sm font-medium"><i class="fas fa-user mr-2"></i>Usuário</label>
-                    <input type="text" id="username" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Digite seu usuário" required pattern="[a-zA-Z0-9]{3,}" aria-describedby="loginError">
-                </div>
-                <div>
-                    <label for="password" class="block text-sm font-medium"><i class="fas fa-lock mr-2"></i>Senha</label>
-                    <input type="password" id="password" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Digite sua senha" required minlength="4" aria-describedby="loginError">
-                </div>
-                <p id="loginError" class="text-red-500 text-sm hidden" role="alert"></p>
-                <button type="button" id="loginButton" class="w-full py-2 bg-green-500 text-white rounded hover:bg-green-600 transition flex items-center justify-center">
-                    <i class="fas fa-sign-in-alt mr-2"></i>Entrar
-                </button>
-                <p class="text-center text-sm">
-                    Não tem uma conta? <button type="button" id="toggleRegister" class="text-green-500 hover:underline">Registre-se</button>
-                </p>
-            </div>
-        </form>
-        <!-- Formulário de Registro -->
-        <form id="registerContainer" class="space-y-4 hidden" novalidate>
-            <h1 class="text-3xl font-bold text-center text-green-500">LOGAN CC's - Registro</h1>
-            <div class="space-y-4">
-                <div>
-                    <label for="newUsername" class="block text-sm font-medium"><i class="fas fa-user mr-2"></i>Usuário</label>
-                    <input type="text" id="newUsername" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Escolha um usuário" required pattern="[a-zA-Z0-9]{3,}" aria-describedby="registerError">
-                </div>
-                <div>
-                    <label for="newPassword" class="block text-sm font-medium"><i class="fas fa-lock mr-2"></i>Senha</label>
-                    <input type="password" id="newPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Crie uma senha" required minlength="4" aria-describedby="registerError">
-                </div>
-                <div>
-                    <label for="confirmPassword" class="block text-sm font-medium"><i class="fas fa-lock mr-2"></i>Confirmar Senha</label>
-                    <input type="password" id="confirmPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Confirme sua senha" required minlength="4" aria-describedby="registerError">
-                </div>
-                <p id="registerError" class="text-red-500 text-sm hidden" role="alert"></p>
-                <button type="button" id="registerButton" class="w-full py-2 bg-green-500 text-white rounded hover:bg-green-600 transition flex items-center justify-center">
-                    <i class="fas fa-user-plus mr-2"></i>Registrar
-                </button>
-                <p class="text-center text-sm">
-                    Já tem uma conta? <button type="button" id="toggleLogin" class="text-green-500 hover:underline">Faça login</button>
-                </p>
-            </div>
-        </form>
+
+    <!-- Formulário de Registro -->
+    <div id="registerContainer" class="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md hidden">
+        <h2 class="text-2xl font-bold mb-6 text-center">Registro - LOGAN CC's</h2>
+        <div class="space-y-4">
+            <input id="newUsername" type="text" class="w-full p-3 bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Usuário" autocomplete="username">
+            <input id="newPassword" type="password" class="w-full p-3 bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Senha" autocomplete="new-password">
+            <input id="confirmPassword" type="password" class="w-full p-3 bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Confirmar Senha" autocomplete="new-password">
+            <button id="registerButton" class="w-full p-3 bg-green-500 hover:bg-green-600 rounded-md font-semibold transition duration-200">Registrar</button>
+            <div id="registerError" class="hidden text-red-500 text-sm mt-2 text-center"></div>
+            <p class="text-center mt-4">Já tem conta? <a id="toggleLogin" class="text-green-500 hover:underline cursor-pointer">Faça login</a></p>
+        </div>
     </div>
+
+    <!-- Scripts -->
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" integrity="sha512-6n1/EF5T+kwuZSOv0V29A3tM0zNRh0Yz2v0T2BRbEboNs0yHOeI0z7D7o4ZQmCVoex7/0zGWNUkW+YSUOxv3bNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- Configurações Globais -->
+    <script src="script.js"></script>
+    <!-- Lógica da Página -->
+    <script>
+        const ui = {
+            showNotification(message, type = 'error') {
+                console.log('Notificação:', message, type);
+                const notificationsDiv = document.getElementById('notifications');
+                if (!notificationsDiv) {
+                    console.error('Div #notifications não encontrada');
+                    return;
+                }
+                const notification = document.createElement('div');
+                notification.className = `notification p-4 rounded-lg text-white shadow-lg ${type === 'error' ? 'bg-red-500' : type === 'success' ? 'bg-green-500' : 'bg-blue-500'}`;
+                notification.textContent = utils.sanitizeInput(message);
+                notificationsDiv.appendChild(notification);
+                setTimeout(() => notification.remove(), CONFIG.NOTIFICATION_DURATION_MS);
+            },
+
+            showError(context, message) {
+                this.showNotification(message, 'error');
+                const errorElement = document.getElementById(`${context}Error`);
+                if (errorElement) {
+                    errorElement.textContent = message;
+                    errorElement.classList.remove('hidden');
+                }
+            },
+
+            showSuccess(message) {
+                this.showNotification(message, 'success');
+            },
+
+            toggleLoading(buttonId, isLoading) {
+                const button = document.getElementById(buttonId);
+                if (button) {
+                    button.disabled = isLoading;
+                    button.innerHTML = isLoading ? 'Carregando...' : (buttonId === 'loginButton' ? 'Entrar' : 'Registrar');
+                }
+            },
+
+            toggleForms() {
+                const loginContainer = document.getElementById('loginContainer');
+                const registerContainer = document.getElementById('registerContainer');
+                if (loginContainer && registerContainer) {
+                    loginContainer.classList.toggle('hidden');
+                    registerContainer.classList.toggle('hidden');
+                }
+            }
+        };
+
+        const auth = {
+            async login(username, password) {
+                console.log('Login:', username);
+                if (!utils.debounce()) {
+                    ui.showError('login', 'Aguarde antes de tentar novamente.');
+                    return;
+                }
+                username = utils.sanitizeInput(username);
+                password = utils.sanitizeInput(password);
+                if (!username || !password) {
+                    ui.showError('login', 'Usuário e senha são obrigatórios.');
+                    return;
+                }
+                ui.toggleLoading('loginButton', true);
+                try {
+                    const { data, error } = await utils.withRetry(() =>
+                        supabase.from('users').select('id, username, password, balance, is_admin').eq('username', username).single()
+                    );
+                    console.log('Supabase response:', data, error);
+                    if (error || !data) {
+                        ui.showError('login', 'Usuário ou senha inválidos.');
+                        return;
+                    }
+                    if (data.password !== password) {
+                        ui.showError('login', 'Senha incorreta.');
+                        return;
+                    }
+                    state.currentUser = {
+                        id: data.id,
+                        username: data.username,
+                        balance: data.balance || 0,
+                        is_admin: data.is_admin || false
+                    };
+                    localStorage.setItem('currentUser', JSON.stringify(state.currentUser));
+                    localStorage.setItem('sessionStart', Date.now().toString());
+                    ui.showSuccess(`Bem-vindo, ${username}!`);
+                    setTimeout(() => window.location.href = 'shop.html', 1000);
+                } catch (err) {
+                    console.error('Erro no login:', err);
+                    ui.showError('login', `Erro: ${err.message}`);
+                } finally {
+                    ui.toggleLoading('loginButton', false);
+                }
+            },
+
+            async register(username, password, confirmPassword) {
+                console.log('Registro:', username);
+                if (!utils.debounce()) {
+                    ui.showError('register', 'Aguarde antes de tentar novamente.');
+                    return;
+                }
+                username = utils.sanitizeInput(username);
+                password = utils.sanitizeInput(password);
+                confirmPassword = utils.sanitizeInput(confirmPassword);
+                if (!username || !password || !confirmPassword) {
+                    ui.showError('register', 'Todos os campos são obrigatórios.');
+                    return;
+                }
+                if (password !== confirmPassword) {
+                    ui.showError('register', 'As senhas não coincidem.');
+                    return;
+                }
+                if (username.length < 3 || !/^[a-zA-Z0-9]+$/.test(username)) {
+                    ui.showError('register', 'Usuário deve ter pelo menos 3 caracteres alfanuméricos.');
+                    return;
+                }
+                if (password.length < 6) {
+                    ui.showError('register', 'Senha deve ter pelo menos 6 caracteres.');
+                    return;
+                }
+                ui.toggleLoading('registerButton', true);
+                try {
+                    const { data: existingUser } = await utils.withRetry(() =>
+                        supabase.from('users').select('username').eq('username', username).single()
+                    );
+                    if (existingUser) {
+                        ui.showError('register', 'Este usuário já existe.');
+                        return;
+                    }
+                    const { error } = await utils.withRetry(() =>
+                        supabase.from('users').insert([{ username, password, balance: 0, is_admin: false }])
+                    );
+                    if (error) throw error;
+                    ui.showSuccess('Conta criada com sucesso! Faça login.');
+                    ui.toggleForms();
+                } catch (err) {
+                    console.error('Erro no registro:', err);
+                    ui.showError('register', `Erro: ${err.message}`);
+                } finally {
+                    ui.toggleLoading('registerButton', false);
+                }
+            }
+        };
+
+        // Interceptar erros do console
+        const originalConsoleError = console.error;
+        console.error = function (...args) {
+            const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
+            ui.showNotification(`Erro: ${message}`, 'error');
+            originalConsoleError.apply(console, args);
+        };
+
+        window.onerror = function (msg, url, lineNo, columnNo, error) {
+            ui.showNotification(`Erro: ${msg}`, 'error');
+            return false;
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM carregado');
+            const loginButton = document.getElementById('loginButton');
+            if (loginButton) {
+                loginButton.addEventListener('click', () => {
+                    console.log('Login clicado');
+                    auth.login(
+                        document.getElementById('username').value.trim(),
+                        document.getElementById('password').value.trim()
+                    );
+                });
+            }
+            const registerButton = document.getElementById('registerButton');
+            if (registerButton) {
+                registerButton.addEventListener('click', () => {
+                    console.log('Registro clicado');
+                    auth.register(
+                        document.getElementById('newUsername').value.trim(),
+                        document.getElementById('newPassword').value.trim(),
+                        document.getElementById('confirmPassword').value.trim()
+                    );
+                });
+            }
+            const toggleRegister = document.getElementById('toggleRegister');
+            if (toggleRegister) {
+                toggleRegister.addEventListener('click', () => ui.toggleForms());
+            }
+            const toggleLogin = document.getElementById('toggleLogin');
+            if (toggleLogin) {
+                toggleLogin.addEventListener('click', () => ui.toggleForms());
+            }
+        });
+    </script>
 </body>
 </html>

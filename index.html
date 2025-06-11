@@ -16,6 +16,7 @@
             transition: opacity 0.3s ease;
             opacity: 1;
             max-width: 300px;
+            z-index: 100;
         }
     </style>
 </head>
@@ -57,7 +58,7 @@
     <script>
         const ui = {
             showNotification(message, type = 'error') {
-                console.log('Notificação:', message, type);
+                console.log('Exibindo notificação:', message, type);
                 const notificationsDiv = document.getElementById('notifications');
                 if (!notificationsDiv) {
                     console.error('Div #notifications não encontrada');
@@ -65,12 +66,16 @@
                 }
                 const notification = document.createElement('div');
                 notification.className = `notification p-4 rounded-lg text-white shadow-lg ${type === 'error' ? 'bg-red-500' : type === 'success' ? 'bg-green-500' : 'bg-blue-500'}`;
-                notification.textContent = utils.sanitizeInput(message);
+                notification.innerHTML = message; // Usar innerHTML para evitar problemas com sanitização
                 notificationsDiv.appendChild(notification);
-                setTimeout(() => notification.remove(), CONFIG.NOTIFICATION_DURATION_MS);
+                setTimeout(() => {
+                    notification.style.opacity = '0';
+                    setTimeout(() => notification.remove(), 300);
+                }, CONFIG.NOTIFICATION_DURATION_MS);
             },
 
             showError(context, message) {
+                console.log(`Erro em ${context}:`, message);
                 this.showNotification(message, 'error');
                 const errorElement = document.getElementById(`${context}Error`);
                 if (errorElement) {
@@ -80,6 +85,7 @@
             },
 
             showSuccess(message) {
+                console.log('Sucesso:', message);
                 this.showNotification(message, 'success');
             },
 
@@ -92,20 +98,27 @@
             },
 
             toggleForms() {
+                console.log('Alternando formulários');
                 const loginContainer = document.getElementById('loginContainer');
                 const registerContainer = document.getElementById('registerContainer');
                 if (loginContainer && registerContainer) {
                     loginContainer.classList.toggle('hidden');
                     registerContainer.classList.toggle('hidden');
+                    document.getElementById('loginError').classList.add('hidden');
+                    document.getElementById('registerError').classList.add('hidden');
                 }
             }
         };
 
         const auth = {
             async login(username, password) {
-                console.log('Login:', username);
+                console.log('Tentando login:', username);
                 if (!utils.debounce()) {
                     ui.showError('login', 'Aguarde antes de tentar novamente.');
+                    return;
+                }
+                if (!window.supabaseClient) {
+                    ui.showError('login', 'Erro de conexão com o servidor.');
                     return;
                 }
                 username = utils.sanitizeInput(username);
@@ -117,9 +130,9 @@
                 ui.toggleLoading('loginButton', true);
                 try {
                     const { data, error } = await utils.withRetry(() =>
-                        supabase.from('users').select('id, username, password, balance, is_admin').eq('username', username).single()
+                        window.supabaseClient.from('users').select('id, username, password, balance, is_admin').eq('username', username).single()
                     );
-                    console.log('Supabase response:', data, error);
+                    console.log('Resposta do Supabase:', { data, error });
                     if (error || !data) {
                         ui.showError('login', 'Usuário ou senha inválidos.');
                         return;
@@ -137,19 +150,26 @@
                     localStorage.setItem('currentUser', JSON.stringify(state.currentUser));
                     localStorage.setItem('sessionStart', Date.now().toString());
                     ui.showSuccess(`Bem-vindo, ${username}!`);
-                    setTimeout(() => window.location.href = 'shop.html', 1000);
+                    setTimeout(() => {
+                        console.log('Redirecionando para shop.html');
+                        window.location.href = 'shop.html';
+                    }, 1000);
                 } catch (err) {
                     console.error('Erro no login:', err);
-                    ui.showError('login', `Erro: ${err.message}`);
+                    ui.showError('login', `Erro: ${err.message || 'Falha na conexão.'}`);
                 } finally {
                     ui.toggleLoading('loginButton', false);
                 }
             },
 
             async register(username, password, confirmPassword) {
-                console.log('Registro:', username);
+                console.log('Tentando registro:', username);
                 if (!utils.debounce()) {
                     ui.showError('register', 'Aguarde antes de tentar novamente.');
+                    return;
+                }
+                if (!window.supabaseClient) {
+                    ui.showError('register', 'Erro de conexão com o servidor.');
                     return;
                 }
                 username = utils.sanitizeInput(username);
@@ -173,22 +193,22 @@
                 }
                 ui.toggleLoading('registerButton', true);
                 try {
-                    const { data: existingUser } = await utils.withRetry(() =>
-                        supabase.from('users').select('username').eq('username', username).single()
+                    const { data: existingUser, error: checkError } = await utils.withRetry(() =>
+                        window.supabaseClient.from('users').select('username').eq('username', username).single()
                     );
-                    if (existingUser) {
+                    if (existingUser && !checkError) {
                         ui.showError('register', 'Este usuário já existe.');
                         return;
                     }
                     const { error } = await utils.withRetry(() =>
-                        supabase.from('users').insert([{ username, password, balance: 0, is_admin: false }])
+                        window.supabaseClient.from('users').insert([{ username, password, balance: 0, is_admin: false }])
                     );
                     if (error) throw error;
                     ui.showSuccess('Conta criada com sucesso! Faça login.');
                     ui.toggleForms();
                 } catch (err) {
                     console.error('Erro no registro:', err);
-                    ui.showError('register', `Erro: ${err.message}`);
+                    ui.showError('register', `Erro: ${err.message || 'Falha na conexão.'}`);
                 } finally {
                     ui.toggleLoading('registerButton', false);
                 }
@@ -210,8 +230,9 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             console.log('DOM carregado');
-            const loginButton = document.getElementById('loginButton');
-            if (loginButton) {
+            try {
+                const loginButton = document.getElementById('loginButton');
+                if (!loginButton) throw new Error('Botão de login não encontrado');
                 loginButton.addEventListener('click', () => {
                     console.log('Login clicado');
                     auth.login(
@@ -219,9 +240,9 @@
                         document.getElementById('password').value.trim()
                     );
                 });
-            }
-            const registerButton = document.getElementById('registerButton');
-            if (registerButton) {
+
+                const registerButton = document.getElementById('registerButton');
+                if (!registerButton) throw new Error('Botão de registro não encontrado');
                 registerButton.addEventListener('click', () => {
                     console.log('Registro clicado');
                     auth.register(
@@ -230,14 +251,16 @@
                         document.getElementById('confirmPassword').value.trim()
                     );
                 });
-            }
-            const toggleRegister = document.getElementById('toggleRegister');
-            if (toggleRegister) {
+
+                const toggleRegister = document.getElementById('toggleRegister');
+                if (!toggleRegister) throw new Error('Link de registro não encontrado');
                 toggleRegister.addEventListener('click', () => ui.toggleForms());
-            }
-            const toggleLogin = document.getElementById('toggleLogin');
-            if (toggleLogin) {
+
+                const toggleLogin = document.getElementById('toggleLogin');
+                if (!toggleLogin) throw new Error('Link de login não encontrado');
                 toggleLogin.addEventListener('click', () => ui.toggleForms());
+            } catch (err) {
+                console.error('Erro ao configurar eventos:', err);
             }
         });
     </script>

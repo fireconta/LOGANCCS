@@ -9,22 +9,31 @@
     <style>
         .notification {
             position: fixed;
-            top: 1rem;
-            right: 1rem;
-            padding: 1rem;
-            border-radius: 0.5rem;
+            top: 20px;
+            right: 20px;
+            padding: 15px;
+            border-radius: 8px;
             color: white;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
-            transition: opacity 0.3s ease;
+            font-weight: 500;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transition: opacity 0.5s ease, transform 0.3s ease;
             opacity: 1;
-            max-width: 300px;
-            z-index: 1000;
+            min-width: 200px;
+            max-width: 400px;
+            z-index: 10000;
+            transform: translateY(0);
+        }
+        .notification.bg-red-600 { background-color: #dc2626; }
+        .notification.bg-green-600 { background-color: #16a34a; }
+        .notification.fade-out {
+            opacity: 0;
+            transform: translateY(-10px);
         }
         #logModal {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.85);
             z-index: 2000;
             overflow: auto;
         }
@@ -45,12 +54,8 @@
             font-family: monospace;
             color: #d1d5db;
         }
-        #logContent .log {
-            color: #d1d5db;
-        }
-        #logContent .error {
-            color: #f87171;
-        }
+        #logContent .log { color: #d1d5db; }
+        #logContent .error { color: #f87171; }
     </style>
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
@@ -99,276 +104,35 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js"></script>
     <!-- Configurações Globais -->
     <script src="script.js"></script>
-    <!-- Script de Inicialização do Banco -->
+    <!-- Lógica da Página -->
     <script>
         // Inicializar Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyDM3k33LjBRZmm9nXzLsABlxef_zaOmAKU",
-            authDomain: "loganccs-b030c.firebaseapp.com",
-            projectId: "loganccs-b030c",
-            storageBucket: "loganccs-b030c.firebasestorage.app",
-            messagingSenderId: "1022430732687",
-            appId: "1:1022430732687:web:40bd56c677f7f95e6d6bfa",
-            measurementId: "G-GPY8ET904E"
-        };
         try {
             firebase.initializeApp(firebaseConfig);
             window.db = firebase.firestore();
             addLog('Firebase inicializado com sucesso.');
-
-            // Script para criar e popular banco (executar uma vez)
-            async function initializeDatabase() {
-                try {
-                    // Verificar se 'users' já tem dados
-                    const usersSnapshot = await window.db.collection('users').get();
-                    if (usersSnapshot.empty) {
-                        const initialUsers = [
-                            {
-                                id: "00000000-0000-0000-0000-000000000001",
-                                username: "LVz",
-                                password: "123456",
-                                balance: 1000.00,
-                                is_admin: true,
-                                created_at: "2025-06-10 13:58:23.787395+00"
-                            }
-                        ];
-                        for (const user of initialUsers) {
-                            await window.db.collection('users').doc(user.id).set({
-                                username: user.username,
-                                password: user.password,
-                                balance: user.balance,
-                                is_admin: user.is_admin,
-                                created_at: user.created_at
-                            });
-                            addLog(`Usuário ${user.username} criado com ID ${user.id}.`);
-                        }
-                    } else {
-                        addLog('Coleção users já existe, pulando criação.');
-                    }
-
-                    // Verificar se 'cards' já tem dados
-                    const cardsSnapshot = await window.db.collection('cards').get();
-                    if (cardsSnapshot.empty) {
-                        const initialCards = [
-                            {
-                                id: "00000000-0000-0000-0000-000000000101",
-                                numero: "4532015112830366",
-                                cvv: "123",
-                                expiry: "12/27",
-                                name: "João Silva",
-                                cpf: "12345678901",
-                                bandeira: "Visa",
-                                banco: "Nubank",
-                                nivel: "Platinum",
-                                price: 25.00,
-                                bin: "453201",
-                                acquired: false,
-                                user_id: null,
-                                created_at: "2025-06-10 13:58:23.787395+00"
-                            },
-                            {
-                                id: "00000000-0000-0000-0000-000000000102",
-                                numero: "5555666677778884",
-                                cvv: "456",
-                                expiry: "06/28",
-                                name: "Maria Oliveira",
-                                cpf: "98765432109",
-                                bandeira: "Mastercard",
-                                banco: "Itaú",
-                                nivel: "Black",
-                                price: 50.00,
-                                bin: "555566",
-                                acquired: false,
-                                user_id: null,
-                                created_at: "2025-06-10 13:58:23.787395+00"
-                            },
-                            {
-                                id: "00000000-0000-0000-0000-000000000103",
-                                numero: "3782822463100059",
-                                cvv: "789",
-                                expiry: "03/29",
-                                name: "Pedro Santos",
-                                cpf: "45678912345",
-                                bandeira: "Amex",
-                                banco: "Bradesco",
-                                nivel: "Gold",
-                                price: 30.00,
-                                bin: "378282",
-                                acquired: false,
-                                user_id: null,
-                                created_at: "2025-06-10 13:58:23.787395+00"
-                            },
-                            {
-                                id: "00000000-0000-0000-0000-000000000104",
-                                numero: "6362970000457013",
-                                cvv: "321",
-                                expiry: "09/26",
-                                name: "Ana Costa",
-                                cpf: "78912345678",
-                                bandeira: "Elo",
-                                banco: "Santander",
-                                nivel: "Classic",
-                                price: 10.00,
-                                bin: "636297",
-                                acquired: false,
-                                user_id: null,
-                                created_at: "2025-06-10 13:58:23.787395+00"
-                            },
-                            {
-                                id: "00000000-0000-0000-0000-000000000105",
-                                numero: "6062825624254001",
-                                cvv: "654",
-                                expiry: "11/28",
-                                name: "Lucas Pereira",
-                                cpf: "32165498712",
-                                bandeira: "Hipercard",
-                                banco: "Banco do Brasil",
-                                nivel: "Platinum",
-                                price: 20.00,
-                                bin: "606282",
-                                acquired: false,
-                                user_id: null,
-                                created_at: "2025-06-10 13:58:23.787395+00"
-                            },
-                            {
-                                id: "00000000-0000-0000-0000-000000000106",
-                                numero: "3056930902590481",
-                                cvv: "987",
-                                expiry: "05/30",
-                                name: "Fernanda Lima",
-                                cpf: "65498732145",
-                                bandeira: "Diners Club",
-                                banco: "Caixa Econômica Federal",
-                                nivel: "Black",
-                                price: 45.00,
-                                bin: "305693",
-                                acquired: false,
-                                user_id: null,
-                                created_at: "2025-06-10 13:58:23.787395+00"
-                            },
-                            {
-                                id: "00000000-0000-0000-0000-000000000107",
-                                numero: "4532731234567890",
-                                cvv: "147",
-                                expiry: "08/27",
-                                name: "Rafael Almeida",
-                                cpf: "14725836901",
-                                bandeira: "Visa",
-                                banco: "Sicredi",
-                                nivel: "Classic",
-                                price: 5.00,
-                                bin: "453273",
-                                acquired: false,
-                                user_id: null,
-                                created_at: "2025-06-10 13:58:23.787395+00"
-                            },
-                            {
-                                id: "00000000-0000-0000-0000-000000000108",
-                                numero: "5456789012345678",
-                                cvv: "258",
-                                expiry: "02/29",
-                                name: "Camila Souza",
-                                cpf: "25836914702",
-                                bandeira: "Mastercard",
-                                banco: "Sicoob",
-                                nivel: "Gold",
-                                price: 15.00,
-                                bin: "545678",
-                                acquired: false,
-                                user_id: null,
-                                created_at: "2025-06-10 13:58:23.787395+00"
-                            },
-                            {
-                                id: "00000000-0000-0000-0000-000000000109",
-                                numero: "5091234567890123",
-                                cvv: "369",
-                                expiry: "04/28",
-                                name: "Gabriel Mendes",
-                                cpf: "36914725803",
-                                bandeira: "Elo",
-                                banco: "Nubank",
-                                nivel: "Platinum",
-                                price: 35.00,
-                                bin: "509123",
-                                acquired: false,
-                                user_id: null,
-                                created_at: "2025-06-10 13:58:23.787395+00"
-                            },
-                            {
-                                id: "00000000-0000-0000-0000-000000000110",
-                                numero: "4539123456789012",
-                                cvv: "741",
-                                expiry: "07/29",
-                                name: "Beatriz Rocha",
-                                cpf: "74125836904",
-                                bandeira: "Visa",
-                                banco: "Itaú",
-                                nivel: "Black",
-                                price: 40.00,
-                                bin: "453912",
-                                acquired: false,
-                                user_id: null,
-                                created_at: "2025-06-10 13:58:23.787395+00"
-                            }
-                        ];
-                        for (const card of initialCards) {
-                            await window.db.collection('cards').doc(card.id).set({
-                                numero: card.numero,
-                                cvv: card.cvv,
-                                expiry: card.expiry,
-                                name: card.name,
-                                cpf: card.cpf,
-                                bandeira: card.bandeira,
-                                banco: card.banco,
-                                nivel: card.nivel,
-                                price: card.price,
-                                bin: card.bin,
-                                acquired: card.acquired,
-                                user_id: card.user_id,
-                                created_at: card.created_at
-                            });
-                            addLog(`Cartão ${card.numero} criado com ID ${card.id}.`);
-                        }
-                    } else {
-                        addLog('Coleção cards já existe, pulando criação.');
-                    }
-
-                    addLog('Banco de dados inicializado com sucesso.');
-                } catch (err) {
-                    addLog(`Erro ao inicializar banco: ${err.message}`, 'error');
-                }
-            }
-
-            // Executar inicialização
-            initializeDatabase();
-
-            // Testar conexão
-            window.db.collection('users').get().then(() => {
-                addLog('Conexão com Firestore bem-sucedida.');
-            }).catch(err => {
-                addLog(`Erro ao conectar ao Firestore: ${err.message}`, 'error');
-            });
+            ui.showNotification('Firebase conectado!', 'success');
         } catch (err) {
             addLog(`Erro ao inicializar Firebase: ${err.message}`, 'error');
+            ui.showNotification('Erro ao conectar ao Firebase.', 'error');
         }
-    </script>
-    <!-- Lógica da Página -->
-    <script>
+
         const ui = {
             showNotification(message, type = 'error') {
                 addLog(`Notificação: ${message} (${type})`);
                 const notificationsDiv = document.getElementById('notifications');
                 if (!notificationsDiv) {
                     addLog('Div #notifications não encontrado', 'error');
+                    console.error('Notifications div missing');
                     return;
                 }
                 const notification = document.createElement('div');
-                notification.className = `notification p-4 rounded-lg text-white shadow-lg ${type === 'error' ? 'bg-red-600' : 'bg-green-600'}`;
-                notification.innerHTML = message;
+                notification.className = `notification ${type === 'error' ? 'bg-red-600' : 'bg-green-600'}`;
+                notification.textContent = message;
                 notificationsDiv.appendChild(notification);
                 setTimeout(() => {
-                    notification.style.opacity = '0';
-                    setTimeout(() => notification.remove(), 300);
+                    notification.classList.add('fade-out');
+                    setTimeout(() => notification.remove(), 500);
                 }, CONFIG.NOTIFICATION_DURATION_MS);
             },
 
@@ -402,8 +166,8 @@
                 if (loginContainer && registerContainer) {
                     loginContainer.classList.toggle('hidden');
                     registerContainer.classList.toggle('hidden');
-                    document.getElementById('loginError').classList.add('hidden');
-                    document.getElementById('registerError').classList.add('hidden');
+                    document.getElementById('loginError')?.classList.add('hidden');
+                    document.getElementById('registerError')?.classList.add('hidden');
                 } else {
                     addLog('Contêineres de login ou registro não encontrados', 'error');
                 }
@@ -416,6 +180,27 @@
                         .map(log => `<div class="${log.type}">${log.timestamp} - ${log.message}</div>`)
                         .join('');
                     logContent.scrollTop = logContent.scrollHeight;
+                } else {
+                    addLog('Elemento logContent não encontrado', 'error');
+                }
+            },
+
+            showLogModal() {
+                const logModal = document.getElementById('logModal');
+                if (logModal) {
+                    this.updateLogModal();
+                    logModal.style.display = 'block';
+                    addLog('Modal de logs aberto');
+                } else {
+                    addLog('Modal de logs não encontrado', 'error');
+                }
+            },
+
+            hideLogModal() {
+                const logModal = document.getElementById('logModal');
+                if (logModal) {
+                    logModal.style.display = 'none';
+                    addLog('Modal de logs fechado');
                 }
             }
         };
@@ -429,6 +214,7 @@
                 }
                 if (!window.db) {
                     ui.showError('login', 'Erro de conexão com o banco de dados.');
+                    addLog('window.db não inicializado', 'error');
                     return;
                 }
                 username = utils.sanitizeInput(username);
@@ -442,18 +228,20 @@
                     const userDoc = await window.db.collection('users')
                         .where('username', '==', username)
                         .get();
-                    addLog(`Resposta do Firestore: ${userDoc.size} usuário(s) encontrado(s)`);
+                    addLog(`Consulta Firestore retornou ${userDoc.size} usuário(s)`);
                     if (userDoc.empty) {
-                        ui.showError('login', 'Usuário ou senha inválidos.');
+                        ui.showError('login', 'Usuário não encontrado.');
                         return;
                     }
                     const user = userDoc.docs[0].data();
+                    const userId = userDoc.docs[0].id;
+                    addLog(`Usuário encontrado: ${JSON.stringify(user)}`);
                     if (user.password !== password) {
                         ui.showError('login', 'Senha incorreta.');
                         return;
                     }
                     state.currentUser = {
-                        id: userDoc.docs[0].id,
+                        id: userId,
                         username: user.username,
                         balance: user.balance || 0,
                         is_admin: user.is_admin || false
@@ -461,13 +249,13 @@
                     localStorage.setItem('currentUser', JSON.stringify(state.currentUser));
                     localStorage.setItem('sessionStart', Date.now().toString());
                     ui.showSuccess(`Bem-vindo, ${username}!`);
+                    addLog('Login bem-sucedido, redirecionando...');
                     setTimeout(() => {
-                        addLog('Redirecionando para shop.html');
                         window.location.href = 'shop.html';
                     }, 1000);
                 } catch (err) {
                     addLog(`Erro no login: ${err.message}`, 'error');
-                    ui.showError('login', `Erro: ${err.message || 'Falha na conexão.'}`);
+                    ui.showError('login', 'Erro ao fazer login. Tente novamente.');
                 } finally {
                     ui.toggleLoading('loginButton', false);
                 }
@@ -481,6 +269,7 @@
                 }
                 if (!window.db) {
                     ui.showError('register', 'Erro de conexão com o banco de dados.');
+                    addLog('window.db não inicializado', 'error');
                     return;
                 }
                 username = utils.sanitizeInput(username);
@@ -507,6 +296,7 @@
                     const userCheck = await window.db.collection('users')
                         .where('username', '==', username)
                         .get();
+                    addLog(`Consulta Firestore retornou ${userCheck.size} usuário(s) existente(s)`);
                     if (!userCheck.empty) {
                         ui.showError('register', 'Este usuário já existe.');
                         return;
@@ -518,12 +308,12 @@
                         is_admin: false,
                         created_at: new Date().toISOString()
                     });
-                    addLog(`Usuário ${username} registrado com ID ${docRef.id}.`);
+                    addLog(`Usuário ${username} registrado com ID ${docRef.id}`);
                     ui.showSuccess('Conta criada com sucesso! Faça login.');
                     ui.toggleForms();
                 } catch (err) {
                     addLog(`Erro no registro: ${err.message}`, 'error');
-                    ui.showError('register', `Erro: ${err.message || 'Falha na conexão.'}`);
+                    ui.showError('register', 'Erro ao registrar. Tente novamente.');
                 } finally {
                     ui.toggleLoading('registerButton', false);
                 }
@@ -554,63 +344,85 @@
         document.addEventListener('DOMContentLoaded', () => {
             addLog('DOM carregado');
             try {
+                // Configurar botão LOG
                 const logButton = document.getElementById('logButton');
-                const logModal = document.getElementById('logModal');
                 const closeLogModal = document.getElementById('closeLogModal');
-                if (logButton && logModal && closeLogModal) {
+                if (logButton && closeLogModal) {
                     logButton.addEventListener('click', () => {
-                        addLog('Abrindo modal de logs');
-                        ui.updateLogModal();
-                        logModal.style.display = 'block';
+                        ui.showLogModal();
                     });
                     closeLogModal.addEventListener('click', () => {
-                        addLog('Fechando modal de logs');
-                        logModal.style.display = 'none';
+                        ui.hideLogModal();
                     });
                     window.addEventListener('click', (event) => {
-                        if (event.target === logModal) {
-                            addLog('Fechando modal de logs (clique fora)');
-                            logModal.style.display = 'none';
+                        if (event.target === document.getElementById('logModal')) {
+                            ui.hideLogModal();
                         }
                     });
                 } else {
-                    addLog('Elementos do modal de logs não encontrados', 'error');
+                    addLog('Botão LOG ou botão de fechar modal não encontrados', 'error');
+                    ui.showNotification('Erro na configuração do modal.', 'error');
                 }
 
+                // Configurar login
                 const loginButton = document.getElementById('loginButton');
-                if (!loginButton) throw new Error('Botão de login não encontrado');
-                loginButton.addEventListener('click', () => {
-                    addLog('Botão de login clicado');
-                    auth.login(
-                        document.getElementById('username').value.trim(),
-                        document.getElementById('password').value.trim()
-                    );
-                });
+                if (loginButton) {
+                    loginButton.addEventListener('click', () => {
+                        addLog('Botão de login clicado');
+                        auth.login(
+                            document.getElementById('username').value.trim(),
+                            document.getElementById('password').value.trim()
+                        );
+                    });
+                } else {
+                    addLog('Botão de login não encontrado', 'error');
+                    ui.showNotification('Botão de login não encontrado.', 'error');
+                }
 
+                // Configurar registro
                 const registerButton = document.getElementById('registerButton');
-                if (!registerButton) throw new Error('Botão de registro não encontrado');
-                registerButton.addEventListener('click', () => {
-                    addLog('Botão de registro clicado');
-                    auth.register(
-                        document.getElementById('newUsername').value.trim(),
-                        document.getElementById('newPassword').value.trim(),
-                        document.getElementById('confirmPassword').value.trim()
-                    );
-                });
+                if (registerButton) {
+                    registerButton.addEventListener('click', () => {
+                        addLog('Botão de registro clicado');
+                        auth.register(
+                            document.getElementById('newUsername').value.trim(),
+                            document.getElementById('newPassword').value.trim(),
+                            document.getElementById('confirmPassword').value.trim()
+                        );
+                    });
+                } else {
+                    addLog('Botão de registro não encontrado', 'error');
+                    ui.showNotification('Botão de registro não encontrado.', 'error');
+                }
 
+                // Configurar alternância de formulários
                 const toggleRegister = document.getElementById('toggleRegister');
-                if (!toggleRegister) throw new Error('Link de registro não encontrado');
-                toggleRegister.addEventListener('click', () => {
-                    addLog('Alternando para registro');
-                    ui.toggleForms();
-                });
-
                 const toggleLogin = document.getElementById('toggleLogin');
-                if (!toggleLogin) throw new Error('Link de login não encontrado');
-                toggleLogin.addEventListener('click', () => {
-                    addLog('Alternando para login');
-                    ui.toggleForms();
-                });
+                if (toggleRegister && toggleLogin) {
+                    toggleRegister.addEventListener('click', () => {
+                        addLog('Alternando para registro');
+                        ui.toggleForms();
+                    });
+                    toggleLogin.addEventListener('click', () => {
+                        addLog('Alternando para login');
+                        ui.toggleForms();
+                    });
+                } else {
+                    addLog('Links de alternância de formulários não encontrados', 'error');
+                    ui.showNotification('Erro na alternância de formulários.', 'error');
+                }
+
+                // Inicializar banco de dados
+                if (window.db) {
+                    utils.initializeDatabase(window.db, ui);
+                    window.db.collection('users').get().then(() => {
+                        addLog('Conexão com Firestore bem-sucedida.');
+                        ui.showNotification('Conexão com Firestore OK!', 'success');
+                    }).catch(err => {
+                        addLog(`Erro ao conectar ao Firestore: ${err.message}`, 'error');
+                        ui.showNotification('Erro na conexão com Firestore.', 'error');
+                    });
+                }
             } catch (err) {
                 addLog(`Erro ao configurar eventos: ${err.message}`, 'error');
                 ui.showNotification('Erro ao inicializar a interface.', 'error');

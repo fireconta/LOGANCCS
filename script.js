@@ -1,7 +1,7 @@
 /**
  * script.js - Configurações globais e utilitários para LOGAN CC's
  */
-const CONFIG = {
+window.CONFIG = {
     API_RETRY_COUNT: 3,
     API_RETRY_DELAY_MS: 1000,
     NOTIFICATION_DURATION_MS: 5000,
@@ -10,7 +10,7 @@ const CONFIG = {
 };
 
 // Configuração do Firebase
-const firebaseConfig = {
+window.firebaseConfig = {
     apiKey: "AIzaSyDM3k33LjBRZmm9nXzLsABlxef_zaOmAKU",
     authDomain: "loganccs-b030c.firebaseapp.com",
     projectId: "loganccs-b030c",
@@ -21,23 +21,23 @@ const firebaseConfig = {
 };
 
 // Estado global
-const state = {
+window.state = {
     currentUser: null,
     lastAction: null,
     logs: []
 };
 
 // Função de log
-window.addLog = function addLog(message, type = 'log') {
+window.addLog = function(message, type = 'log') {
     const timestamp = new Date().toLocaleTimeString();
-    state.logs.push({ message, type, timestamp });
-    if (state.logs.length > 100) state.logs.shift();
+    window.state.logs.push({ message, type, timestamp });
+    if (window.state.logs.length > 100) window.state.logs.shift();
     console[type === 'error' ? 'error' : 'log'](`[${timestamp}] ${message}`);
 };
 
 // Utilitários
 window.utils = {
-    async withRetry(fn, retries = CONFIG.API_RETRY_COUNT, delay = CONFIG.API_RETRY_DELAY_MS) {
+    async withRetry(fn, retries = window.CONFIG.API_RETRY_COUNT, delay = window.CONFIG.API_RETRY_DELAY_MS) {
         for (let attempt = 1; attempt <= retries; attempt++) {
             try {
                 return await fn();
@@ -57,16 +57,16 @@ window.utils = {
             return false;
         }
         const elapsedMinutes = (Date.now() - parseInt(sessionStart)) / (1000 * 60);
-        if (elapsedMinutes > CONFIG.SESSION_DURATION_MINUTES) {
+        if (elapsedMinutes > window.CONFIG.SESSION_DURATION_MINUTES) {
             window.addLog('Sessão expirada.');
             localStorage.removeItem('currentUser');
             localStorage.removeItem('sessionStart');
-            state.currentUser = null;
+            window.state.currentUser = null;
             return false;
         }
-        state.currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        window.addLog('Usuário autenticado: ' + JSON.stringify(state.currentUser));
-        return !!state.currentUser.username;
+        window.state.currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        window.addLog('Usuário autenticado: ' + JSON.stringify(window.state.currentUser));
+        return !!window.state.currentUser.username;
     },
 
     sanitizeInput(input) {
@@ -110,13 +110,13 @@ window.utils = {
     },
 
     debounce() {
-        if (!state.lastAction) {
-            state.lastAction = Date.now();
+        if (!window.state.lastAction) {
+            window.state.lastAction = Date.now();
             return true;
         }
         const now = Date.now();
-        if (now - state.lastAction >= CONFIG.DEBOUNCE_MS) {
-            state.lastAction = now;
+        if (now - window.state.lastAction >= window.CONFIG.DEBOUNCE_MS) {
+            window.state.lastAction = now;
             return true;
         }
         return false;
@@ -124,7 +124,7 @@ window.utils = {
 
     async initializeDatabase(db, ui) {
         try {
-            // Verificar coleção 'users'
+            window.addLog('Iniciando configuração do banco de dados...');
             const usersSnapshot = await db.collection('users').get();
             if (usersSnapshot.empty) {
                 const initialUsers = [
@@ -145,7 +145,6 @@ window.utils = {
                 window.addLog('Coleção users já existe, pulando criação.');
             }
 
-            // Verificar coleção 'cards'
             const cardsSnapshot = await db.collection('cards').get();
             if (cardsSnapshot.empty) {
                 const initialCards = [
@@ -302,7 +301,7 @@ window.utils = {
                 ];
                 for (const card of initialCards) {
                     const docRef = await db.collection('cards').add(card);
-                    window.addLog(`Cartão ${card.numero} criado com ID ${docRef.id}.`);
+                    window.addLog(`Cartão ${card.numero.slice(-4)} criado com ID ${docRef.id}.`);
                     ui.showNotification(`Cartão ${card.numero.slice(-4)} criado!`, 'success');
                 }
             } else {
@@ -316,7 +315,3 @@ window.utils = {
         }
     }
 };
-
-// Exportar estado global para depuração
-window.state = state;
-window.CONFIG = CONFIG;

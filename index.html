@@ -106,6 +106,21 @@
     <script src="script.js"></script>
     <!-- Lógica da Página -->
     <script>
+        // Verificar dependências
+        if (!window.addLog) {
+            console.error('Erro: window.addLog não definido. Verifique se script.js foi carregado.');
+        }
+
+        // Inicializar Firebase
+        try {
+            firebase.initializeApp(window.firebaseConfig);
+            window.db = firebase.firestore();
+            window.addLog('Firebase inicializado com sucesso.');
+        } catch (err) {
+            console.error(`Erro ao inicializar Firebase: ${err.message}`);
+            window.addLog && window.addLog(`Erro ao inicializar Firebase: ${err.message}`, 'error');
+        }
+
         // Definir UI
         const ui = {
             showNotification(message, type = 'error') {
@@ -113,7 +128,6 @@
                 const notificationsDiv = document.getElementById('notifications');
                 if (!notificationsDiv) {
                     window.addLog('Div #notifications não encontrado', 'error');
-                    console.error('Notifications div missing');
                     return;
                 }
                 const notification = document.createElement('div');
@@ -195,18 +209,7 @@
             }
         };
 
-        // Inicializar Firebase
-        try {
-            if (!window.addLog) throw new Error('Função addLog não definida');
-            firebase.initializeApp(window.firebaseConfig);
-            window.db = firebase.firestore();
-            window.addLog('Firebase inicializado com sucesso.');
-            ui.showNotification('Firebase conectado!', 'success');
-        } catch (err) {
-            console.error(`Erro ao inicializar Firebase: ${err.message}`);
-            ui.showNotification('Erro ao conectar ao Firebase.', 'error');
-        }
-
+        // Definir autenticação
         const auth = {
             async login(username, password) {
                 window.addLog(`Tentando login: ${username}`);
@@ -322,51 +325,28 @@
             }
         };
 
-        // Interceptar console.log e console.error
-        const originalConsoleLog = console.log;
-        console.log = function (...args) {
-            const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
-            window.addLog(message);
-            originalConsoleLog.apply(console, args);
-        };
-
-        const originalConsoleError = console.error;
-        console.error = function (...args) {
-            const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
-            window.addLog(message, 'error');
-            originalConsoleError.apply(console, args);
-        };
-
-        window.onerror = function (msg, url, lineNo, columnNo, error) {
-            window.addLog(`Erro global: ${msg}`, 'error');
-            ui.showNotification(`Erro: ${msg}`, 'error');
-            return false;
-        };
-
+        // Configurar eventos
         document.addEventListener('DOMContentLoaded', () => {
             window.addLog('DOM carregado');
             try {
-                // Configurar botão LOG
+                // Botão LOG
                 const logButton = document.getElementById('logButton');
                 const closeLogModal = document.getElementById('closeLogModal');
                 if (logButton && closeLogModal) {
-                    logButton.addEventListener('click', () => {
-                        ui.showLogModal();
-                    });
-                    closeLogModal.addEventListener('click', () => {
-                        ui.hideLogModal();
-                    });
+                    logButton.addEventListener('click', () => ui.showLogModal());
+                    closeLogModal.addEventListener('click', () => ui.hideLogModal());
                     window.addEventListener('click', (event) => {
                         if (event.target === document.getElementById('logModal')) {
                             ui.hideLogModal();
                         }
                     });
+                    window.addLog('Botão LOG configurado.');
                 } else {
                     window.addLog('Botão LOG ou botão de fechar modal não encontrados', 'error');
                     ui.showNotification('Erro na configuração do modal.', 'error');
                 }
 
-                // Configurar login
+                // Login
                 const loginButton = document.getElementById('loginButton');
                 if (loginButton) {
                     loginButton.addEventListener('click', () => {
@@ -376,12 +356,13 @@
                             document.getElementById('password').value.trim()
                         );
                     });
+                    window.addLog('Botão de login configurado.');
                 } else {
                     window.addLog('Botão de login não encontrado', 'error');
                     ui.showNotification('Botão de login não encontrado.', 'error');
                 }
 
-                // Configurar registro
+                // Registro
                 const registerButton = document.getElementById('registerButton');
                 if (registerButton) {
                     registerButton.addEventListener('click', () => {
@@ -392,12 +373,13 @@
                             document.getElementById('confirmPassword').value.trim()
                         );
                     });
+                    window.addLog('Botão de registro configurado.');
                 } else {
                     window.addLog('Botão de registro não encontrado', 'error');
                     ui.showNotification('Botão de registro não encontrado.', 'error');
                 }
 
-                // Configurar alternância de formulários
+                // Alternância de formulários
                 const toggleRegister = document.getElementById('toggleRegister');
                 const toggleLogin = document.getElementById('toggleLogin');
                 if (toggleRegister && toggleLogin) {
@@ -409,8 +391,9 @@
                         window.addLog('Alternando para login');
                         ui.toggleForms();
                     });
+                    window.addLog('Links de alternância configurados.');
                 } else {
-                    window.addLog('Links de alternância de formulários não encontrados', 'error');
+                    window.addLog('Links de alternância não encontrados', 'error');
                     ui.showNotification('Erro na alternância de formulários.', 'error');
                 }
 
@@ -428,6 +411,9 @@
                     window.addLog('Erro: db ou utils não inicializados', 'error');
                     ui.showNotification('Erro ao inicializar o banco de dados.', 'error');
                 }
+
+                // Notificação inicial
+                ui.showNotification('Sistema inicializado!', 'success');
             } catch (err) {
                 window.addLog(`Erro ao configurar eventos: ${err.message}`, 'error');
                 ui.showNotification('Erro ao inicializar a interface.', 'error');

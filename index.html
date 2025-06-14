@@ -50,9 +50,27 @@
         </div>
     </div>
     <div id="debug"></div>
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js';
-        import { getFirestore } from 'https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js';
+    <script>
+        // Fallback para scripts
+        function loadScript(src, callback, fallbackSrc = null) {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = () => {
+                window.addLog(`${src} carregado`);
+                callback();
+            };
+            script.onerror = () => {
+                window.addLog(`Erro ao carregar ${src}`, 'error');
+                if (fallbackSrc) {
+                    window.addLog(`Tentando fallback ${fallbackSrc}...`);
+                    loadScript(fallbackSrc, callback);
+                } else {
+                    window.addLog(`Sem fallback para ${src}`, 'error');
+                    alert(`Erro ao carregar ${src}. Verifique a internet.`);
+                }
+            };
+            document.head.appendChild(script);
+        }
 
         window.addLog = function(message, type = 'log') {
             const timestamp = new Date().toLocaleTimeString();
@@ -64,62 +82,44 @@
         };
         window.addLog('Iniciando...');
 
-        try {
-            const firebaseConfig = {
-                apiKey: "AIzaSyDM3k33LjBRZmm9nXzLsABlxef_zaOmAKU",
-                authDomain: "loganccs-b030c.firebaseapp.com",
-                projectId: "loganccs-b030c",
-                storageBucket: "loganccs-b030c.firebasestorage.app",
-                messagingSenderId: "1022430732687",
-                appId: "1:1022430732687:web:40bd56c677f7f95e6d6bfa",
-                measurementId: "G-GPY8ET904E"
-            };
-            const app = initializeApp(firebaseConfig);
-            window.db = getFirestore(app);
-            window.addLog('Firebase inicializado');
-        } catch (err) {
-            window.addLog(`Erro Firebase: ${err.message}`, 'error');
-            alert(`Erro Firebase: ${err.message}`);
-        }
-
-        // Carregar scripts locais
-        function loadScript(src, callback) {
-            const script = document.createElement('script');
-            script.src = src;
-            script.type = 'module';
-            script.onload = () => {
-                window.addLog(`${src} carregado`);
-                callback();
-            };
-            script.onerror = () => {
-                window.addLog(`Erro ao carregar ${src}`, 'error');
-                alert(`Erro ao carregar ${src}`);
-            };
-            document.head.appendChild(script);
-        }
-
-        loadScript('./script.js', () => {
-            loadScript('./firebase-init.js', () => {
-                initApp();
-            });
-        });
+        // Carregar Firebase SDK
+        loadScript('https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js', () => {
+            loadScript('https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js', () => {
+                // Carregar scripts locais
+                loadScript('./script.js', () => {
+                    loadScript('./firebase-init.js', () => {
+                        initApp();
+                    });
+                });
+            }, 'https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js');
+        }, 'https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js');
 
         function initApp() {
             window.addLog('Iniciando app...');
 
-            if (!window.utils || !window.utils.initializeDatabase) {
+            if (!window.utils || !window.firebaseConfig) {
                 window.addLog('Erro: scripts não carregados', 'error');
                 alert('Erro: scripts não carregados.');
                 return;
             }
             window.addLog('Scripts OK');
 
-            if (!window.db) {
-                window.addLog('Erro: Firestore não inicializado', 'error');
-                alert('Erro: Firestore não inicializado.');
+            if (!window.firebase || !window.firebase.firestore) {
+                window.addLog('Erro: Firebase SDK não carregado', 'error');
+                alert('Erro: Firebase SDK não carregado.');
                 return;
             }
-            window.addLog('Firestore OK');
+            window.addLog('Firebase SDK OK');
+
+            try {
+                firebase.initializeApp(window.firebaseConfig);
+                window.db = firebase.firestore();
+                window.addLog('Firebase inicializado');
+            } catch (err) {
+                window.addLog(`Erro Firebase: ${err.message}`, 'error');
+                alert(`Erro Firebase: ${err.message}`);
+                return;
+            }
 
             const ui = {
                 showNotification(message, type = 'error') {
@@ -171,14 +171,15 @@
                     }
                     try {
                         ui.toggleLoading('loginButton', true);
-                        const userRef = window.db.collection('users');
-                        const querySnapshot = await userRef.where('username', '==', username).get();
-                        window.addLog(`Firestore: ${querySnapshot.size} usuário(s)`);
-                        if (querySnapshot.empty) {
+                        const userDoc = await window.db.collection('users')
+                            .where('username', '==', username)
+                            .get();
+                        window.addLog(`Firestore: ${userDoc.size} usuário(s)`);
+                        if (userDoc.empty) {
                             ui.showError('login', 'Usuário não encontrado');
                             return;
                         }
-                        const user = querySnapshot.docs[0].data();
+                        const user = userDoc.docs[0].data();
                         if (user.password !== password) {
                             ui.showError('login', 'Senha incorreta');
                             return;

@@ -1,7 +1,7 @@
 /**
  * script.js - Configurações para LOGAN CC's
  */
-window.addLog('script.js carregado com sucesso', 'log');
+window.addLog('script.js carregado', 'log');
 
 window.firebaseConfig = {
     apiKey: "AIzaSyDM3k33LjBRZmm9nXzLsABlxef_zaOmAKU",
@@ -20,7 +20,6 @@ window.state = {
 window.addLog = function(message, type = 'log') {
     const timestamp = new Date().toLocaleTimeString();
     window.state.logs.push({ message, type, timestamp });
-    console[type === 'error' ? 'error' : 'log'](`[${timestamp}] ${message}`);
     const debugDiv = document.getElementById('debug');
     if (debugDiv) {
         debugDiv.innerHTML += `<div class="${type}">[${timestamp}] ${message}</div>`;
@@ -30,10 +29,11 @@ window.addLog = function(message, type = 'log') {
 
 window.utils = {
     async initializeDatabase(db, ui) {
+        window.addLog('Iniciando Firestore...');
         try {
-            window.addLog('Iniciando configuração do Firestore...');
-            // Criar coleção users
-            const usersSnapshot = await db.collection('users').get();
+            // Criar users
+            const usersRef = db.collection('users');
+            const usersSnapshot = await usersRef.get();
             if (usersSnapshot.empty) {
                 const user = {
                     username: "LVz",
@@ -42,15 +42,16 @@ window.utils = {
                     is_admin: true,
                     created_at: new Date().toISOString()
                 };
-                const docRef = await db.collection('users').add(user);
-                window.addLog(`Usuário ${user.username} criado com ID ${docRef.id}`);
-                ui.showNotification(`Usuário ${user.username} criado!`, 'success');
+                const docRef = await usersRef.add(user);
+                window.addLog(`Usuário LVz criado, ID: ${docRef.id}`);
+                ui.showNotification('Usuário LVz criado!', 'success');
             } else {
                 window.addLog('Coleção users já existe');
             }
 
-            // Criar coleção cards
-            const cardsSnapshot = await db.collection('cards').get();
+            // Criar cards
+            const cardsRef = db.collection('cards');
+            const cardsSnapshot = await cardsRef.get();
             if (cardsSnapshot.empty) {
                 const card = {
                     numero: "4532015112830366",
@@ -67,18 +68,19 @@ window.utils = {
                     user_id: null,
                     created_at: new Date().toISOString()
                 };
-                const docRef = await db.collection('cards').add(card);
-                window.addLog(`Cartão ${card.numero.slice(-4)} criado com ID ${docRef.id}`);
-                ui.showNotification(`Cartão ${card.numero.slice(-4)} criado!`, 'success');
+                const docRef = await cardsRef.add(card);
+                window.addLog(`Cartão 0366 criado, ID: ${docRef.id}`);
+                ui.showNotification('Cartão 0366 criado!', 'success');
             } else {
                 window.addLog('Coleção cards já existe');
             }
 
-            window.addLog('Firestore configurado com sucesso');
-            ui.showNotification('Firestore configurado!', 'success');
+            window.addLog('Firestore configurado');
+            ui.showNotification('Firestore OK!', 'success');
         } catch (err) {
-            window.addLog(`Erro ao configurar Firestore: ${err.message}`, 'error');
+            window.addLog(`Erro Firestore: ${err.message}`, 'error');
             ui.showNotification(`Erro Firestore: ${err.message}`, 'error');
+            alert(`Erro Firestore: ${err.message}`);
         }
     }
 };

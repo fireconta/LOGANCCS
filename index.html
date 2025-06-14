@@ -106,23 +106,13 @@
     <script src="script.js"></script>
     <!-- Lógica da Página -->
     <script>
-        // Inicializar Firebase
-        try {
-            firebase.initializeApp(firebaseConfig);
-            window.db = firebase.firestore();
-            addLog('Firebase inicializado com sucesso.');
-            ui.showNotification('Firebase conectado!', 'success');
-        } catch (err) {
-            addLog(`Erro ao inicializar Firebase: ${err.message}`, 'error');
-            ui.showNotification('Erro ao conectar ao Firebase.', 'error');
-        }
-
+        // Definir UI
         const ui = {
             showNotification(message, type = 'error') {
-                addLog(`Notificação: ${message} (${type})`);
+                window.addLog(`Notificação: ${message} (${type})`);
                 const notificationsDiv = document.getElementById('notifications');
                 if (!notificationsDiv) {
-                    addLog('Div #notifications não encontrado', 'error');
+                    window.addLog('Div #notifications não encontrado', 'error');
                     console.error('Notifications div missing');
                     return;
                 }
@@ -133,11 +123,11 @@
                 setTimeout(() => {
                     notification.classList.add('fade-out');
                     setTimeout(() => notification.remove(), 500);
-                }, CONFIG.NOTIFICATION_DURATION_MS);
+                }, window.CONFIG.NOTIFICATION_DURATION_MS);
             },
 
             showError(context, message) {
-                addLog(`Erro em ${context}: ${message}`, 'error');
+                window.addLog(`Erro em ${context}: ${message}`, 'error');
                 this.showNotification(message, 'error');
                 const errorElement = document.getElementById(`${context}Error`);
                 if (errorElement) {
@@ -147,7 +137,7 @@
             },
 
             showSuccess(message) {
-                addLog(`Sucesso: ${message}`);
+                window.addLog(`Sucesso: ${message}`);
                 this.showNotification(message, 'success');
             },
 
@@ -160,7 +150,7 @@
             },
 
             toggleForms() {
-                addLog('Alternando formulários');
+                window.addLog('Alternando formulários');
                 const loginContainer = document.getElementById('loginContainer');
                 const registerContainer = document.getElementById('registerContainer');
                 if (loginContainer && registerContainer) {
@@ -169,19 +159,19 @@
                     document.getElementById('loginError')?.classList.add('hidden');
                     document.getElementById('registerError')?.classList.add('hidden');
                 } else {
-                    addLog('Contêineres de login ou registro não encontrados', 'error');
+                    window.addLog('Contêineres de login ou registro não encontrados', 'error');
                 }
             },
 
             updateLogModal() {
                 const logContent = document.getElementById('logContent');
                 if (logContent) {
-                    logContent.innerHTML = state.logs
+                    logContent.innerHTML = window.state.logs
                         .map(log => `<div class="${log.type}">${log.timestamp} - ${log.message}</div>`)
                         .join('');
                     logContent.scrollTop = logContent.scrollHeight;
                 } else {
-                    addLog('Elemento logContent não encontrado', 'error');
+                    window.addLog('Elemento logContent não encontrado', 'error');
                 }
             },
 
@@ -190,9 +180,9 @@
                 if (logModal) {
                     this.updateLogModal();
                     logModal.style.display = 'block';
-                    addLog('Modal de logs aberto');
+                    window.addLog('Modal de logs aberto');
                 } else {
-                    addLog('Modal de logs não encontrado', 'error');
+                    window.addLog('Modal de logs não encontrado', 'error');
                 }
             },
 
@@ -200,25 +190,37 @@
                 const logModal = document.getElementById('logModal');
                 if (logModal) {
                     logModal.style.display = 'none';
-                    addLog('Modal de logs fechado');
+                    window.addLog('Modal de logs fechado');
                 }
             }
         };
 
+        // Inicializar Firebase
+        try {
+            if (!window.addLog) throw new Error('Função addLog não definida');
+            firebase.initializeApp(window.firebaseConfig);
+            window.db = firebase.firestore();
+            window.addLog('Firebase inicializado com sucesso.');
+            ui.showNotification('Firebase conectado!', 'success');
+        } catch (err) {
+            console.error(`Erro ao inicializar Firebase: ${err.message}`);
+            ui.showNotification('Erro ao conectar ao Firebase.', 'error');
+        }
+
         const auth = {
             async login(username, password) {
-                addLog(`Tentando login: ${username}`);
-                if (!utils.debounce()) {
+                window.addLog(`Tentando login: ${username}`);
+                if (!window.utils.debounce()) {
                     ui.showError('login', 'Aguarde antes de tentar novamente.');
                     return;
                 }
                 if (!window.db) {
                     ui.showError('login', 'Erro de conexão com o banco de dados.');
-                    addLog('window.db não inicializado', 'error');
+                    window.addLog('window.db não inicializado', 'error');
                     return;
                 }
-                username = utils.sanitizeInput(username);
-                password = utils.sanitizeInput(password);
+                username = window.utils.sanitizeInput(username);
+                password = window.utils.sanitizeInput(password);
                 if (!username || !password) {
                     ui.showError('login', 'Usuário e senha são obrigatórios.');
                     return;
@@ -228,33 +230,33 @@
                     const userDoc = await window.db.collection('users')
                         .where('username', '==', username)
                         .get();
-                    addLog(`Consulta Firestore retornou ${userDoc.size} usuário(s)`);
+                    window.addLog(`Consulta Firestore retornou ${userDoc.size} usuário(s)`);
                     if (userDoc.empty) {
                         ui.showError('login', 'Usuário não encontrado.');
                         return;
                     }
                     const user = userDoc.docs[0].data();
                     const userId = userDoc.docs[0].id;
-                    addLog(`Usuário encontrado: ${JSON.stringify(user)}`);
+                    window.addLog(`Usuário encontrado: ${JSON.stringify(user)}`);
                     if (user.password !== password) {
                         ui.showError('login', 'Senha incorreta.');
                         return;
                     }
-                    state.currentUser = {
+                    window.state.currentUser = {
                         id: userId,
                         username: user.username,
                         balance: user.balance || 0,
                         is_admin: user.is_admin || false
                     };
-                    localStorage.setItem('currentUser', JSON.stringify(state.currentUser));
+                    localStorage.setItem('currentUser', JSON.stringify(window.state.currentUser));
                     localStorage.setItem('sessionStart', Date.now().toString());
                     ui.showSuccess(`Bem-vindo, ${username}!`);
-                    addLog('Login bem-sucedido, redirecionando...');
+                    window.addLog('Login bem-sucedido, redirecionando...');
                     setTimeout(() => {
                         window.location.href = 'shop.html';
                     }, 1000);
                 } catch (err) {
-                    addLog(`Erro no login: ${err.message}`, 'error');
+                    window.addLog(`Erro no login: ${err.message}`, 'error');
                     ui.showError('login', 'Erro ao fazer login. Tente novamente.');
                 } finally {
                     ui.toggleLoading('loginButton', false);
@@ -262,19 +264,19 @@
             },
 
             async register(username, password, confirmPassword) {
-                addLog(`Tentando registro: ${username}`);
-                if (!utils.debounce()) {
+                window.addLog(`Tentando registro: ${username}`);
+                if (!window.utils.debounce()) {
                     ui.showError('register', 'Aguarde antes de tentar novamente.');
                     return;
                 }
                 if (!window.db) {
                     ui.showError('register', 'Erro de conexão com o banco de dados.');
-                    addLog('window.db não inicializado', 'error');
+                    window.addLog('window.db não inicializado', 'error');
                     return;
                 }
-                username = utils.sanitizeInput(username);
-                password = utils.sanitizeInput(password);
-                confirmPassword = utils.sanitizeInput(confirmPassword);
+                username = window.utils.sanitizeInput(username);
+                password = window.utils.sanitizeInput(password);
+                confirmPassword = window.utils.sanitizeInput(confirmPassword);
                 if (!username || !password || !confirmPassword) {
                     ui.showError('register', 'Todos os campos são obrigatórios.');
                     return;
@@ -296,7 +298,7 @@
                     const userCheck = await window.db.collection('users')
                         .where('username', '==', username)
                         .get();
-                    addLog(`Consulta Firestore retornou ${userCheck.size} usuário(s) existente(s)`);
+                    window.addLog(`Consulta Firestore retornou ${userCheck.size} usuário(s) existente(s)`);
                     if (!userCheck.empty) {
                         ui.showError('register', 'Este usuário já existe.');
                         return;
@@ -308,11 +310,11 @@
                         is_admin: false,
                         created_at: new Date().toISOString()
                     });
-                    addLog(`Usuário ${username} registrado com ID ${docRef.id}`);
+                    window.addLog(`Usuário ${username} registrado com ID ${docRef.id}`);
                     ui.showSuccess('Conta criada com sucesso! Faça login.');
                     ui.toggleForms();
                 } catch (err) {
-                    addLog(`Erro no registro: ${err.message}`, 'error');
+                    window.addLog(`Erro no registro: ${err.message}`, 'error');
                     ui.showError('register', 'Erro ao registrar. Tente novamente.');
                 } finally {
                     ui.toggleLoading('registerButton', false);
@@ -324,25 +326,25 @@
         const originalConsoleLog = console.log;
         console.log = function (...args) {
             const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
-            addLog(message);
+            window.addLog(message);
             originalConsoleLog.apply(console, args);
         };
 
         const originalConsoleError = console.error;
         console.error = function (...args) {
             const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
-            addLog(message, 'error');
+            window.addLog(message, 'error');
             originalConsoleError.apply(console, args);
         };
 
         window.onerror = function (msg, url, lineNo, columnNo, error) {
-            addLog(`Erro global: ${msg}`, 'error');
+            window.addLog(`Erro global: ${msg}`, 'error');
             ui.showNotification(`Erro: ${msg}`, 'error');
             return false;
         };
 
         document.addEventListener('DOMContentLoaded', () => {
-            addLog('DOM carregado');
+            window.addLog('DOM carregado');
             try {
                 // Configurar botão LOG
                 const logButton = document.getElementById('logButton');
@@ -360,7 +362,7 @@
                         }
                     });
                 } else {
-                    addLog('Botão LOG ou botão de fechar modal não encontrados', 'error');
+                    window.addLog('Botão LOG ou botão de fechar modal não encontrados', 'error');
                     ui.showNotification('Erro na configuração do modal.', 'error');
                 }
 
@@ -368,14 +370,14 @@
                 const loginButton = document.getElementById('loginButton');
                 if (loginButton) {
                     loginButton.addEventListener('click', () => {
-                        addLog('Botão de login clicado');
+                        window.addLog('Botão de login clicado');
                         auth.login(
                             document.getElementById('username').value.trim(),
                             document.getElementById('password').value.trim()
                         );
                     });
                 } else {
-                    addLog('Botão de login não encontrado', 'error');
+                    window.addLog('Botão de login não encontrado', 'error');
                     ui.showNotification('Botão de login não encontrado.', 'error');
                 }
 
@@ -383,7 +385,7 @@
                 const registerButton = document.getElementById('registerButton');
                 if (registerButton) {
                     registerButton.addEventListener('click', () => {
-                        addLog('Botão de registro clicado');
+                        window.addLog('Botão de registro clicado');
                         auth.register(
                             document.getElementById('newUsername').value.trim(),
                             document.getElementById('newPassword').value.trim(),
@@ -391,7 +393,7 @@
                         );
                     });
                 } else {
-                    addLog('Botão de registro não encontrado', 'error');
+                    window.addLog('Botão de registro não encontrado', 'error');
                     ui.showNotification('Botão de registro não encontrado.', 'error');
                 }
 
@@ -400,31 +402,34 @@
                 const toggleLogin = document.getElementById('toggleLogin');
                 if (toggleRegister && toggleLogin) {
                     toggleRegister.addEventListener('click', () => {
-                        addLog('Alternando para registro');
+                        window.addLog('Alternando para registro');
                         ui.toggleForms();
                     });
                     toggleLogin.addEventListener('click', () => {
-                        addLog('Alternando para login');
+                        window.addLog('Alternando para login');
                         ui.toggleForms();
                     });
                 } else {
-                    addLog('Links de alternância de formulários não encontrados', 'error');
+                    window.addLog('Links de alternância de formulários não encontrados', 'error');
                     ui.showNotification('Erro na alternância de formulários.', 'error');
                 }
 
                 // Inicializar banco de dados
-                if (window.db) {
-                    utils.initializeDatabase(window.db, ui);
+                if (window.db && window.utils && window.utils.initializeDatabase) {
+                    window.utils.initializeDatabase(window.db, ui);
                     window.db.collection('users').get().then(() => {
-                        addLog('Conexão com Firestore bem-sucedida.');
+                        window.addLog('Conexão com Firestore bem-sucedida.');
                         ui.showNotification('Conexão com Firestore OK!', 'success');
                     }).catch(err => {
-                        addLog(`Erro ao conectar ao Firestore: ${err.message}`, 'error');
+                        window.addLog(`Erro ao conectar ao Firestore: ${err.message}`, 'error');
                         ui.showNotification('Erro na conexão com Firestore.', 'error');
                     });
+                } else {
+                    window.addLog('Erro: db ou utils não inicializados', 'error');
+                    ui.showNotification('Erro ao inicializar o banco de dados.', 'error');
                 }
             } catch (err) {
-                addLog(`Erro ao configurar eventos: ${err.message}`, 'error');
+                window.addLog(`Erro ao configurar eventos: ${err.message}`, 'error');
                 ui.showNotification('Erro ao inicializar a interface.', 'error');
             }
         });

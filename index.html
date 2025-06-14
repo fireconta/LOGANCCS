@@ -51,13 +51,15 @@
     </div>
     <div id="debug"></div>
     <script>
-        // Fallback para scripts com retry e timeout
-        function loadScript(src, callback, fallbacks = [], retries = 2, timeoutMs = 5000) {
+        // Fallback para scripts com retry, timeout e SRI
+        function loadScript(src, callback, fallbacks = [], retries = 2, timeoutMs = 5000, integrity = '') {
             let attempts = 0;
-            function tryLoad(currentSrc) {
+            function tryLoad(currentSrc, currentIntegrity) {
                 const script = document.createElement('script');
                 let timeoutId;
                 script.src = currentSrc;
+                if (currentIntegrity) script.integrity = currentIntegrity;
+                script.crossOrigin = 'anonymous';
                 script.onload = () => {
                     clearTimeout(timeoutId);
                     window.addLog(`${currentSrc} carregado`);
@@ -69,15 +71,15 @@
                     if (attempts < retries - 1) {
                         attempts++;
                         window.addLog(`Retentando ${currentSrc}...`);
-                        setTimeout(() => tryLoad(currentSrc), 1000);
+                        setTimeout(() => tryLoad(currentSrc, currentIntegrity), 1000);
                     } else if (fallbacks.length > 0) {
                         const nextFallback = fallbacks.shift();
-                        window.addLog(`Tentando fallback ${nextFallback}...`);
+                        window.addLog(`Tentando fallback ${nextFallback.src}...`);
                         attempts = 0;
-                        tryLoad(nextFallback);
+                        tryLoad(nextFallback.src, nextFallback.integrity);
                     } else {
                         window.addLog(`Sem mais fallbacks para ${currentSrc}`, 'error');
-                        alert(`Erro ao carregar ${currentSrc}. Verifique a internet.`);
+                        alert(`Erro ao carregar ${currentSrc}. Verifique a internet e limpe o cache.`);
                     }
                 };
                 timeoutId = setTimeout(() => {
@@ -86,20 +88,20 @@
                     if (attempts < retries - 1) {
                         attempts++;
                         window.addLog(`Retentando ${currentSrc}...`);
-                        tryLoad(currentSrc);
+                        tryLoad(currentSrc, currentIntegrity);
                     } else if (fallbacks.length > 0) {
                         const nextFallback = fallbacks.shift();
-                        window.addLog(`Tentando fallback ${nextFallback}...`);
+                        window.addLog(`Tentando fallback ${nextFallback.src}...`);
                         attempts = 0;
-                        tryLoad(nextFallback);
+                        tryLoad(nextFallback.src, nextFallback.integrity);
                     } else {
                         window.addLog(`Sem mais fallbacks para ${currentSrc}`, 'error');
-                        alert(`Erro ao carregar ${currentSrc}. Verifique a internet.`);
+                        alert(`Erro ao carregar ${currentSrc}. Verifique a internet e limpe o cache.`);
                     }
                 }, timeoutMs);
                 document.head.appendChild(script);
             }
-            tryLoad(src);
+            tryLoad(src, integrity);
         }
 
         window.addLog = function(message, type = 'log') {
@@ -112,33 +114,36 @@
         };
         window.addLog('Iniciando...');
 
-        // Carregar Firebase SDK com fallbacks
-        loadScript('https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js', () => {
-            if (!window.firebase) {
-                window.addLog('Erro: firebase não definido após firebase-app.js', 'error');
-                alert('Erro: firebase não definido após firebase-app.js');
-                return;
-            }
-            window.addLog('firebase-app.js OK');
-            loadScript('https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js', () => {
-                if (!window.firebase.firestore) {
-                    window.addLog('Erro: firestore não definido após firebase-firestore.js', 'error');
-                    alert('Erro: firestore não definido após firebase-firestore.js');
+        // Carregar Firebase SDK com fallbacks e SRI
+        loadScript('https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js', () => {
+            // Atrasar verificação para garantir que window.firebase esteja definido
+            setTimeout(() => {
+                if (!window.firebase) {
+                    window.addLog('Erro: firebase não definido após firebase-app.js', 'error');
+                    alert('Erro: firebase não definido após firebase-app.js');
                     return;
                 }
-                window.addLog('firebase-firestore.js OK');
-                loadScript('./script.js', () => {
-                    loadScript('./firebase-init.js', () => {
-                        initApp();
+                window.addLog('firebase-app.js OK');
+                loadScript('https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js', () => {
+                    if (!window.firebase.firestore) {
+                        window.addLog('Erro: firestore não definido após firebase-firestore.js', 'error');
+                        alert('Erro: firestore não definido após firebase-firestore.js');
+                        return;
+                    }
+                    window.addLog('firebase-firestore.js OK');
+                    loadScript('./script.js', () => {
+                        loadScript('./firebase-init.js', () => {
+                            initApp();
+                        });
                     });
-                });
-            }, [
-                'https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js',
-                'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js'
-            ]);
+                }, [
+                    { src: 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js', integrity: '' },
+                    { src: 'https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js', integrity: '' }
+                ]);
+            }, 100);
         }, [
-            'https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js',
-            'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js'
+            { src: 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js', integrity: '' },
+            { src: 'https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js', integrity: '' }
         ]);
 
         function initApp() {

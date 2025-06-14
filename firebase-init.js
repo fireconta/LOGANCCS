@@ -1,7 +1,17 @@
 /**
- * firebase-init.js - Inicialização do Firestore
+ * firebase-init.js - Inicialização do Firebase e Firestore
  */
 window.addLog('firebase-init.js carregado', 'log');
+
+window.firebaseConfig = {
+    apiKey: "AIzaSyDM3k33LjBRZmm9nXzLsABlxef_zaOmAKU",
+    authDomain: "loganccs-b030c.firebaseapp.com",
+    projectId: "loganccs-b030c",
+    storageBucket: "loganccs-b030c.firebasestorage.app",
+    messagingSenderId: "1022430732687",
+    appId: "1:1022430732687:web:40bd56c677f7f95e6d6bfa",
+    measurementId: "G-GPY8ET904E"
+};
 
 window.utils = window.utils || {};
 window.utils.initializeDatabase = async function(db, ui) {
@@ -57,5 +67,3 @@ window.utils.initializeDatabase = async function(db, ui) {
         alert(`Erro Firestore: ${err.message}`);
     }
 };
-
-export { window.utils }; // Exporta para uso como módulo

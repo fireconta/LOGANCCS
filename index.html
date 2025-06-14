@@ -50,21 +50,9 @@
         </div>
     </div>
     <div id="debug"></div>
-    <script>
-        // Fallback para scripts
-        function loadScript(src, callback) {
-            const script = document.createElement('script');
-            script.src = src;
-            script.onload = () => {
-                window.addLog(`${src} carregado`);
-                callback();
-            };
-            script.onerror = () => {
-                window.addLog(`Erro ao carregar ${src}`, 'error');
-                alert(`Erro ao carregar ${src}`);
-            };
-            document.head.appendChild(script);
-        }
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js';
+        import { getFirestore } from 'https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js';
 
         window.addLog = function(message, type = 'log') {
             const timestamp = new Date().toLocaleTimeString();
@@ -76,43 +64,62 @@
         };
         window.addLog('Iniciando...');
 
-        // Carregar scripts
-        loadScript('https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js', () => {
-            loadScript('https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js', () => {
-                loadScript('./script.js', () => {
-                    loadScript('./firebase-init.js', () => {
-                        initApp();
-                    });
-                });
+        try {
+            const firebaseConfig = {
+                apiKey: "AIzaSyDM3k33LjBRZmm9nXzLsABlxef_zaOmAKU",
+                authDomain: "loganccs-b030c.firebaseapp.com",
+                projectId: "loganccs-b030c",
+                storageBucket: "loganccs-b030c.firebasestorage.app",
+                messagingSenderId: "1022430732687",
+                appId: "1:1022430732687:web:40bd56c677f7f95e6d6bfa",
+                measurementId: "G-GPY8ET904E"
+            };
+            const app = initializeApp(firebaseConfig);
+            window.db = getFirestore(app);
+            window.addLog('Firebase inicializado');
+        } catch (err) {
+            window.addLog(`Erro Firebase: ${err.message}`, 'error');
+            alert(`Erro Firebase: ${err.message}`);
+        }
+
+        // Carregar scripts locais
+        function loadScript(src, callback) {
+            const script = document.createElement('script');
+            script.src = src;
+            script.type = 'module';
+            script.onload = () => {
+                window.addLog(`${src} carregado`);
+                callback();
+            };
+            script.onerror = () => {
+                window.addLog(`Erro ao carregar ${src}`, 'error');
+                alert(`Erro ao carregar ${src}`);
+            };
+            document.head.appendChild(script);
+        }
+
+        loadScript('./script.js', () => {
+            loadScript('./firebase-init.js', () => {
+                initApp();
             });
         });
 
         function initApp() {
             window.addLog('Iniciando app...');
 
-            if (!window.utils || !window.firebaseConfig) {
+            if (!window.utils || !window.utils.initializeDatabase) {
                 window.addLog('Erro: scripts não carregados', 'error');
                 alert('Erro: scripts não carregados.');
                 return;
             }
             window.addLog('Scripts OK');
 
-            if (!window.firebase || !window.firebase.firestore) {
-                window.addLog('Erro: Firebase SDK não carregado', 'error');
-                alert('Erro: Firebase SDK não carregado.');
+            if (!window.db) {
+                window.addLog('Erro: Firestore não inicializado', 'error');
+                alert('Erro: Firestore não inicializado.');
                 return;
             }
-            window.addLog('Firebase SDK OK');
-
-            try {
-                firebase.initializeApp(window.firebaseConfig);
-                window.db = firebase.firestore();
-                window.addLog('Firebase inicializado');
-            } catch (err) {
-                window.addLog(`Erro Firebase: ${err.message}`, 'error');
-                alert(`Erro Firebase: ${err.message}`);
-                return;
-            }
+            window.addLog('Firestore OK');
 
             const ui = {
                 showNotification(message, type = 'error') {
@@ -164,15 +171,14 @@
                     }
                     try {
                         ui.toggleLoading('loginButton', true);
-                        const userDoc = await window.db.collection('users')
-                            .where('username', '==', username)
-                            .get();
-                        window.addLog(`Firestore: ${userDoc.size} usuário(s)`);
-                        if (userDoc.empty) {
+                        const userRef = window.db.collection('users');
+                        const querySnapshot = await userRef.where('username', '==', username).get();
+                        window.addLog(`Firestore: ${querySnapshot.size} usuário(s)`);
+                        if (querySnapshot.empty) {
                             ui.showError('login', 'Usuário não encontrado');
                             return;
                         }
-                        const user = userDoc.docs[0].data();
+                        const user = querySnapshot.docs[0].data();
                         if (user.password !== password) {
                             ui.showError('login', 'Senha incorreta');
                             return;

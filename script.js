@@ -16,3 +16,5 @@ window.addLog = function(message, type = 'log') {
         debugDiv.scrollTop = debugDiv.scrollHeight;
     }
 };
+
+export { window.state, window.addLog }; // Exporta para uso como módulo

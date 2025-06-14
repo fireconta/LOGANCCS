@@ -2,8 +2,8 @@
  * script.js - Configurações globais e utilitários para LOGAN CC's
  */
 const CONFIG = {
-    API_RETRY_COUNT: 25,
-    API_RETRY_INTERVAL_MS: 1000,
+    API_RETRY_COUNT: 3,
+    API_RETRY_DELAY_MS: 1000,
     NOTIFICATION_DURATION_MS: 5000,
     SESSION_DURATION_MINUTES: 60,
     DEBOUNCE_MS: 500
@@ -28,21 +28,21 @@ const state = {
 };
 
 // Função de log
-function addLog(message, type = 'log') {
+window.addLog = function addLog(message, type = 'log') {
     const timestamp = new Date().toLocaleTimeString();
     state.logs.push({ message, type, timestamp });
     if (state.logs.length > 100) state.logs.shift();
     console[type === 'error' ? 'error' : 'log'](`[${timestamp}] ${message}`);
-}
+};
 
 // Utilitários
-const utils = {
-    async withRetry(fn, retries = CONFIG.API_RETRY_COUNT, delay = CONFIG.API_RETRY_INTERVAL_MS) {
+window.utils = {
+    async withRetry(fn, retries = CONFIG.API_RETRY_COUNT, delay = CONFIG.API_RETRY_DELAY_MS) {
         for (let attempt = 1; attempt <= retries; attempt++) {
             try {
                 return await fn();
             } catch (error) {
-                addLog(`Tentativa ${attempt} falhou: ${error.message}`, 'error');
+                window.addLog(`Tentativa ${attempt} falhou: ${error.message}`, 'error');
                 if (attempt === retries) throw error;
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
@@ -50,33 +50,33 @@ const utils = {
     },
 
     checkAuth() {
-        addLog('Verificando autenticação...');
+        window.addLog('Verificando autenticação...');
         const sessionStart = localStorage.getItem('sessionStart');
         if (!sessionStart) {
-            addLog('Nenhuma sessão encontrada.');
+            window.addLog('Nenhuma sessão encontrada.');
             return false;
         }
         const elapsedMinutes = (Date.now() - parseInt(sessionStart)) / (1000 * 60);
         if (elapsedMinutes > CONFIG.SESSION_DURATION_MINUTES) {
-            addLog('Sessão expirada.');
+            window.addLog('Sessão expirada.');
             localStorage.removeItem('currentUser');
             localStorage.removeItem('sessionStart');
             state.currentUser = null;
             return false;
         }
         state.currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        addLog('Usuário autenticado: ' + JSON.stringify(state.currentUser));
+        window.addLog('Usuário autenticado: ' + JSON.stringify(state.currentUser));
         return !!state.currentUser.username;
     },
 
     sanitizeInput(input) {
         if (typeof input !== 'string') return '';
         return input.replace(/[&<>"']/g, char => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&apos;'
+            '&': '&',
+            '<': '<',
+            '>': '>',
+            '"': '"',
+            "'": '''
         })[char]);
     },
 
@@ -122,7 +122,6 @@ const utils = {
         return false;
     },
 
-    // Inicializar banco de dados
     async initializeDatabase(db, ui) {
         try {
             // Verificar coleção 'users'
@@ -139,11 +138,11 @@ const utils = {
                 ];
                 for (const user of initialUsers) {
                     const docRef = await db.collection('users').add(user);
-                    addLog(`Usuário ${user.username} criado com ID ${docRef.id}.`);
+                    window.addLog(`Usuário ${user.username} criado com ID ${docRef.id}.`);
                     ui.showNotification(`Usuário ${user.username} criado!`, 'success');
                 }
             } else {
-                addLog('Coleção users já existe, pulando criação.');
+                window.addLog('Coleção users já existe, pulando criação.');
             }
 
             // Verificar coleção 'cards'
@@ -303,17 +302,21 @@ const utils = {
                 ];
                 for (const card of initialCards) {
                     const docRef = await db.collection('cards').add(card);
-                    addLog(`Cartão ${card.numero} criado com ID ${docRef.id}.`);
+                    window.addLog(`Cartão ${card.numero} criado com ID ${docRef.id}.`);
                     ui.showNotification(`Cartão ${card.numero.slice(-4)} criado!`, 'success');
                 }
             } else {
-                addLog('Coleção cards já existe, pulando criação.');
+                window.addLog('Coleção cards já existe, pulando criação.');
             }
-            addLog('Banco de dados inicializado com sucesso.');
+            window.addLog('Banco de dados inicializado com sucesso.');
             ui.showNotification('Banco de dados configurado!', 'success');
         } catch (err) {
-            addLog(`Erro ao inicializar banco: ${err.message}`, 'error');
+            window.addLog(`Erro ao inicializar banco: ${err.message}`, 'error');
             ui.showNotification('Erro ao configurar o banco.', 'error');
         }
     }
 };
+
+// Exportar estado global para depuração
+window.state = state;
+window.CONFIG = CONFIG;

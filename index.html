@@ -15,15 +15,12 @@
             color: white;
             font-size: 0.8rem;
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            transition: opacity 0.5s ease;
-            opacity: 1;
+            z-index: 1000;
             min-width: 120px;
             max-width: 85%;
-            z-index: 1000;
         }
         .notification.bg-red-600 { background-color: #dc2626; }
         .notification.bg-green-600 { background-color: #16a34a; }
-        .notification.fade-out { opacity: 0; }
         #debug {
             position: fixed;
             bottom: 5px;
@@ -32,13 +29,14 @@
             color: #d1d5db;
             padding: 5px;
             border-radius: 3px;
-            max-height: 60px;
+            max-height: 80px;
             overflow-y: auto;
             font-size: 0.7rem;
             z-index: 1000;
             width: 90%;
         }
         #debug .error { color: #f87171; }
+        #debug .log { color: #d1d5db; }
     </style>
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
@@ -55,32 +53,34 @@
     <div id="debug"></div>
     <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js"></script>
-    <script src="script.js"></script>
+    <script src="/script.js"></script>
     <script>
         function initApp() {
+            window.addLog('Iniciando...');
+
             // Verificar script.js
-            if (!window.addLog || !window.utils) {
+            if (!window.addLog || !window.utils || !window.firebaseConfig) {
+                window.addLog('Erro: script.js não carregado', 'error');
                 alert('Erro: script.js não carregado.');
-                const debugDiv = document.getElementById('debug');
-                if (debugDiv) debugDiv.innerHTML = '<div class="error">Erro: script.js não carregado.</div>';
                 return;
             }
-            window.addLog('Iniciando aplicativo...');
+            window.addLog('script.js verificado');
 
             // Verificar Firebase
-            if (!window.firebase) {
+            if (!window.firebase || !window.firebase.firestore) {
                 window.addLog('Erro: Firebase SDK não carregado', 'error');
                 alert('Erro: Firebase SDK não carregado.');
                 return;
             }
+            window.addLog('Firebase SDK verificado');
 
             // Inicializar Firebase
             try {
                 firebase.initializeApp(window.firebaseConfig);
                 window.db = firebase.firestore();
-                window.addLog('Firebase inicializado com sucesso');
+                window.addLog('Firebase inicializado');
             } catch (err) {
-                window.addLog(`Erro ao inicializar Firebase: ${err.message}`, 'error');
+                window.addLog(`Erro Firebase: ${err.message}`, 'error');
                 alert(`Erro Firebase: ${err.message}`);
                 return;
             }
@@ -90,18 +90,13 @@
                 showNotification(message, type = 'error') {
                     window.addLog(`Notificação: ${message} (${type})`);
                     const notificationsDiv = document.getElementById('notifications');
-                    if (!notificationsDiv) {
-                        window.addLog('Div #notifications não encontrado', 'error');
-                        return;
+                    if (notificationsDiv) {
+                        const notification = document.createElement('div');
+                        notification.className = `notification ${type === 'error' ? 'bg-red-600' : 'bg-green-600'}`;
+                        notification.textContent = message;
+                        notificationsDiv.appendChild(notification);
+                        setTimeout(() => notification.remove(), 5000);
                     }
-                    const notification = document.createElement('div');
-                    notification.className = `notification ${type === 'error' ? 'bg-red-600' : 'bg-green-600'}`;
-                    notification.textContent = message;
-                    notificationsDiv.appendChild(notification);
-                    setTimeout(() => {
-                        notification.classList.add('fade-out');
-                        setTimeout(() => notification.remove(), 500);
-                    }, 5000);
                 },
 
                 showError(context, message) {
@@ -131,9 +126,13 @@
             // Definir autenticação
             const auth = {
                 async login(username, password) {
-                    window.addLog(`Tentando login: ${username}`);
+                    window.addLog(`Login: ${username}`);
                     if (!window.db) {
-                        ui.showError('login', 'Erro de conexão com Firestore');
+                        ui.showError('login', 'Sem conexão com Firestore');
+                        return;
+                    }
+                    if (!username || !password) {
+                        ui.showError('login', 'Campos obrigatórios');
                         return;
                     }
                     try {
@@ -141,7 +140,7 @@
                         const userDoc = await window.db.collection('users')
                             .where('username', '==', username)
                             .get();
-                        window.addLog(`Firestore retornou ${userDoc.size} usuário(s)`);
+                        window.addLog(`Firestore: ${userDoc.size} usuário(s)`);
                         if (userDoc.empty) {
                             ui.showError('login', 'Usuário não encontrado');
                             return;
@@ -152,13 +151,13 @@
                             return;
                         }
                         ui.showSuccess(`Bem-vindo, ${username}!`);
-                        window.addLog('Login bem-sucedido');
+                        window.addLog('Login OK');
                         setTimeout(() => {
                             window.location.href = 'shop.html';
                         }, 1000);
                     } catch (err) {
-                        window.addLog(`Erro no login: ${err.message}`, 'error');
-                        ui.showError('login', 'Erro ao fazer login');
+                        window.addLog(`Erro login: ${err.message}`, 'error');
+                        ui.showError('login', 'Erro ao logar');
                     } finally {
                         ui.toggleLoading('loginButton', false);
                     }
@@ -167,7 +166,7 @@
 
             // Configurar eventos
             document.addEventListener('DOMContentLoaded', () => {
-                window.addLog('DOM totalmente carregado');
+                window.addLog('DOM carregado');
                 const loginButton = document.getElementById('loginButton');
                 if (loginButton) {
                     loginButton.addEventListener('click', () => {
@@ -177,36 +176,29 @@
                             document.getElementById('password').value.trim()
                         );
                     });
-                    window.addLog('Botão login configurado');
+                    window.addLog('Botão login OK');
                 } else {
                     window.addLog('Botão login não encontrado', 'error');
                 }
 
-                // Inicializar banco de dados
+                // Inicializar banco
                 if (window.db && window.utils && window.utils.initializeDatabase) {
-                    window.addLog('Chamando initializeDatabase...');
+                    window.addLog('Iniciando banco...');
                     window.utils.initializeDatabase(window.db, ui);
-                    // Testar conexão com Firestore
-                    window.db.collection('users').get().then(snap => {
-                        window.addLog(`Firestore conectado, ${snap.size} usuário(s)`);
-                        ui.showNotification('Firestore conectado!', 'success');
-                    }).catch(err => {
-                        window.addLog(`Erro ao conectar Firestore: ${err.message}`, 'error');
-                        ui.showNotification(`Erro Firestore: ${err.message}`, 'error');
-                    });
                 } else {
-                    window.addLog('Erro: db ou utils não disponíveis', 'error');
-                    ui.showNotification('Erro ao inicializar banco', 'error');
+                    window.addLog('Erro: banco ou utils não prontos', 'error');
+                    ui.showNotification('Erro ao iniciar banco', 'error');
+                    alert('Erro: banco ou utils não prontos');
                 }
 
-                ui.showNotification('Sistema inicializado!', 'success');
+                ui.showNotification('Sistema iniciado!', 'success');
             });
         }
 
-        // Aguardar carregamento completo
+        // Tentar carregar scripts
         window.addEventListener('load', () => {
             window.addLog('Janela carregada');
-            setTimeout(initApp, 2000); // Atraso para garantir scripts
+            setTimeout(initApp, 3000); // Atraso para scripts
         });
     </script>
 </body>

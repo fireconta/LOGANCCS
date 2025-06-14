@@ -1,18 +1,15 @@
-/**
- * script.js - Funções principais para LOGAN CC's
- */
-window.addLog('script.js carregado com sucesso', 'log');
-
-window.state = {
-    logs: []
-};
-
-window.addLog = function(message, type = 'log') {
+function debugLog(message) {
+  const debug = document.getElementById('debug');
+  if (debug) {
     const timestamp = new Date().toLocaleTimeString();
-    window.state.logs.push({ message, type, timestamp });
-    const debugDiv = document.getElementById('debug');
-    if (debugDiv) {
-        debugDiv.innerHTML += `<div class="${type}">[${timestamp}] ${message}</div>`;
-        debugDiv.scrollTop = debugDiv.scrollHeight;
-    }
-};
+    debug.innerHTML += `[${timestamp}] ${message}<br>`;
+    debug.scrollTop = debug.scrollHeight;
+  }
+  console.log(`[${timestamp}] ${message}`);
+}
+
+function formatCurrency(value) {
+  return `R$ ${value.toFixed(2)}`;
+}
+
+debugLog('script.js carregado com sucesso');

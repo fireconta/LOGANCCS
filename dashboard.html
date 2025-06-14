@@ -1,535 +1,108 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOGAN CC's - Dashboard</title>
-    <!-- Tailwind CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <style>
-        .notification {
-            position: relative;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            color: white;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
-            transition: opacity 0.3s ease;
-            opacity: 1;
-            max-width: 300px;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            overflow: auto;
-        }
-        .modal.show {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            border: 1px solid #4b5563;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #374151;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LOGAN CC's - Dashboard</title>
+  <script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" async></script>
+  <script>
+    window.OneSignal = window.OneSignal || [];
+    OneSignal.push(function() {
+      OneSignal.init({
+        appId: "YOUR_ONESIGNAL_APP_ID"
+      });
+    });
+  </script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f0f0f0; }
+    .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; }
+    input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; }
+    button { padding: 10px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #218838; }
+    .transaction { border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 4px; }
+    #debug { position: fixed; bottom: 10px; left: 10px; background: rgba(0,0,0,0.7); color: white; padding: 10px; max-width: 300px; font-size: 12px; }
+  </style>
 </head>
-<body class="bg-gray-900 text-white">
-    <!-- Div para notificações -->
-    <div id="notifications" class="fixed top-4 right-4 space-y-2 z-50"></div>
+<body>
+  <div class="container">
+    <h2>LOGAN CC's - Dashboard</h2>
+    <p>Saldo: <span id="balance">Carregando...</span></p>
+    <input type="number" id="depositAmount" placeholder="Valor do depósito">
+    <button onclick="deposit()">Depositar</button>
+    <h3>Histórico de Transações</h3>
+    <div id="transactions"></div>
+    <button onclick="window.location.href='shop.html'">Voltar para Loja</button>
+  </div>
+  <div id="debug"></div>
+  <script src="script.js"></script>
+  <script>
+    debugLog('Iniciando dashboard...');
+    document.addEventListener('DOMContentLoaded', async () => {
+      debugLog('DOM carregado');
+      if (!localStorage.getItem('userId')) {
+        debugLog('Usuário não logado');
+        window.location.href = 'index.html';
+      }
+      await loadBalance();
+      await loadTransactions();
+    });
 
-    <!-- Cabeçalho -->
-    <header class="bg-blue-800 p-4 flex justify-between items-center">
-        <h1 class="text-xl font-bold">LOGAN CC's - Dashboard Admin</h1>
-        <div class="flex items-center space-x-4">
-            <span id="username">Usuário</span>
-            <button id="shopButton" class="bg-blue-600 hover:bg-blue-700 p-2 rounded">Loja</button>
-            <button id="logoutButton" class="bg-red-600 hover:bg-red-700 p-2 rounded">Sair</button>
-        </div>
-    </header>
+    async function loadBalance() {
+      try {
+        const res = await fetch(`/api/balance?userId=${localStorage.getItem('userId')}`);
+        const data = await res.json();
+        if (res.status !== 200) throw new Error(data.error);
+        document.getElementById('balance').textContent = formatCurrency(data.balance);
+        debugLog('Saldo carregado: ' + formatCurrency(data.balance));
+      } catch (err) {
+        debugLog('Erro ao carregar saldo: ' + err.message);
+      }
+    }
 
-    <!-- Seção de Usuários -->
-    <div class="p-4">
-        <h2 class="text-lg font-semibold mb-4">Gerenciar Usuários</h2>
-        <button id="addUserButton" class="bg-green-500 hover:bg-green-600 p-2 rounded mb-4">Adicionar Usuário</button>
-        <table class="bg-gray-800 rounded-lg">
-            <thead>
-                <tr>
-                    <th>Usuário</th>
-                    <th>Saldo</th>
-                    <th>Admin</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody id="usersTable"></tbody>
-        </table>
-    </div>
-
-    <!-- Seção de Cartões -->
-    <div class="p-4">
-        <h2 class="text-lg font-semibold mb-4">Gerenciar Cartões</h2>
-        <button id="addCardButton" class="bg-green-500 hover:bg-green-600 p-2 rounded mb-4">Adicionar Cartão</button>
-        <table class="bg-gray-800 rounded-lg">
-            <thead>
-                <tr>
-                    <th>Cartão</th>
-                    <th>Bandeira</th>
-                    <th>Banco</th>
-                    <th>Nível</th>
-                    <th>Preço</th>
-                    <th>Adquirido</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody id="cardsTable"></tbody>
-        </table>
-    </div>
-
-    <!-- Modal de Adicionar/Editar Usuário -->
-    <div id="userModal" class="modal hidden flex items-center justify-center">
-        <div class="bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h3 id="userModalTitle" class="text-lg font-semibold mb-4">Adicionar Usuário</h3>
-            <input id="userUsername" type="text" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2" placeholder="Usuário">
-            <input id="userPassword" type="password" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2" placeholder="Senha">
-            <input id="userBalance" type="number" step="0.01" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2" placeholder="Saldo">
-            <label class="flex items-center mb-4">
-                <input id="userIsAdmin" type="checkbox" class="mr-2">
-                Administrador
-            </label>
-            <div class="flex justify-end space-x-2">
-                <button id="saveUser" class="bg-green-500 hover:bg-green-600 p-2 rounded">Salvar</button>
-                <button id="cancelUser" class="bg-red-500 hover:bg-red-600 p-2 rounded">Cancelar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de Adicionar/Editar Cartão -->
-    <div id="cardModal" class="modal hidden flex items-center justify-center">
-        <div class="bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h3 id="cardModalTitle" class="text-lg font-semibold mb-4">Adicionar Cartão</h3>
-            <input id="cardNumero" type="text" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2" placeholder="Número (16 dígitos)">
-            <input id="cardCVV" type="text" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2" placeholder="CVV (3 dígitos)">
-            <input id="cardExpiry" type="text" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2" placeholder="Validade (MM/AA)">
-            <input id="cardName" type="text" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2" placeholder="Nome">
-            <input id="cardCPF" type="text" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2" placeholder="CPF (11 dígitos)">
-            <select id="cardBandeira" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2">
-                <option value="">Bandeira</option>
-                <option value="Visa">Visa</option>
-                <option value="Mastercard">Mastercard</option>
-                <option value="Amex">Amex</option>
-                <option value="Elo">Elo</option>
-                <option value="Hipercard">Hipercard</option>
-                <option value="Diners Club">Diners Club</option>
-            </select>
-            <select id="cardBanco" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2">
-                <option value="">Banco</option>
-                <option value="Nubank">Nubank</option>
-                <option value="Itaú">Itaú</option>
-                <option value="Bradesco">Bradesco</option>
-                <option value="Santander">Santander</option>
-                <option value="Banco do Brasil">Banco do Brasil</option>
-                <option value="Caixa Econômica Federal">Caixa Econômica Federal</option>
-                <option value="Sicredi">Sicredi</option>
-                <option value="Sicoob">Sicoob</option>
-            </select>
-            <select id="cardNivel" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2">
-                <option value="">Nível</option>
-                <option value="Classic">Classic</option>
-                <option value="Gold">Gold</option>
-                <option value="Platinum">Platinum</option>
-                <option value="Black">Black</option>
-            </select>
-            <input id="cardPrice" type="number" step="0.01" class="w-full p-2 bg-gray-700 rounded border border-gray-600 mb-2" placeholder="Preço">
-            <div class="flex justify-end space-x-2">
-                <button id="saveCard" class="bg-green-500 hover:bg-green-600 p-2 rounded">Salvar</button>
-                <button id="cancelCard" class="bg-red-500 hover:bg-red-600 p-2 rounded">Cancelar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Scripts -->
-    <!-- Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" integrity="sha512-6n1/EF5T+kwuZSOv0V29A3tM0zNRh0Yz2v0T2BRbEboNs0yHOeI0z7D7o4ZQmCVoex7/0zGWNUkW+YSUOxv3bNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <!-- Configurações Globais -->
-    <script src="script.js"></script>
-    <!-- Lógica da Página -->
-    <script>
-        const admin = {
-            async loadUsers() {
-                try {
-                    const { data, error } = await utils.withRetry(() =>
-                        supabase.from('users').select('id, username, balance, is_admin')
-                    );
-                    if (error) throw error;
-                    ui.renderUsers(data);
-                } catch (err) {
-                    console.error('Erro ao carregar usuários:', err);
-                    ui.showNotification(`Erro ao carregar usuários: ${err.message}`, 'error');
-                }
-            },
-
-            async loadCards() {
-                try {
-                    const { data, error } = await utils.withRetry(() =>
-                        supabase.from('cards').select('*')
-                    );
-                    if (error) throw error;
-                    ui.renderCards(data);
-                } catch (err) {
-                    console.error('Erro ao carregar cartões:', err);
-                    ui.showNotification(`Erro ao carregar cartões: ${err.message}`, 'error');
-                }
-            },
-
-            async updateUser(userId, updates) {
-                try {
-                    const { error } = await utils.withRetry(() =>
-                        supabase.from('users').update(updates).eq('id', userId)
-                    );
-                    if (error) throw error;
-                    ui.showNotification('Usuário atualizado com sucesso!', 'success');
-                    admin.loadUsers();
-                    ui.closeModal('userModal');
-                } catch (err) {
-                    console.error('Erro ao atualizar usuário:', err);
-                    ui.showNotification(`Erro ao atualizar usuário: ${err.message}`, 'error');
-                }
-            },
-
-            async deleteUser(userId) {
-                if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
-                try {
-                    const { error } = await utils.withRetry(() =>
-                        supabase.from('users').delete().eq('id', userId)
-                    );
-                    if (error) throw error;
-                    ui.showNotification('Usuário excluído com sucesso!', 'success');
-                    admin.loadUsers();
-                } catch (err) {
-                    console.error('Erro ao excluir usuário:', err);
-                    ui.showNotification(`Erro ao excluir usuário: ${err.message}`, 'error');
-                }
-            },
-
-            async addCard(cardData) {
-                try {
-                    if (!utils.validateCardNumber(cardData.numero)) {
-                        ui.showNotification('Número do cartão inválido.', 'error');
-                        return;
-                    }
-                    if (!utils.validateCVV(cardData.cvv)) {
-                        ui.showNotification('CVV inválido.', 'error');
-                        return;
-                    }
-                    if (!utils.validateExpiry(cardData.expiry)) {
-                        ui.showNotification('Validade inválida (MM/AA).', 'error');
-                        return;
-                    }
-                    if (!utils.validateCPF(cardData.cpf)) {
-                        ui.showNotification('CPF inválido (11 dígitos).', 'error');
-                        return;
-                    }
-                    if (!cardData.bandeira || !cardData.banco || !cardData.nivel || cardData.price <= 0) {
-                        ui.showNotification('Todos os campos são obrigatórios e preço deve ser maior que 0.', 'error');
-                        return;
-                    }
-                    const { error } = await utils.withRetry(() =>
-                        supabase.from('cards').insert([cardData])
-                    );
-                    if (error) throw error;
-                    ui.showNotification('Cartão adicionado com sucesso!', 'success');
-                    admin.loadCards();
-                    ui.closeModal('cardModal');
-                } catch (err) {
-                    console.error('Erro ao adicionar cartão:', err);
-                    ui.showNotification(`Erro ao adicionar cartão: ${err.message}`, 'error');
-                }
-            },
-
-            async updateCard(cardId, cardData) {
-                try {
-                    if (!utils.validateCardNumber(cardData.numero)) {
-                        ui.showNotification('Número do cartão inválido.', 'error');
-                        return;
-                    }
-                    if (!utils.validateCVV(cardData.cvv)) {
-                        ui.showNotification('CVV inválido.', 'error');
-                        return;
-                    }
-                    if (!utils.validateExpiry(cardData.expiry)) {
-                        ui.showNotification('Validade inválida (MM/AA).', 'error');
-                        return;
-                    }
-                    if (!utils.validateCPF(cardData.cpf)) {
-                        ui.showNotification('CPF inválido (11 dígitos).', 'error');
-                        return;
-                    }
-                    if (!cardData.bandeira || !cardData.banco || !cardData.nivel || cardData.price <= 0) {
-                        ui.showNotification('Todos os campos são obrigatórios e preço deve ser maior que 0.', 'error');
-                        return;
-                    }
-                    const { error } = await utils.withRetry(() =>
-                        supabase.from('cards').update(cardData).eq('id', cardId)
-                    );
-                    if (error) throw error;
-                    ui.showNotification('Cartão atualizado com sucesso!', 'success');
-                    admin.loadCards();
-                    ui.closeModal('cardModal');
-                } catch (err) {
-                    console.error('Erro ao atualizar cartão:', err);
-                    ui.showNotification(`Erro ao atualizar cartão: ${err.message}`, 'error');
-                }
-            },
-
-            async deleteCard(cardId) {
-                if (!confirm('Tem certeza que deseja excluir este cartão?')) return;
-                try {
-                    const { error } = await utils.withRetry(() =>
-                        supabase.from('cards').delete().eq('id', cardId)
-                    );
-                    if (error) throw error;
-                    ui.showNotification('Cartão excluído com sucesso!', 'success');
-                    admin.loadCards();
-                } catch (err) {
-                    console.error('Erro ao excluir cartão:', err);
-                    ui.showNotification(`Erro ao excluir cartão: ${err.message}`, 'error');
-                }
-            }
-        };
-
-        const ui = {
-            showNotification(message, type = 'error') {
-                const notificationsDiv = document.getElementById('notifications');
-                if (!notificationsDiv) return;
-                const notification = document.createElement('div');
-                notification.className = `notification p-4 rounded-lg text-white shadow-lg ${type === 'error' ? 'bg-red-500' : type === 'success' ? 'bg-green-500' : 'bg-blue-500'}`;
-                notification.textContent = utils.sanitizeInput(message);
-                notificationsDiv.appendChild(notification);
-                setTimeout(() => notification.remove(), CONFIG.NOTIFICATION_DURATION_MS);
-            },
-
-            renderUsers(users) {
-                const usersTable = document.getElementById('usersTable');
-                if (!usersTable) return;
-                usersTable.innerHTML = '';
-                users.forEach(user => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${utils.sanitizeInput(user.username)}</td>
-                        <td>R$${user.balance.toFixed(2)}</td>
-                        <td>${user.is_admin ? 'Sim' : 'Não'}</td>
-                        <td>
-                            <button class="editUser bg-blue-500 hover:bg-blue-600 p-1 rounded mr-2" data-id="${utils.sanitizeInput(user.id)}">Editar</button>
-                            <button class="deleteUser bg-red-500 hover:bg-red-600 p-1 rounded" data-id="${utils.sanitizeInput(user.id)}">Excluir</button>
-                        </td>
-                    `;
-                    usersTable.appendChild(row);
-                });
-                document.querySelectorAll('.editUser').forEach(button => {
-                    button.addEventListener('click', () => {
-                        const userId = button.dataset.id;
-                        supabase.from('users').select('*').eq('id', userId).single().then(({ data }) => {
-                            document.getElementById('userModalTitle').textContent = 'Editar Usuário';
-                            document.getElementById('userUsername').value = utils.sanitizeInput(data.username);
-                            document.getElementById('userPassword').value = '';
-                            document.getElementById('userBalance').value = data.balance;
-                            document.getElementById('userIsAdmin').checked = data.is_admin;
-                            document.getElementById('userModal').classList.remove('hidden');
-                            document.getElementById('userModal').classList.add('show');
-                            document.getElementById('saveUser').onclick = () => {
-                                const updates = {
-                                    username: document.getElementById('userUsername').value.trim(),
-                                    balance: parseFloat(document.getElementById('userBalance').value) || 0,
-                                    is_admin: document.getElementById('userIsAdmin').checked
-                                };
-                                if (document.getElementById('userPassword').value) {
-                                    updates.password = document.getElementById('userPassword').value.trim();
-                                }
-                                admin.updateUser(userId, updates);
-                            };
-                        });
-                    });
-                });
-                document.querySelectorAll('.deleteUser').forEach(button => {
-                    button.addEventListener('click', () => admin.deleteUser(button.dataset.id));
-                });
-            },
-
-            renderCards(cards) {
-                const cardsTable = document.getElementById('cardsTable');
-                if (!cardsTable) return;
-                cardsTable.innerHTML = '';
-                cards.forEach(card => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>**** **** **** ${utils.sanitizeInput(card.numero.slice(-4))}</td>
-                        <td>${utils.sanitizeInput(card.bandeira)}</td>
-                        <td>${utils.sanitizeInput(card.banco)}</td>
-                        <td>${utils.sanitizeInput(card.nivel)}</td>
-                        <td>R$${card.price.toFixed(2)}</td>
-                        <td>${card.acquired ? 'Sim' : 'Não'}</td>
-                        <td>
-                            <button class="editCard bg-blue-500 hover:bg-blue-600 p-1 rounded mr-2" data-id="${utils.sanitizeInput(card.id)}">Editar</button>
-                            <button class="deleteCard bg-red-500 hover:bg-red-600 p-1 rounded" data-id="${utils.sanitizeInput(card.id)}">Excluir</button>
-                        </td>
-                    `;
-                    cardsTable.appendChild(row);
-                });
-                document.querySelectorAll('.editCard').forEach(button => {
-                    button.addEventListener('click', () => {
-                        const cardId = button.dataset.id;
-                        supabase.from('cards').select('*').eq('id', cardId).single().then(({ data }) => {
-                            document.getElementById('cardModalTitle').textContent = 'Editar Cartão';
-                            document.getElementById('cardNumero').value = utils.sanitizeInput(data.numero);
-                            document.getElementById('cardCVV').value = utils.sanitizeInput(data.cvv);
-                            document.getElementById('cardExpiry').value = utils.sanitizeInput(data.expiry);
-                            document.getElementById('cardName').value = utils.sanitizeInput(data.name);
-                            document.getElementById('cardCPF').value = utils.sanitizeInput(data.cpf);
-                            document.getElementById('cardBandeira').value = utils.sanitizeInput(data.bandeira);
-                            document.getElementById('cardBanco').value = utils.sanitizeInput(data.banco);
-                            document.getElementById('cardNivel').value = utils.sanitizeInput(data.nivel);
-                            document.getElementById('cardPrice').value = data.price;
-                            document.getElementById('cardModal').classList.remove('hidden');
-                            document.getElementById('cardModal').classList.add('show');
-                            document.getElementById('saveCard').onclick = () => {
-                                const cardData = {
-                                    numero: document.getElementById('cardNumero').value.trim(),
-                                    cvv: document.getElementById('cardCVV').value.trim(),
-                                    expiry: document.getElementById('cardExpiry').value.trim(),
-                                    name: document.getElementById('cardName').value.trim(),
-                                    cpf: document.getElementById('cardCPF').value.trim(),
-                                    bandeira: document.getElementById('cardBandeira').value,
-                                    banco: document.getElementById('cardBanco').value,
-                                    nivel: document.getElementById('cardNivel').value,
-                                    price: parseFloat(document.getElementById('cardPrice').value) || 0
-                                };
-                                admin.updateCard(cardId, cardData);
-                            };
-                        });
-                    });
-                });
-                document.querySelectorAll('.deleteCard').forEach(button => {
-                    button.addEventListener('click', () => admin.deleteCard(button.dataset.id));
-                });
-            },
-
-            closeModal(modalId) {
-                const modal = document.getElementById(modalId);
-                modal.classList.add('hidden');
-                modal.classList.remove('show');
-            }
-        };
-
-        // Interceptar erros do console
-        const originalConsoleError = console.error;
-        console.error = function (...args) {
-            const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
-            ui.showNotification(`Erro: ${message}`, 'error');
-            originalConsoleError.apply(console, args);
-        };
-
-        window.onerror = function (msg, url, lineNo, columnNo, error) {
-            ui.showNotification(`Erro: ${msg}`, 'error');
-            return false;
-        };
-
-        document.addEventListener('DOMContentLoaded', () => {
-            if (!utils.checkAuth() || !state.currentUser.is_admin) {
-                window.location.href = 'index.html';
-                return;
-            }
-            document.getElementById('username').textContent = utils.sanitizeInput(state.currentUser.username);
-            admin.loadUsers();
-            admin.loadCards();
-            document.getElementById('shopButton').onclick = () => window.location.href = 'shop.html';
-            document.getElementById('logoutButton').onclick = () => {
-                localStorage.removeItem('currentUser');
-                localStorage.removeItem('sessionStart');
-                state.currentUser = null;
-                window.location.href = 'index.html';
-            };
-            document.getElementById('addUserButton').onclick = () => {
-                document.getElementById('userModalTitle').textContent = 'Adicionar Usuário';
-                document.getElementById('userUsername').value = '';
-                document.getElementById('userPassword').value = '';
-                document.getElementById('userBalance').value = '0';
-                document.getElementById('userIsAdmin').checked = false;
-                document.getElementById('userModal').classList.remove('hidden');
-                document.getElementById('userModal').classList.add('show');
-                document.getElementById('saveUser').onclick = () => {
-                    const userData = {
-                        username: document.getElementById('userUsername').value.trim(),
-                        password: document.getElementById('userPassword').value.trim(),
-                        balance: parseFloat(document.getElementById('userBalance').value) || 0,
-                        is_admin: document.getElementById('userIsAdmin').checked
-                    };
-                    if (!userData.username || !userData.password || userData.balance < 0) {
-                        ui.showNotification('Todos os campos são obrigatórios e saldo não pode ser negativo.', 'error');
-                        return;
-                    }
-                    if (userData.username.length < 3 || !/^[a-zA-Z0-9]+$/.test(userData.username)) {
-                        ui.showNotification('Usuário deve ter pelo menos 3 caracteres alfanuméricos.', 'error');
-                        return;
-                    }
-                    if (userData.password.length < 6) {
-                        ui.showNotification('Senha deve ter pelo menos 6 caracteres.', 'error');
-                        return;
-                    }
-                    supabase.from('users').insert([userData]).then(({ error }) => {
-                        if (error) {
-                            ui.showNotification(`Erro ao adicionar usuário: ${error.message}`, 'error');
-                        } else {
-                            ui.showNotification('Usuário adicionado com sucesso!', 'success');
-                            admin.loadUsers();
-                            ui.closeModal('userModal');
-                        }
-                    });
-                };
-            };
-            document.getElementById('addCardButton').onclick = () => {
-                document.getElementById('cardModalTitle').textContent = 'Adicionar Cartão';
-                document.getElementById('cardNumero').value = '';
-                document.getElementById('cardCVV').value = '';
-                document.getElementById('cardExpiry').value = '';
-                document.getElementById('cardName').value = '';
-                document.getElementById('cardCPF').value = '';
-                document.getElementById('cardBandeira').value = '';
-                document.getElementById('cardBanco').value = '';
-                document.getElementById('cardNivel').value = '';
-                document.getElementById('cardPrice').value = '';
-                document.getElementById('cardModal').classList.remove('hidden');
-                document.getElementById('cardModal').classList.add('show');
-                document.getElementById('saveCard').onclick = () => {
-                    const cardData = {
-                        numero: document.getElementById('cardNumero').value.trim(),
-                        cvv: document.getElementById('cardCVV').value.trim(),
-                        expiry: document.getElementById('cardExpiry').value.trim(),
-                        name: document.getElementById('cardName').value.trim(),
-                        cpf: document.getElementById('cardCPF').value.trim(),
-                        bandeira: document.getElementById('cardBandeira').value,
-                        banco: document.getElementById('cardBanco').value,
-                        nivel: document.getElementById('cardNivel').value,
-                        price: parseFloat(document.getElementById('cardPrice').value) || 0
-                    };
-                    admin.addCard(cardData);
-                };
-            };
-            document.getElementById('cancelUser').onclick = () => ui.closeModal('userModal');
-            document.getElementById('cancelCard').onclick = () => ui.closeModal('cardModal');
+    async function loadTransactions() {
+      try {
+        const res = await fetch(`/api/transactions?userId=${localStorage.getItem('userId')}`);
+        const transactions = await res.json();
+        if (res.status !== 200) throw new Error(transactions.error);
+        const transactionsDiv = document.getElementById('transactions');
+        transactionsDiv.innerHTML = '';
+        transactions.forEach(tx => {
+          const txDiv = document.createElement('div');
+          txDiv.className = 'transaction';
+          txDiv.innerHTML = `
+            <p>${tx.description} - ${formatCurrency(tx.amount)}</p>
+            <p>${new Date(tx.timestamp).toLocaleString()}</p>
+          `;
+          transactionsDiv.appendChild(txDiv);
         });
-    </script>
+        debugLog('Transações carregadas: ' + transactions.length);
+      } catch (err) {
+        debugLog('Erro ao carregar transações: ' + err.message);
+      }
+    }
+
+    async function deposit() {
+      const amount = parseFloat(document.getElementById('depositAmount').value);
+      if (!amount || amount <= 0) {
+        debugLog('Valor de depósito inválido');
+        return;
+      }
+      try {
+        debugLog('Depositando ' + formatCurrency(amount));
+        const res = await fetch('/api/deposit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: localStorage.getItem('userId'), amount })
+        });
+        const data = await res.json();
+        if (res.status !== 200) throw new Error(data.error);
+        debugLog(`Depósito de ${formatCurrency(amount)} realizado. Novo saldo: ${formatCurrency(data.newBalance)}`);
+        await loadBalance();
+        await loadTransactions();
+      } catch (err) {
+        debugLog('Erro ao depositar: ' + err.message);
+      }
+    }
+  </script>
 </body>
 </html>

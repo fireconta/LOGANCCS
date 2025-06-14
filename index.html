@@ -55,7 +55,10 @@
         function loadScript(src, callback) {
             const script = document.createElement('script');
             script.src = src;
-            script.onload = callback;
+            script.onload = () => {
+                window.addLog(`${src} carregado`);
+                callback();
+            };
             script.onerror = () => {
                 window.addLog(`Erro ao carregar ${src}`, 'error');
                 alert(`Erro ao carregar ${src}`);
@@ -71,16 +74,15 @@
                 debugDiv.scrollTop = debugDiv.scrollHeight;
             }
         };
-        window.addLog('Iniciando carregamento...');
+        window.addLog('Iniciando...');
 
-        // Carregar scripts sequencialmente
+        // Carregar scripts
         loadScript('https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js', () => {
-            window.addLog('firebase-app.js carregado');
             loadScript('https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js', () => {
-                window.addLog('firebase-firestore.js carregado');
-                loadScript('/script.js', () => {
-                    window.addLog('script.js solicitado');
-                    initApp();
+                loadScript('./script.js', () => {
+                    loadScript('./firebase-init.js', () => {
+                        initApp();
+                    });
                 });
             });
         });
@@ -88,15 +90,13 @@
         function initApp() {
             window.addLog('Iniciando app...');
 
-            // Verificar script.js
-            if (!window.utils || !window.firebaseConfig || !window.addLog) {
-                window.addLog('Erro: script.js não carregado', 'error');
-                alert('Erro: script.js não carregado.');
+            if (!window.utils || !window.firebaseConfig) {
+                window.addLog('Erro: scripts não carregados', 'error');
+                alert('Erro: scripts não carregados.');
                 return;
             }
-            window.addLog('script.js OK');
+            window.addLog('Scripts OK');
 
-            // Verificar Firebase
             if (!window.firebase || !window.firebase.firestore) {
                 window.addLog('Erro: Firebase SDK não carregado', 'error');
                 alert('Erro: Firebase SDK não carregado.');
@@ -104,7 +104,6 @@
             }
             window.addLog('Firebase SDK OK');
 
-            // Inicializar Firebase
             try {
                 firebase.initializeApp(window.firebaseConfig);
                 window.db = firebase.firestore();
@@ -115,7 +114,6 @@
                 return;
             }
 
-            // Definir UI
             const ui = {
                 showNotification(message, type = 'error') {
                     window.addLog(`Notificação: ${message} (${type})`);
@@ -153,7 +151,6 @@
                 }
             };
 
-            // Definir autenticação
             const auth = {
                 async login(username, password) {
                     window.addLog(`Login: ${username}`);
@@ -194,7 +191,6 @@
                 }
             };
 
-            // Configurar eventos
             document.addEventListener('DOMContentLoaded', () => {
                 window.addLog('DOM carregado');
                 const loginButton = document.getElementById('loginButton');
@@ -211,7 +207,6 @@
                     window.addLog('Botão login não encontrado', 'error');
                 }
 
-                // Inicializar banco
                 if (window.db && window.utils && window.utils.initializeDatabase) {
                     window.addLog('Iniciando banco...');
                     window.utils.initializeDatabase(window.db, ui);

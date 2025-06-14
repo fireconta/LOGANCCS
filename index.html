@@ -51,15 +51,13 @@
     </div>
     <div id="debug"></div>
     <script>
-        // Fallback para scripts com retry, timeout e SRI
-        function loadScript(src, callback, fallbacks = [], retries = 2, timeoutMs = 5000, integrity = '') {
+        // Carregamento de scripts com retry e timeout
+        function loadScript(src, callback, retries = 2, timeoutMs = 10000) {
             let attempts = 0;
-            function tryLoad(currentSrc, currentIntegrity) {
+            function tryLoad(currentSrc) {
                 const script = document.createElement('script');
                 let timeoutId;
                 script.src = currentSrc;
-                if (currentIntegrity) script.integrity = currentIntegrity;
-                script.crossOrigin = 'anonymous';
                 script.onload = () => {
                     clearTimeout(timeoutId);
                     window.addLog(`${currentSrc} carregado`);
@@ -71,15 +69,10 @@
                     if (attempts < retries - 1) {
                         attempts++;
                         window.addLog(`Retentando ${currentSrc}...`);
-                        setTimeout(() => tryLoad(currentSrc, currentIntegrity), 1000);
-                    } else if (fallbacks.length > 0) {
-                        const nextFallback = fallbacks.shift();
-                        window.addLog(`Tentando fallback ${nextFallback.src}...`);
-                        attempts = 0;
-                        tryLoad(nextFallback.src, nextFallback.integrity);
+                        setTimeout(() => tryLoad(currentSrc), 1000);
                     } else {
-                        window.addLog(`Sem mais fallbacks para ${currentSrc}`, 'error');
-                        alert(`Erro ao carregar ${currentSrc}. Verifique a internet e limpe o cache.`);
+                        window.addLog(`Falha ao carregar ${currentSrc}`, 'error');
+                        alert(`Erro ao carregar ${currentSrc}. Verifique os arquivos no GitHub.`);
                     }
                 };
                 timeoutId = setTimeout(() => {
@@ -88,20 +81,15 @@
                     if (attempts < retries - 1) {
                         attempts++;
                         window.addLog(`Retentando ${currentSrc}...`);
-                        tryLoad(currentSrc, currentIntegrity);
-                    } else if (fallbacks.length > 0) {
-                        const nextFallback = fallbacks.shift();
-                        window.addLog(`Tentando fallback ${nextFallback.src}...`);
-                        attempts = 0;
-                        tryLoad(nextFallback.src, nextFallback.integrity);
+                        tryLoad(currentSrc);
                     } else {
-                        window.addLog(`Sem mais fallbacks para ${currentSrc}`, 'error');
-                        alert(`Erro ao carregar ${currentSrc}. Verifique a internet e limpe o cache.`);
+                        window.addLog(`Falha ao carregar ${currentSrc}`, 'error');
+                        alert(`Erro ao carregar ${currentSrc}. Verifique os arquivos no GitHub.`);
                     }
                 }, timeoutMs);
                 document.head.appendChild(script);
             }
-            tryLoad(src, integrity);
+            tryLoad(src);
         }
 
         window.addLog = function(message, type = 'log') {
@@ -114,9 +102,8 @@
         };
         window.addLog('Iniciando...');
 
-        // Carregar Firebase SDK com fallbacks e SRI
-        loadScript('https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js', () => {
-            // Atrasar verificação para garantir que window.firebase esteja definido
+        // Carregar Firebase SDK localmente
+        loadScript('./firebase/firebase-app.js', () => {
             setTimeout(() => {
                 if (!window.firebase) {
                     window.addLog('Erro: firebase não definido após firebase-app.js', 'error');
@@ -124,27 +111,24 @@
                     return;
                 }
                 window.addLog('firebase-app.js OK');
-                loadScript('https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js', () => {
+                loadScript('./firebase/firebase-firestore.js', () => {
                     if (!window.firebase.firestore) {
                         window.addLog('Erro: firestore não definido após firebase-firestore.js', 'error');
                         alert('Erro: firestore não definido após firebase-firestore.js');
                         return;
                     }
                     window.addLog('firebase-firestore.js OK');
-                    loadScript('./script.js', () => {
-                        loadScript('./firebase-init.js', () => {
-                            initApp();
+                    loadScript('./firebase/firebase-messaging.js', () => {
+                        window.addLog('firebase-messaging.js OK');
+                        loadScript('./script.js', () => {
+                            loadScript('./firebase-init.js', () => {
+                                initApp();
+                            });
                         });
                     });
-                }, [
-                    { src: 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js', integrity: '' },
-                    { src: 'https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js', integrity: '' }
-                ]);
-            }, 100);
-        }, [
-            { src: 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js', integrity: '' },
-            { src: 'https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js', integrity: '' }
-        ]);
+                });
+            }, 500);
+        });
 
         function initApp() {
             window.addLog('Iniciando app...');
@@ -166,6 +150,7 @@
             try {
                 firebase.initializeApp(window.firebaseConfig);
                 window.db = firebase.firestore();
+                window.messaging = firebase.messaging();
                 window.addLog('Firebase inicializado');
             } catch (err) {
                 window.addLog(`Erro Firebase: ${err.message}`, 'error');
@@ -205,7 +190,7 @@
                     const button = document.getElementById(buttonId);
                     if (button) {
                         button.disabled = isLoading;
-                        button.textContent = isLoading ? 'Carregando...' : 'Entrar';
+                        button.textContent = isLoading ? 'Carregando...' : (buttonId === 'loginButton' ? 'Entrar' : 'Confirmar');
                     }
                 }
             };
@@ -236,6 +221,8 @@
                             ui.showError('login', 'Senha incorreta');
                             return;
                         }
+                        localStorage.setItem('userId', userDoc.docs[0].id);
+                        localStorage.setItem('username', username);
                         ui.showSuccess(`Bem-vindo, ${username}!`);
                         window.addLog('Login OK');
                         setTimeout(() => {

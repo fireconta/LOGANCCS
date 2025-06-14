@@ -14,7 +14,6 @@
             border-radius: 4px;
             color: white;
             font-size: 0.8rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
             z-index: 1000;
             min-width: 120px;
             max-width: 85%;
@@ -51,20 +50,51 @@
         </div>
     </div>
     <div id="debug"></div>
-    <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js"></script>
-    <script src="/script.js"></script>
     <script>
+        // Fallback para scripts
+        function loadScript(src, callback) {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = callback;
+            script.onerror = () => {
+                window.addLog(`Erro ao carregar ${src}`, 'error');
+                alert(`Erro ao carregar ${src}`);
+            };
+            document.head.appendChild(script);
+        }
+
+        window.addLog = function(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const debugDiv = document.getElementById('debug');
+            if (debugDiv) {
+                debugDiv.innerHTML += `<div class="${type}">[${timestamp}] ${message}</div>`;
+                debugDiv.scrollTop = debugDiv.scrollHeight;
+            }
+        };
+        window.addLog('Iniciando carregamento...');
+
+        // Carregar scripts sequencialmente
+        loadScript('https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js', () => {
+            window.addLog('firebase-app.js carregado');
+            loadScript('https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js', () => {
+                window.addLog('firebase-firestore.js carregado');
+                loadScript('/script.js', () => {
+                    window.addLog('script.js solicitado');
+                    initApp();
+                });
+            });
+        });
+
         function initApp() {
-            window.addLog('Iniciando...');
+            window.addLog('Iniciando app...');
 
             // Verificar script.js
-            if (!window.addLog || !window.utils || !window.firebaseConfig) {
+            if (!window.utils || !window.firebaseConfig || !window.addLog) {
                 window.addLog('Erro: script.js não carregado', 'error');
                 alert('Erro: script.js não carregado.');
                 return;
             }
-            window.addLog('script.js verificado');
+            window.addLog('script.js OK');
 
             // Verificar Firebase
             if (!window.firebase || !window.firebase.firestore) {
@@ -72,7 +102,7 @@
                 alert('Erro: Firebase SDK não carregado.');
                 return;
             }
-            window.addLog('Firebase SDK verificado');
+            window.addLog('Firebase SDK OK');
 
             // Inicializar Firebase
             try {
@@ -191,15 +221,9 @@
                     alert('Erro: banco ou utils não prontos');
                 }
 
-                ui.showNotification('Sistema iniciado!', 'success');
+                ui.showNotification('Sistema OK!', 'success');
             });
         }
-
-        // Tentar carregar scripts
-        window.addEventListener('load', () => {
-            window.addLog('Janela carregada');
-            setTimeout(initApp, 3000); // Atraso para scripts
-        });
     </script>
 </body>
 </html>

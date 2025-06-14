@@ -29,7 +29,7 @@ window.addLog = function(message, type = 'log') {
 
 window.utils = {
     async initializeDatabase(db, ui) {
-        window.addLog('Iniciando Firestore...');
+        window.addLog('Configurando Firestore...');
         try {
             // Criar users
             const usersRef = db.collection('users');

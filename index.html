@@ -51,25 +51,35 @@
     </div>
     <div id="debug"></div>
     <script>
-        // Fallback para scripts
-        function loadScript(src, callback, fallbackSrc = null) {
-            const script = document.createElement('script');
-            script.src = src;
-            script.onload = () => {
-                window.addLog(`${src} carregado`);
-                callback();
-            };
-            script.onerror = () => {
-                window.addLog(`Erro ao carregar ${src}`, 'error');
-                if (fallbackSrc) {
-                    window.addLog(`Tentando fallback ${fallbackSrc}...`);
-                    loadScript(fallbackSrc, callback);
-                } else {
-                    window.addLog(`Sem fallback para ${src}`, 'error');
-                    alert(`Erro ao carregar ${src}. Verifique a internet.`);
-                }
-            };
-            document.head.appendChild(script);
+        // Fallback para scripts com retry
+        function loadScript(src, callback, fallbacks = [], retries = 2) {
+            let attempts = 0;
+            function tryLoad(currentSrc) {
+                const script = document.createElement('script');
+                script.src = currentSrc;
+                script.onload = () => {
+                    window.addLog(`${currentSrc} carregado`);
+                    callback();
+                };
+                script.onerror = () => {
+                    window.addLog(`Erro ao carregar ${currentSrc} (tentativa ${attempts + 1}/${retries})`, 'error');
+                    if (attempts < retries - 1) {
+                        attempts++;
+                        window.addLog(`Retentando ${currentSrc}...`);
+                        setTimeout(() => tryLoad(currentSrc), 1000);
+                    } else if (fallbacks.length > 0) {
+                        const nextFallback = fallbacks.shift();
+                        window.addLog(`Tentando fallback ${nextFallback}...`);
+                        attempts = 0;
+                        tryLoad(nextFallback);
+                    } else {
+                        window.addLog(`Sem mais fallbacks para ${currentSrc}`, 'error');
+                        alert(`Erro ao carregar ${currentSrc}. Verifique a internet.`);
+                    }
+                };
+                document.head.appendChild(script);
+            }
+            tryLoad(src);
         }
 
         window.addLog = function(message, type = 'log') {
@@ -82,17 +92,22 @@
         };
         window.addLog('Iniciando...');
 
-        // Carregar Firebase SDK
+        // Carregar Firebase SDK com múltiplos fallbacks
         loadScript('https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js', () => {
             loadScript('https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js', () => {
-                // Carregar scripts locais
                 loadScript('./script.js', () => {
                     loadScript('./firebase-init.js', () => {
                         initApp();
                     });
                 });
-            }, 'https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js');
-        }, 'https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js');
+            }, [
+                'https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js',
+                'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js'
+            ]);
+        }, [
+            'https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js',
+            'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js'
+        ]);
 
         function initApp() {
             window.addLog('Iniciando app...');

@@ -1,270 +1,79 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOGAN CC's - Login</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <style>
-        .notification {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            padding: 8px;
-            border-radius: 4px;
-            color: white;
-            font-size: 0.8rem;
-            z-index: 1000;
-            min-width: 120px;
-            max-width: 85%;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LOGAN CC's - Login</title>
+  <script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" async></script>
+  <script>
+    window.OneSignal = window.OneSignal || [];
+    OneSignal.push(function() {
+      OneSignal.init({
+        appId: "YOUR_ONESIGNAL_APP_ID"
+      });
+      OneSignal.on('subscriptionChange', function(isSubscribed) {
+        if (isSubscribed) {
+          OneSignal.getUserId().then(playerId => {
+            if (localStorage.getItem('userId')) {
+              fetch('/api/register-push', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: localStorage.getItem('userId'), token: playerId })
+              }).then(res => res.json()).then(data => {
+                debugLog('Push registrado: ' + JSON.stringify(data));
+              });
+            }
+          });
         }
-        .notification.bg-red-600 { background-color: #dc2626; }
-        .notification.bg-green-600 { background-color: #16a34a; }
-        #debug {
-            position: fixed;
-            bottom: 5px;
-            left: 5px;
-            background: #111827;
-            color: #d1d5db;
-            padding: 5px;
-            border-radius: 3px;
-            max-height: 80px;
-            overflow-y: auto;
-            font-size: 0.7rem;
-            z-index: 1000;
-            width: 90%;
-        }
-        #debug .error { color: #f87171; }
-        #debug .log { color: #d1d5db; }
-    </style>
+      });
+    });
+  </script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f0f0f0; }
+    .container { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 8px; }
+    input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; }
+    button { width: 100%; padding: 10px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #218838; }
+    #debug { position: fixed; bottom: 10px; left: 10px; background: rgba(0,0,0,0.7); color: white; padding: 10px; max-width: 300px; font-size: 12px; }
+  </style>
 </head>
-<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
-    <div id="notifications" class="fixed top-4 right-4 space-y-2 z-50"></div>
-    <div id="loginContainer" class="bg-gray-800 p-4 rounded-lg w-full max-w-xs">
-        <h2 class="text-lg mb-3 text-center">Login</h2>
-        <div class="space-y-2">
-            <input id="username" type="text" class="w-full p-2 bg-gray-700 rounded-md text-sm" placeholder="Usuário">
-            <input id="password" type="password" class="w-full p-2 bg-gray-700 rounded-md text-sm" placeholder="Senha">
-            <button id="loginButton" class="w-full p-2 bg-green-500 rounded-md text-sm">Entrar</button>
-            <div id="loginError" class="text-red-500 text-xs hidden"></div>
-        </div>
-    </div>
-    <div id="debug"></div>
-    <script>
-        // Carregamento de scripts com retry e timeout
-        function loadScript(src, callback, retries = 2, timeoutMs = 10000) {
-            let attempts = 0;
-            function tryLoad(currentSrc) {
-                const script = document.createElement('script');
-                let timeoutId;
-                script.src = currentSrc;
-                script.onload = () => {
-                    clearTimeout(timeoutId);
-                    window.addLog(`${currentSrc} carregado`);
-                    callback();
-                };
-                script.onerror = () => {
-                    clearTimeout(timeoutId);
-                    window.addLog(`Erro ao carregar ${currentSrc} (tentativa ${attempts + 1}/${retries})`, 'error');
-                    if (attempts < retries - 1) {
-                        attempts++;
-                        window.addLog(`Retentando ${currentSrc}...`);
-                        setTimeout(() => tryLoad(currentSrc), 1000);
-                    } else {
-                        window.addLog(`Falha ao carregar ${currentSrc}`, 'error');
-                        alert(`Erro ao carregar ${currentSrc}. Verifique os arquivos no GitHub.`);
-                    }
-                };
-                timeoutId = setTimeout(() => {
-                    script.remove();
-                    window.addLog(`Timeout ao carregar ${currentSrc}`, 'error');
-                    if (attempts < retries - 1) {
-                        attempts++;
-                        window.addLog(`Retentando ${currentSrc}...`);
-                        tryLoad(currentSrc);
-                    } else {
-                        window.addLog(`Falha ao carregar ${currentSrc}`, 'error');
-                        alert(`Erro ao carregar ${currentSrc}. Verifique os arquivos no GitHub.`);
-                    }
-                }, timeoutMs);
-                document.head.appendChild(script);
-            }
-            tryLoad(src);
-        }
-
-        window.addLog = function(message, type = 'log') {
-            const timestamp = new Date().toLocaleTimeString();
-            const debugDiv = document.getElementById('debug');
-            if (debugDiv) {
-                debugDiv.innerHTML += `<div class="${type}">[${timestamp}] ${message}</div>`;
-                debugDiv.scrollTop = debugDiv.scrollHeight;
-            }
-        };
-        window.addLog('Iniciando...');
-
-        // Carregar Firebase SDK localmente
-        loadScript('./firebase/firebase-app.js', () => {
-            setTimeout(() => {
-                if (!window.firebase) {
-                    window.addLog('Erro: firebase não definido após firebase-app.js', 'error');
-                    alert('Erro: firebase não definido após firebase-app.js');
-                    return;
-                }
-                window.addLog('firebase-app.js OK');
-                loadScript('./firebase/firebase-firestore.js', () => {
-                    if (!window.firebase.firestore) {
-                        window.addLog('Erro: firestore não definido após firebase-firestore.js', 'error');
-                        alert('Erro: firestore não definido após firebase-firestore.js');
-                        return;
-                    }
-                    window.addLog('firebase-firestore.js OK');
-                    loadScript('./firebase/firebase-messaging.js', () => {
-                        window.addLog('firebase-messaging.js OK');
-                        loadScript('./script.js', () => {
-                            loadScript('./firebase-init.js', () => {
-                                initApp();
-                            });
-                        });
-                    });
-                });
-            }, 500);
+<body>
+  <div class="container">
+    <h2>LOGAN CC's - Login</h2>
+    <input type="text" id="username" placeholder="Usuário">
+    <input type="password" id="password" placeholder="Senha">
+    <button onclick="login()">Entrar</button>
+  </div>
+  <div id="debug"></div>
+  <script src="script.js"></script>
+  <script>
+    debugLog('Iniciando...');
+    document.addEventListener('DOMContentLoaded', () => {
+      debugLog('DOM carregado');
+      if (localStorage.getItem('userId')) {
+        window.location.href = 'shop.html';
+      }
+    });
+    async function login() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      try {
+        debugLog('Tentando login...');
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
         });
-
-        function initApp() {
-            window.addLog('Iniciando app...');
-
-            if (!window.utils || !window.firebaseConfig) {
-                window.addLog('Erro: scripts não carregados', 'error');
-                alert('Erro: scripts não carregados.');
-                return;
-            }
-            window.addLog('Scripts OK');
-
-            if (!window.firebase || !window.firebase.firestore) {
-                window.addLog('Erro: Firebase SDK não carregado', 'error');
-                alert('Erro: Firebase SDK não carregado.');
-                return;
-            }
-            window.addLog('Firebase SDK OK');
-
-            try {
-                firebase.initializeApp(window.firebaseConfig);
-                window.db = firebase.firestore();
-                window.messaging = firebase.messaging();
-                window.addLog('Firebase inicializado');
-            } catch (err) {
-                window.addLog(`Erro Firebase: ${err.message}`, 'error');
-                alert(`Erro Firebase: ${err.message}`);
-                return;
-            }
-
-            const ui = {
-                showNotification(message, type = 'error') {
-                    window.addLog(`Notificação: ${message} (${type})`);
-                    const notificationsDiv = document.getElementById('notifications');
-                    if (notificationsDiv) {
-                        const notification = document.createElement('div');
-                        notification.className = `notification ${type === 'error' ? 'bg-red-600' : 'bg-green-600'}`;
-                        notification.textContent = message;
-                        notificationsDiv.appendChild(notification);
-                        setTimeout(() => notification.remove(), 5000);
-                    }
-                },
-
-                showError(context, message) {
-                    window.addLog(`Erro ${context}: ${message}`, 'error');
-                    this.showNotification(message, 'error');
-                    const errorElement = document.getElementById(`${context}Error`);
-                    if (errorElement) {
-                        errorElement.textContent = message;
-                        errorElement.classList.remove('hidden');
-                    }
-                },
-
-                showSuccess(message) {
-                    window.addLog(`Sucesso: ${message}`);
-                    this.showNotification(message, 'success');
-                },
-
-                toggleLoading(buttonId, isLoading) {
-                    const button = document.getElementById(buttonId);
-                    if (button) {
-                        button.disabled = isLoading;
-                        button.textContent = isLoading ? 'Carregando...' : (buttonId === 'loginButton' ? 'Entrar' : 'Confirmar');
-                    }
-                }
-            };
-
-            const auth = {
-                async login(username, password) {
-                    window.addLog(`Login: ${username}`);
-                    if (!window.db) {
-                        ui.showError('login', 'Sem conexão com Firestore');
-                        return;
-                    }
-                    if (!username || !password) {
-                        ui.showError('login', 'Campos obrigatórios');
-                        return;
-                    }
-                    try {
-                        ui.toggleLoading('loginButton', true);
-                        const userDoc = await window.db.collection('users')
-                            .where('username', '==', username)
-                            .get();
-                        window.addLog(`Firestore: ${userDoc.size} usuário(s)`);
-                        if (userDoc.empty) {
-                            ui.showError('login', 'Usuário não encontrado');
-                            return;
-                        }
-                        const user = userDoc.docs[0].data();
-                        if (user.password !== password) {
-                            ui.showError('login', 'Senha incorreta');
-                            return;
-                        }
-                        localStorage.setItem('userId', userDoc.docs[0].id);
-                        localStorage.setItem('username', username);
-                        ui.showSuccess(`Bem-vindo, ${username}!`);
-                        window.addLog('Login OK');
-                        setTimeout(() => {
-                            window.location.href = 'shop.html';
-                        }, 1000);
-                    } catch (err) {
-                        window.addLog(`Erro login: ${err.message}`, 'error');
-                        ui.showError('login', 'Erro ao logar');
-                    } finally {
-                        ui.toggleLoading('loginButton', false);
-                    }
-                }
-            };
-
-            document.addEventListener('DOMContentLoaded', () => {
-                window.addLog('DOM carregado');
-                const loginButton = document.getElementById('loginButton');
-                if (loginButton) {
-                    loginButton.addEventListener('click', () => {
-                        window.addLog('Botão login clicado');
-                        auth.login(
-                            document.getElementById('username').value.trim(),
-                            document.getElementById('password').value.trim()
-                        );
-                    });
-                    window.addLog('Botão login OK');
-                } else {
-                    window.addLog('Botão login não encontrado', 'error');
-                }
-
-                if (window.db && window.utils && window.utils.initializeDatabase) {
-                    window.addLog('Iniciando banco...');
-                    window.utils.initializeDatabase(window.db, ui);
-                } else {
-                    window.addLog('Erro: banco ou utils não prontos', 'error');
-                    ui.showNotification('Erro ao iniciar banco', 'error');
-                    alert('Erro: banco ou utils não prontos');
-                }
-
-                ui.showNotification('Sistema OK!', 'success');
-            });
-        }
-    </script>
+        const data = await res.json();
+        if (res.status !== 200) throw new Error(data.error);
+        localStorage.setItem('userId', data.userId);
+        localStorage.setItem('username', data.username);
+        debugLog('Login OK');
+        window.location.href = 'shop.html';
+      } catch (err) {
+        debugLog('Erro: ' + err.message);
+      }
+    }
+  </script>
 </body>
 </html>

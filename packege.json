@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "mongodb": "^6.0.0",
+    "uuid": "^10.0.0",
+    "onesignal-node": "^3.0.0",
+    "dotenv": "^16.0.0"
+  }
+}

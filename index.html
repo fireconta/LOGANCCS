@@ -51,17 +51,20 @@
     </div>
     <div id="debug"></div>
     <script>
-        // Fallback para scripts com retry
-        function loadScript(src, callback, fallbacks = [], retries = 2) {
+        // Fallback para scripts com retry e timeout
+        function loadScript(src, callback, fallbacks = [], retries = 2, timeoutMs = 5000) {
             let attempts = 0;
             function tryLoad(currentSrc) {
                 const script = document.createElement('script');
+                let timeoutId;
                 script.src = currentSrc;
                 script.onload = () => {
+                    clearTimeout(timeoutId);
                     window.addLog(`${currentSrc} carregado`);
                     callback();
                 };
                 script.onerror = () => {
+                    clearTimeout(timeoutId);
                     window.addLog(`Erro ao carregar ${currentSrc} (tentativa ${attempts + 1}/${retries})`, 'error');
                     if (attempts < retries - 1) {
                         attempts++;
@@ -77,6 +80,23 @@
                         alert(`Erro ao carregar ${currentSrc}. Verifique a internet.`);
                     }
                 };
+                timeoutId = setTimeout(() => {
+                    script.remove();
+                    window.addLog(`Timeout ao carregar ${currentSrc}`, 'error');
+                    if (attempts < retries - 1) {
+                        attempts++;
+                        window.addLog(`Retentando ${currentSrc}...`);
+                        tryLoad(currentSrc);
+                    } else if (fallbacks.length > 0) {
+                        const nextFallback = fallbacks.shift();
+                        window.addLog(`Tentando fallback ${nextFallback}...`);
+                        attempts = 0;
+                        tryLoad(nextFallback);
+                    } else {
+                        window.addLog(`Sem mais fallbacks para ${currentSrc}`, 'error');
+                        alert(`Erro ao carregar ${currentSrc}. Verifique a internet.`);
+                    }
+                }, timeoutMs);
                 document.head.appendChild(script);
             }
             tryLoad(src);
@@ -92,9 +112,21 @@
         };
         window.addLog('Iniciando...');
 
-        // Carregar Firebase SDK com múltiplos fallbacks
+        // Carregar Firebase SDK com fallbacks
         loadScript('https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js', () => {
+            if (!window.firebase) {
+                window.addLog('Erro: firebase não definido após firebase-app.js', 'error');
+                alert('Erro: firebase não definido após firebase-app.js');
+                return;
+            }
+            window.addLog('firebase-app.js OK');
             loadScript('https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js', () => {
+                if (!window.firebase.firestore) {
+                    window.addLog('Erro: firestore não definido após firebase-firestore.js', 'error');
+                    alert('Erro: firestore não definido após firebase-firestore.js');
+                    return;
+                }
+                window.addLog('firebase-firestore.js OK');
                 loadScript('./script.js', () => {
                     loadScript('./firebase-init.js', () => {
                         initApp();

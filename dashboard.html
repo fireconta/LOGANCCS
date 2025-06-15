@@ -4,15 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LOGAN CC's - Dashboard</title>
-  <script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" async></script>
-  <script>
-    window.OneSignal = window.OneSignal || [];
-    OneSignal.push(function() {
-      OneSignal.init({
-        appId: "YOUR_ONESIGNAL_APP_ID"
-      });
-    });
-  </script>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f0f0f0; }
     .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; }
@@ -34,7 +25,7 @@
     <button onclick="window.location.href='shop.html'">Voltar para Loja</button>
   </div>
   <div id="debug"></div>
-  <script src="script.js"></script>
+  <script src="app.js"></script>
   <script>
     debugLog('Iniciando dashboard...');
     document.addEventListener('DOMContentLoaded', async () => {
@@ -97,6 +88,7 @@
         const data = await res.json();
         if (res.status !== 200) throw new Error(data.error);
         debugLog(`Depósito de ${formatCurrency(amount)} realizado. Novo saldo: ${formatCurrency(data.newBalance)}`);
+        showNotification('LOGAN CC\'s', `Depósito de ${formatCurrency(amount)} realizado!`);
         await loadBalance();
         await loadTransactions();
       } catch (err) {

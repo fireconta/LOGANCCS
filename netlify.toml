@@ -1,8 +1,0 @@
-[build]
-  publish = "."
-  functions = "."
-
-[[redirects]]
-  from = "/api/*"
-  to = "/api.js"
-  status = 200

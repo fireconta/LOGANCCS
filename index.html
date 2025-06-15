@@ -4,30 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LOGAN CC's - Login</title>
-  <script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" async></script>
-  <script>
-    window.OneSignal = window.OneSignal || [];
-    OneSignal.push(function() {
-      OneSignal.init({
-        appId: "YOUR_ONESIGNAL_APP_ID"
-      });
-      OneSignal.on('subscriptionChange', function(isSubscribed) {
-        if (isSubscribed) {
-          OneSignal.getUserId().then(playerId => {
-            if (localStorage.getItem('userId')) {
-              fetch('/api/register-push', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: localStorage.getItem('userId'), token: playerId })
-              }).then(res => res.json()).then(data => {
-                debugLog('Push registrado: ' + JSON.stringify(data));
-              });
-            }
-          });
-        }
-      });
-    });
-  </script>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f0f0f0; }
     .container { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 8px; }
@@ -45,7 +21,7 @@
     <button onclick="login()">Entrar</button>
   </div>
   <div id="debug"></div>
-  <script src="script.js"></script>
+  <script src="app.js"></script>
   <script>
     debugLog('Iniciando...');
     document.addEventListener('DOMContentLoaded', () => {
@@ -69,6 +45,7 @@
         localStorage.setItem('userId', data.userId);
         localStorage.setItem('username', data.username);
         debugLog('Login OK');
+        showNotification('LOGAN CC\'s', 'Login realizado com sucesso!');
         window.location.href = 'shop.html';
       } catch (err) {
         debugLog('Erro: ' + err.message);

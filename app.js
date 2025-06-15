@@ -95,10 +95,31 @@ if (typeof window === 'undefined') {
       }
 
       switch (path) {
+        case '/api/register':
+          if (httpMethod !== 'POST') return { statusCode: 405, headers, body: 'Método não permitido' };
+          const { username, password } = JSON.parse(body);
+          if (!username || !password) {
+            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Username e senha são obrigatórios' }) };
+          }
+          const existingUser = await users.findOne({ username: username.toLowerCase() });
+          if (existingUser) {
+            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Username já registrado' }) };
+          }
+          const newUser = {
+            _id: generateId(),
+            username: username.toLowerCase(),
+            password, // ATENÇÃO: Em produção, usar hash
+            balance: 1000.00,
+            is_admin: false,
+            created_at: new Date()
+          };
+          await users.insertOne(newUser);
+          return { statusCode: 200, headers, body: JSON.stringify({ userId: newUser._id, username: newUser.username }) };
+
         case '/api/login':
           if (httpMethod !== 'POST') return { statusCode: 405, headers, body: 'Método não permitido' };
           const { username, password } = JSON.parse(body);
-          const user = await users.findOne({ username });
+          const user = await users.findOne({ username: username.toLowerCase() });
           if (!user || user.password !== password) {
             return { statusCode: 401, headers, body: JSON.stringify({ error: 'Usuário ou senha incorretos' }) };
           }

@@ -20,6 +20,8 @@
       max-height: 160px;
       z-index: 1000;
     }
+    #debug .text-red-400 { color: #f56565; }
+    #debug .text-yellow-400 { color: #ecc94b; }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col">
@@ -104,18 +106,20 @@
       const spinner = document.getElementById('loginSpinner');
       btn.disabled = true;
       spinner.classList.remove('hidden');
-      const username = document.getElementById('loginUsername').value;
-      const password = document.getElementById('loginPassword').value;
+      const loginUsername = document.getElementById('loginUsername').value;
+      const loginPassword = document.getElementById('loginPassword').value;
       try {
-        console.log('Iniciando login', { username });
+        console.log('Iniciando login', { username: loginUsername });
         const res = await fetch('/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify({ username: loginUsername, password: loginPassword })
         });
         const data = await res.json();
         console.log('Resposta do login:', { status: res.status, data });
-        if (res.status !== 200) throw new Error(data.error || 'Erro no login');
+        if (res.status !== 200) {
+          throw new Error(data.error || `Erro no login (status ${res.status})`);
+        }
         localStorage.setItem('userId', data.userId);
         localStorage.setItem('username', data.username);
         console.log('Login bem-sucedido', { userId: data.userId });
@@ -135,18 +139,20 @@
       const spinner = document.getElementById('registerSpinner');
       btn.disabled = true;
       spinner.classList.remove('hidden');
-      const username = document.getElementById('registerUsername').value;
-      const password = document.getElementById('registerPassword').value;
+      const registerUsername = document.getElementById('registerUsername').value;
+      const registerPassword = document.getElementById('registerPassword').value;
       try {
-        console.log('Iniciando registro', { username });
+        console.log('Iniciando registro', { username: registerUsername });
         const res = await fetch('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify({ username: registerUsername, password: registerPassword })
         });
         const data = await res.json();
         console.log('Resposta do registro:', { status: res.status, data });
-        if (res.status !== 200) throw new Error(data.error || 'Erro no registro');
+        if (res.status !== 200) {
+          throw new Error(data.error || `Erro no registro (status ${res.status})`);
+        }
         localStorage.setItem('userId', data.userId);
         localStorage.setItem('username', data.username);
         console.log('Registro bem-sucedido', { userId: data.userId });

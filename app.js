@@ -100,20 +100,22 @@ if (typeof window === 'undefined') {
       switch (path) {
         case '/api/register':
           if (httpMethod !== 'POST') return { statusCode: 405, headers, body: 'Método não permitido' };
-          const { username, password } = JSON.parse(body || '{}');
-          console.log('Tentando registro:', { username });
-          if (!username || !password) {
+          const registerData = JSON.parse(body || '{}');
+          const registerUsername = registerData.username;
+          const registerPassword = registerData.password;
+          console.log('Tentando registro:', { username: registerUsername });
+          if (!registerUsername || !registerPassword) {
             return { statusCode: 400, headers, body: JSON.stringify({ error: 'Username e senha são obrigatórios' }) };
           }
-          const existingUser = await users.findOne({ username: username.toLowerCase() });
+          const existingUser = await users.findOne({ username: registerUsername.toLowerCase() });
           if (existingUser) {
-            console.warn('Username já registrado:', username);
+            console.warn('Username já registrado:', registerUsername);
             return { statusCode: 400, headers, body: JSON.stringify({ error: 'Username já registrado' }) };
           }
           const newUser = {
             _id: generateId(),
-            username: username.toLowerCase(),
-            password,
+            username: registerUsername.toLowerCase(),
+            password: registerPassword,
             balance: 1000.00,
             is_admin: false,
             created_at: new Date()
@@ -124,11 +126,13 @@ if (typeof window === 'undefined') {
 
         case '/api/login':
           if (httpMethod !== 'POST') return { statusCode: 405, headers, body: 'Método não permitido' };
-          const { username, password } = JSON.parse(body || '{}');
-          console.log('Tentando login:', { username });
-          const user = await users.findOne({ username: username.toLowerCase() });
-          if (!user || user.password !== password) {
-            console.warn('Login falhou:', username);
+          const loginData = JSON.parse(body || '{}');
+          const loginUsername = loginData.username;
+          const loginPassword = loginData.password;
+          console.log('Tentando login:', { username: loginUsername });
+          const user = await users.findOne({ username: loginUsername.toLowerCase() });
+          if (!user || user.password !== loginPassword) {
+            console.warn('Login falhou:', loginUsername);
             return { statusCode: 401, headers, body: JSON.stringify({ error: 'Usuário ou senha incorretos' }) };
           }
           console.log('Login bem-sucedido:', user._id);
@@ -136,9 +140,9 @@ if (typeof window === 'undefined') {
 
         case '/api/balance':
           if (httpMethod !== 'GET') return { statusCode: 405, headers, body: 'Método não permitido' };
-          const { userId } = queryStringParameters;
-          console.log('Consultando saldo:', userId);
-          const balanceUser = await users.findOne({ _id: userId });
+          const balanceUserId = queryStringParameters.userId;
+          console.log('Consultando saldo:', balanceUserId);
+          const balanceUser = await users.findOne({ _id: balanceUserId });
           if (!balanceUser) return { statusCode: 404, headers, body: 'Usuário não encontrado' };
           return { statusCode: 200, headers, body: JSON.stringify({ balance: balanceUser.balance }) };
 
@@ -150,30 +154,33 @@ if (typeof window === 'undefined') {
 
         case '/api/buy':
           if (httpMethod !== 'POST') return { statusCode: 405, headers, body: 'Método não permitido' };
-          const { userId, cardId, price } = JSON.parse(body || '{}');
-          console.log('Tentando compra:', { userId, cardId, price });
+          const buyData = JSON.parse(body || '{}');
+          const buyUserId = buyData.userId;
+          const buyCardId = buyData.cardId;
+          const buyPrice = buyData.price;
+          console.log('Tentando compra:', { userId: buyUserId, cardId: buyCardId, price: buyPrice });
           const session = mongoClient.startSession();
           try {
             await session.withTransaction(async () => {
-              const buyUser = await users.findOne({ _id: userId }, { session });
+              const buyUser = await users.findOne({ _id: buyUserId }, { session });
               if (!buyUser) throw new Error('Usuário não encontrado');
-              if (buyUser.balance < price) throw new Error('Saldo insuficiente');
-              const card = await cards.findOne({ _id: cardId }, { session });
+              if (buyUser.balance < buyPrice) throw new Error('Saldo insuficiente');
+              const card = await cards.findOne({ _id: buyCardId }, { session });
               if (!card || card.acquired) throw new Error('Cartão indisponível');
-              await users.updateOne({ _id: userId }, { $inc: { balance: -price } }, { session });
-              await cards.updateOne({ _id: cardId }, { $set: { acquired: true, user_id: userId } }, { session });
+              await users.updateOne({ _id: buyUserId }, { $inc: { balance: -buyPrice } }, { session });
+              await cards.updateOne({ _id: buyCardId }, { $set: { acquired: true, user_id: buyUserId } }, { session });
               const transactionId = generateId();
               await transactions.insertOne({
                 _id: transactionId,
-                user_id: userId,
+                user_id: buyUserId,
                 type: 'purchase',
-                amount: -price,
-                description: `Compra de cartão ${cardId.slice(-4)}`,
+                amount: -buyPrice,
+                description: `Compra de cartão ${buyCardId.slice(-4)}`,
                 timestamp: new Date()
               }, { session });
             });
-            const updatedUser = await users.findOne({ _id: userId });
-            console.log('Compra concluída:', { userId, newBalance: updatedUser.balance });
+            const updatedUser = await users.findOne({ _id: buyUserId });
+            console.log('Compra concluída:', { userId: buyUserId, newBalance: updatedUser.balance });
             return { statusCode: 200, headers, body: JSON.stringify({ success: true, newBalance: updatedUser.balance }) };
           } catch (err) {
             console.error('Erro na compra:', err.message);
@@ -184,27 +191,29 @@ if (typeof window === 'undefined') {
 
         case '/api/deposit':
           if (httpMethod !== 'POST') return { statusCode: 405, headers, body: 'Método não permitido' };
-          const { userId, amount } = JSON.parse(body || '{}');
-          console.log('Tentando depósito:', { userId, amount });
-          if (amount <= 0) return { statusCode: 400, headers, body: JSON.stringify({ error: 'Valor inválido' }) };
+          const depositData = JSON.parse(body || '{}');
+          const depositUserId = depositData.userId;
+          const depositAmount = depositData.amount;
+          console.log('Tentando depósito:', { userId: depositUserId, amount: depositAmount });
+          if (depositAmount <= 0) return { statusCode: 400, headers, body: JSON.stringify({ error: 'Valor inválido' }) };
           const depositSession = mongoClient.startSession();
           try {
             await depositSession.withTransaction(async () => {
-              const depositUser = await users.findOne({ _id: userId }, { session: depositSession });
+              const depositUser = await users.findOne({ _id: depositUserId }, { session: depositSession });
               if (!depositUser) throw new Error('Usuário não encontrado');
-              await users.updateOne({ _id: userId }, { $inc: { balance: amount } }, { session: depositSession });
+              await users.updateOne({ _id: depositUserId }, { $inc: { balance: depositAmount } }, { session: depositSession });
               const transactionId = generateId();
               await transactions.insertOne({
                 _id: transactionId,
-                user_id: userId,
+                user_id: depositUserId,
                 type: 'deposit',
-                amount,
-                description: `Depósito de R$ ${amount.toFixed(2)}`,
+                amount: depositAmount,
+                description: `Depósito de R$ ${depositAmount.toFixed(2)}`,
                 timestamp: new Date()
               }, { session: depositSession });
             });
-            const updatedUser = await users.findOne({ _id: userId });
-            console.log('Depósito concluído:', { userId, newBalance: updatedUser.balance });
+            const updatedUser = await users.findOne({ _id: depositUserId });
+            console.log('Depósito concluído:', { userId: depositUserId, newBalance: updatedUser.balance });
             return { statusCode: 200, headers, body: JSON.stringify({ success: true, newBalance: updatedUser.balance }) };
           } catch (err) {
             console.error('Erro no depósito:', err.message);
@@ -215,9 +224,9 @@ if (typeof window === 'undefined') {
 
         case '/api/transactions':
           if (httpMethod !== 'GET') return { statusCode: 405, headers, body: 'Método não permitido' };
-          const { userId } = queryStringParameters;
-          console.log('Listando transações:', userId);
-          const userTransactions = await transactions.find({ user_id: userId }).sort({ timestamp: -1 }).toArray();
+          const transactionUserId = queryStringParameters.userId;
+          console.log('Listando transações:', transactionUserId);
+          const userTransactions = await transactions.find({ user_id: transactionUserId }).sort({ timestamp: -1 }).toArray();
           return { statusCode: 200, headers, body: JSON.stringify(userTransactions) };
 
         default:

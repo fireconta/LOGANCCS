@@ -5,6 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LOGAN CC's - Login/Registro</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    #debug {
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      background: #1a202c;
+      color: white;
+      padding: 16px;
+      border-radius: 6px;
+      max-width: 300px;
+      font-size: 12px;
+      overflow-y: auto;
+      max-height: 160px;
+      z-index: 1000;
+    }
+  </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col">
   <header class="bg-white shadow">
@@ -57,12 +73,14 @@
     </div>
   </main>
   <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40"></div>
+  <script src="debug.js"></script>
   <script src="app.js"></script>
   <script>
-    debugLog('Iniciando...');
+    console.log('index.html carregado');
     document.addEventListener('DOMContentLoaded', () => {
-      debugLog('DOM carregado');
+      console.log('DOM carregado');
       if (localStorage.getItem('userId')) {
+        console.log('Usuário logado, redirecionando para shop.html');
         window.location.href = 'shop.html';
       }
       document.getElementById('showLogin').addEventListener('click', () => {
@@ -70,14 +88,17 @@
         document.getElementById('registerForm').classList.add('hidden');
         document.getElementById('showLogin').classList.add('text-green-600', 'border-b-2', 'border-green-600');
         document.getElementById('showRegister').classList.remove('text-green-600', 'border-b-2', 'border-green-600');
+        console.log('Exibindo formulário de login');
       });
       document.getElementById('showRegister').addEventListener('click', () => {
         document.getElementById('registerForm').classList.remove('hidden');
         document.getElementById('loginForm').classList.add('hidden');
         document.getElementById('showRegister').classList.add('text-green-600', 'border-b-2', 'border-green-600');
         document.getElementById('showLogin').classList.remove('text-green-600', 'border-b-2', 'border-green-600');
+        console.log('Exibindo formulário de registro');
       });
     });
+
     async function login() {
       const btn = document.getElementById('loginBtn');
       const spinner = document.getElementById('loginSpinner');
@@ -86,26 +107,29 @@
       const username = document.getElementById('loginUsername').value;
       const password = document.getElementById('loginPassword').value;
       try {
-        debugLog('Tentando login...');
+        console.log('Iniciando login', { username });
         const res = await fetch('/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
         });
         const data = await res.json();
-        if (res.status !== 200) throw new Error(data.error);
+        console.log('Resposta do login:', { status: res.status, data });
+        if (res.status !== 200) throw new Error(data.error || 'Erro no login');
         localStorage.setItem('userId', data.userId);
         localStorage.setItem('username', data.username);
-        debugLog('Login OK');
+        console.log('Login bem-sucedido', { userId: data.userId });
         showNotification('LOGAN CC\'s', 'Login realizado com sucesso!');
         window.location.href = 'shop.html';
       } catch (err) {
-        debugLog('Erro: ' + err.message);
+        console.error('Erro no login:', err.message);
+        alert('Erro: ' + err.message);
       } finally {
         btn.disabled = false;
         spinner.classList.add('hidden');
       }
     }
+
     async function register() {
       const btn = document.getElementById('registerBtn');
       const spinner = document.getElementById('registerSpinner');
@@ -114,21 +138,23 @@
       const username = document.getElementById('registerUsername').value;
       const password = document.getElementById('registerPassword').value;
       try {
-        debugLog('Tentando registro...');
+        console.log('Iniciando registro', { username });
         const res = await fetch('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
         });
         const data = await res.json();
-        if (res.status !== 200) throw new Error(data.error);
+        console.log('Resposta do registro:', { status: res.status, data });
+        if (res.status !== 200) throw new Error(data.error || 'Erro no registro');
         localStorage.setItem('userId', data.userId);
         localStorage.setItem('username', data.username);
-        debugLog('Registro OK');
+        console.log('Registro bem-sucedido', { userId: data.userId });
         showNotification('LOGAN CC\'s', 'Registro concluído com sucesso!');
         window.location.href = 'shop.html';
       } catch (err) {
-        debugLog('Erro: ' + err.message);
+        console.error('Erro no registro:', err.message);
+        alert('Erro: ' + err.message);
       } finally {
         btn.disabled = false;
         spinner.classList.add('hidden');

@@ -4,236 +4,215 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LOGAN CC's - Loja</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        #globalLoader {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            visibility: hidden;
-        }
-        .spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid #10b981;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        #notifications {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            z-index: 10000;
-            max-width: 300px;
-        }
-        .notification {
-            background: #1f2937;
-            color: white;
-            padding: 1rem;
-            border-radius: 0.375rem;
-            margin-bottom: 0.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .notification-error {
-            background: #ef4444;
-        }
-        .notification-success {
-            background: #10b981;
-        }
-        #debug {
-            position: fixed;
-            bottom: 1rem;
-            left: 1rem;
-            background: #1a202c;
-            color: white;
-            padding: 1rem;
-            border-radius: 0.375rem;
-            max-width: 300px;
-            font-size: 0.75rem;
-            overflow-y: auto;
-            max-height: 160px;
-            z-index: 1000;
-        }
-        .card-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 1.5rem;
-        }
-        .card {
-            background: #1f2937;
-            padding: 1rem;
-            border-radius: 0.375rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
+        #globalLoader{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;visibility:hidden;z-index:9999}.spinner{border:4px solid rgba(255,255,255,0.3);border-top:4px solid #10b981;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite}@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}#notifications{position:fixed;top:1rem;right:1rem;max-width:300px;z-index:10000}.notification{background:#1f2937;color:white;padding:1rem;border-radius:6px;margin-bottom:0.5rem;box-shadow:0 2px 4px rgba(0,0,0,0.2);display:flex;justify-content:space-between}.notification-error{background:#ef4444}.notification-success{background:#10b981}.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);align-items:center;justify-content:center}.modal.show{display:flex}table{width:100%;border-collapse:collapse}th,td{padding:0.75rem;text-align:left;border-bottom:1px solid #4b5563}th{background:#1f2937;font-weight:600}.action-button{padding:0.5rem;border-radius:4px;background:#3b82f6;color:white}.action-button:hover{background:#2563eb}
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen">
-    <div id="globalLoader">
-        <div class="spinner"></div>
-    </div>
-    <div id="notifications" class="space-y-2"></div>
+    <div id="globalLoader"><div class="spinner"></div></div>
+    <div id="notifications"></div>
     <header class="bg-gray-800 p-4 flex justify-between items-center">
         <h1 class="text-2xl font-bold text-green-500">LOGAN CC's - Loja</h1>
         <div class="flex items-center space-x-4">
-            <span id="userInfo" class="text-gray-300"></span>
-            <button type="button" id="dashboardButton" class="text-gray-300 hover:text-green-500 hidden"><i class="fas fa-tachometer-alt mr-2"></i>Dashboard</button>
-            <button type="button" id="logoutButton" class="text-gray-300 hover:text-red-500"><i class="fas fa-sign-out-alt"></i>Sair</button>
+            <span id="userBalance" class="text-gray-300"></span>
+            <button id="dashboardButton" class="text-gray-300 hover:text-green-500 hidden"><i class="fas fa-tachometer-alt mr-2"></i>Dashboard</button>
+            <button id="logoutButton" class="text-gray-300 hover:text-red-500"><i class="fas fa-sign-out-alt"></i>Sair</button>
         </div>
     </header>
     <main class="container mx-auto p-6">
         <div class="bg-gray-800 p-4 rounded-lg mb-6">
-            <h2 class="text-xl font-semibold mb-4"><i class="fas fa-credit-card mr-2"></i>Cartões Disponíveis</h2>
-            <div id="cardList" class="card-grid"></div>
+            <div class="flex flex-wrap gap-4 mb-4">
+                <div>
+                    <label for="searchCard" class="block text-sm font-medium">Buscar Número</label>
+                    <input id="searchCard" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="ex.: 1234">
+                </div>
+                <div>
+                    <label for="filterBandeira" class="block text-sm font-medium">Bandeira</label>
+                    <select id="filterBandeira" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500">
+                        <option value="">Todas</option>
+                        <option value="Visa">Visa</option>
+                        <option value="Mastercard">Mastercard</option>
+                        <option value="Amex">Amex</option>
+                        <option value="Elo">Elo</option>
+                        <option value="Hipercard">Hipercard</option>
+                        <option value="Diners Club">Diners Club</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filterBanco" class="block text-sm font-medium">Banco</label>
+                    <select id="filterBanco" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500">
+                        <option value="">Todos</option>
+                        <option value="Nubank">Nubank</option>
+                        <option value="Itaú">Itaú</option>
+                        <option value="Bradesco">Bradesco</option>
+                        <option value="Santander">Santander</option>
+                        <option value="Banco do Brasil">Banco do Brasil</option>
+                        <option value="Caixa Econômica Federal">Caixa Econômica Federal</option>
+                        <option value="Sicredi">Sicredi</option>
+                        <option value="Sicoob">Sicoob</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filterNivel" class="block text-sm font-medium">Nível</label>
+                    <select id="filterNivel" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500">
+                        <option value="">Todos</option>
+                        <option value="Classic">Classic</option>
+                        <option value="Gold">Gold</option>
+                        <option value="Platinum">Platinum</option>
+                        <option value="Black">Black</option>
+                    </select>
+                </div>
+            </div>
+            <div id="cardList" class="overflow-x-auto">
+                <table><thead><tr><th>Número</th><th>Bandeira</th><th>Banco</th><th>Nível</th><th>Preço</th><th>Ações</th></tr></thead><tbody></tbody></table>
+            </div>
         </div>
     </main>
+    <div id="viewCardModal" class="modal">
+        <div class="bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h2 class="text-xl font-semibold mb-4"><i class="fas fa-credit-card mr-2"></i>Detalhes do Cartão</h2>
+            <div class="space-y-2">
+                <p><strong>Número:</strong> <span id="viewCardNumber"></span></p>
+                <p><strong>CVV:</strong> <span id="viewCardCvv"></span></p>
+                <p><strong>Validade:</strong> <span id="viewCardExpiry"></span></p>
+                <p><strong>Nome:</strong> <span id="viewCardName"></span></p>
+                <p><strong>CPF:</strong> <span id="viewCardCpf"></span></p>
+                <p><strong>Bandeira:</strong> <span id="viewCardBandeira"></span></p>
+                <p><strong>Banco:</strong> <span id="viewCardBanco"></span></p>
+                <p><strong>Nível:</strong> <span id="viewCardNivel"></span></p>
+                <p><strong>Preço:</strong> <span id="viewCardPrice"></span></p>
+            </div>
+            <p id="viewCardError" class="text-red-500 text-sm hidden mt-2"></p>
+            <div class="flex justify-end space-x-2 mt-4">
+                <button id="cancelViewCardButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Fechar</button>
+                <button id="buyCardButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
+                    <span>Comprar</span><svg id="buyCardSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" class="opacity-75"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
     <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40"></div>
     <script src="debug.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.9/purify.min.js"></script>
     <script>
-        console.log('shop.html carregado');
-
-        // Função de sanitização com fallback
-        function sanitizeInput(input) {
-            if (typeof DOMPurify !== 'undefined' && DOMPurify.sanitize) {
-                return DOMPurify.sanitize(input);
-            }
-            console.warn('DOMPurify não está disponível. Usando sanitização básica.');
-            return input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-                        .replace(/[<>]/g, '');
-        }
-
-        function formatCurrency(value) {
-            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-        }
-
-        function showNotification(message, isError = false) {
-            const notificationsDiv = document.getElementById('notifications');
-            const notification = document.createElement('div');
-            notification.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
-            notification.textContent = sanitizeInput(message);
-            const closeButton = document.createElement('button');
-            closeButton.innerHTML = '<i class="fas fa-times"></i>';
-            closeButton.className = 'ml-2 text-white hover:text-gray-300';
-            closeButton.addEventListener('click', () => notification.remove());
-            notification.appendChild(closeButton);
-            notificationsDiv.appendChild(notification);
-            setTimeout(() => notification.remove(), 3000);
-        }
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            console.log('DOM carregado');
-            const userId = localStorage.getItem('userId');
-            const username = localStorage.getItem('username');
-            if (!userId) {
-                showNotification('Faça login para acessar a loja.', true);
-                setTimeout(() => window.location.href = 'index.html', 1000);
+        const sanitizeInput=input=>DOMPurify?.sanitize?DOMPurify.sanitize(input):input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,'').replace(/[<>]/g,'');
+        const formatCurrency=value=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(value);
+        const showNotification=(msg,isError=false)=>{const n=document.createElement('div');n.className=`notification ${isError?'notification-error':'notification-success'}`;n.innerHTML=`${sanitizeInput(msg)}<button class="ml-2 text-white hover:text-gray-300"><i class="fas fa-times"></i></button>`;document.getElementById('notifications').appendChild(n);n.querySelector('button').onclick=()=>n.remove();setTimeout(()=>n.remove(),3000)};
+        const toggleLoader=show=>document.getElementById('globalLoader').style.visibility=show?'visible':'hidden';
+        document.addEventListener('DOMContentLoaded',async()=>{
+            const userId=localStorage.getItem('userId');
+            if(!userId){window.location.href='index.html';return}
+            toggleLoader(true);
+            try{
+                const res=await fetch(`/api/users?userId=${userId}`);
+                const user=await res.json();
+                document.getElementById('userBalance').textContent=`Saldo: ${formatCurrency(user.balance)}`;
+                if(user.is_admin)document.getElementById('dashboardButton').classList.remove('hidden');
+            }catch(err){
+                showNotification('Erro ao carregar usuário.',true);
+                localStorage.clear();
+                setTimeout(()=>window.location.href='index.html',1000);
                 return;
+            }finally{
+                toggleLoader(false);
             }
-
-            document.getElementById('globalLoader').style.visibility = 'visible';
-            try {
-                const res = await fetch(`/api/users?userId=${userId}`);
-                if (res.status !== 200) {
-                    throw new Error('Sessão inválida. Faça login novamente.');
-                }
-                const user = await res.json();
-                document.getElementById('userInfo').textContent = `Bem-vindo, ${sanitizeInput(username)} (Saldo: ${formatCurrency(user.balance)})`;
-                if (user.is_admin) {
-                    document.getElementById('dashboardButton').classList.remove('hidden');
-                }
-                await loadCards();
-            } catch (err) {
-                console.error('Erro ao verificar usuário:', err.message);
-                showNotification(err.message, true);
-                localStorage.removeItem('userId');
-                localStorage.removeItem('username');
-                setTimeout(() => window.location.href = 'index.html', 1000);
-            } finally {
-                document.getElementById('globalLoader').style.visibility = 'hidden';
-            }
-
-            document.getElementById('logoutButton').addEventListener('click', () => {
-                localStorage.removeItem('userId');
-                localStorage.removeItem('username');
-                window.location.href = 'index.html';
-            });
-
-            document.getElementById('dashboardButton').addEventListener('click', () => {
-                window.location.href = 'dashboard.html';
-            });
+            document.getElementById('logoutButton').onclick=()=>{localStorage.clear();window.location.href='index.html'};
+            document.getElementById('dashboardButton').onclick=()=>window.location.href='dashboard.html';
+            document.getElementById('searchCard').oninput=filterCards;
+            document.getElementById('filterBandeira').onchange=filterCards;
+            document.getElementById('filterBanco').onchange=filterCards;
+            document.getElementById('filterNivel').onchange=filterCards;
+            document.getElementById('cancelViewCardButton').onclick=()=>document.getElementById('viewCardModal').classList.remove('show');
+            document.getElementById('buyCardButton').onclick=buyCard;
+            document.onkeydown=e=>e.key==='Escape'&&document.querySelectorAll('.modal.show').forEach(m=>m.classList.remove('show'));
+            await loadCards();
         });
-
-        async function loadCards() {
-            document.getElementById('globalLoader').style.visibility = 'visible';
-            try {
-                const res = await fetch('/api/cards');
-                const cards = await res.json();
-                const cardList = document.getElementById('cardList');
-                cardList.innerHTML = '';
-                if (cards.length === 0) {
-                    cardList.innerHTML = '<p class="text-center text-gray-500">Nenhum cartão disponível.</p>';
-                } else {
-                    cards.forEach(card => {
-                        const cardDiv = document.createElement('div');
-                        cardDiv.className = 'card';
-                        cardDiv.innerHTML = `
-                            <h3 class="text-lg font-semibold">${sanitizeInput(card.bandeira)} ${sanitizeInput(card.nivel)}</h3>
-                            <p>Banco: ${sanitizeInput(card.banco)}</p>
-                            <p>Número: ${sanitizeInput(card.numero.slice(-4).padStart(16, '*'))}</p>
-                            <p>Preço: ${formatCurrency(card.price)}</p>
-                            <button class="buy-button mt-2 w-full py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600" data-card-id="${card._id}">Comprar</button>
-                        `;
-                        cardList.appendChild(cardDiv);
-                    });
-                }
-                document.querySelectorAll('.buy-button').forEach(button => {
-                    button.addEventListener('click', async (e) => {
-                        const cardId = e.target.dataset.cardId;
-                        document.getElementById('globalLoader').style.visibility = 'visible';
-                        try {
-                            const res = await fetch('/api/buy-card', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ userId: localStorage.getItem('userId'), cardId })
-                            });
-                            const data = await res.json();
-                            if (res.status !== 200) {
-                                throw new Error(data.error || 'Erro ao comprar cartão');
-                            }
-                            showNotification('Cartão comprado com sucesso!');
-                            await loadCards();
-                            const userRes = await fetch(`/api/users?userId=${localStorage.getItem('userId')}`);
-                            const user = await userRes.json();
-                            document.getElementById('userInfo').textContent = `Bem-vindo, ${sanitizeInput(localStorage.getItem('username'))} (Saldo: ${formatCurrency(user.balance)})`;
-                        } catch (err) {
-                            console.error('Erro ao comprar cartão:', err.message);
-                            showNotification('Erro: ' + err.message, true);
-                        } finally {
-                            document.getElementById('globalLoader').style.visibility = 'hidden';
-                        }
-                    });
+        async function loadCards(){
+            toggleLoader(true);
+            try{
+                const res=await fetch('/api/cards');
+                const cards=await res.json();
+                const tbody=document.querySelector('#cardList tbody');
+                tbody.innerHTML=cards.map(c=>`<tr><td>${sanitizeInput(c.numero)}</td><td>${sanitizeInput(c.bandeira)}</td><td>${sanitizeInput(c.banco)}</td><td>${sanitizeInput(c.nivel)}</td><td>${formatCurrency(c.price)}</td><td><button class="action-button view-card-button" data-card-id="${c._id}"><i class="fas fa-eye"></i></button></td></tr>`).join('');
+                document.querySelectorAll('.view-card-button').forEach(btn=>btn.onclick=async()=>{
+                    try{
+                        const res=await fetch(`/api/cards/${btn.dataset.cardId}`);
+                        const card=await res.json();
+                        document.getElementById('viewCardNumber').textContent=card.numero.replace(/(\d{4})(\d{4})(\d{4})(\d{4})/,'$1 $2 $3 $4');
+                        document.getElementById('viewCardCvv').textContent=card.cvv;
+                        document.getElementById('viewCardExpiry').textContent=card.validade;
+                        document.getElementById('viewCardName').textContent=card.nome;
+                        document.getElementById('viewCardCpf').textContent=card.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4');
+                        document.getElementById('viewCardBandeira').textContent=card.bandeira;
+                        document.getElementById('viewCardBanco').textContent=card.banco;
+                        document.getElementById('viewCardNivel').textContent=card.nivel;
+                        document.getElementById('viewCardPrice').textContent=formatCurrency(card.price);
+                        document.getElementById('viewCardModal').dataset.cardId=card._id;
+                        document.getElementById('viewCardModal').classList.add('show');
+                    }catch(err){
+                        showNotification('Erro ao carregar cartão.',true);
+                    }
                 });
-            } catch (err) {
-                console.error('Erro ao carregar cartões:', err.message);
-                showNotification('Erro ao carregar cartões.', true);
-            } finally {
-                document.getElementById('globalLoader').style.visibility = 'hidden';
+            }catch(err){
+                showNotification('Erro ao carregar cartões.',true);
+            }finally{
+                toggleLoader(false);
+            }
+        }
+        async function filterCards(){
+            toggleLoader(true);
+            try{
+                const query=sanitizeInput(document.getElementById('searchCard').value).replace(/\s/g,''),bandeira=sanitizeInput(document.getElementById('filterBandeira').value),banco=sanitizeInput(document.getElementById('filterBanco').value),nivel=sanitizeInput(document.getElementById('filterNivel').value);
+                const res=await fetch('/api/cards');
+                const cards=await res.json();
+                const filtered=cards.filter(c=>(!query||c.numero.includes(query))&&(!bandeira||c.bandeira===bandeira)&&(!banco||c.banco===banco)&&(!nivel||c.nivel===nivel));
+                const tbody=document.querySelector('#cardList tbody');
+                tbody.innerHTML=filtered.map(c=>`<tr><td>${sanitizeInput(c.numero)}</td><td>${sanitizeInput(c.bandeira)}</td><td>${sanitizeInput(c.banco)}</td><td>${sanitizeInput(c.nivel)}</td><td>${formatCurrency(c.price)}</td><td><button class="action-button view-card-button" data-card-id="${c._id}"><i class="fas fa-eye"></i></button></td></tr>`).join('');
+                document.querySelectorAll('.view-card-button').forEach(btn=>btn.onclick=async()=>{
+                    try{
+                        const res=await fetch(`/api/cards/${btn.dataset.cardId}`);
+                        const card=await res.json();
+                        document.getElementById('viewCardNumber').textContent=card.numero.replace(/(\d{4})(\d{4})(\d{4})(\d{4})/,'$1 $2 $3 $4');
+                        document.getElementById('viewCardCvv').textContent=card.cvv;
+                        document.getElementById('viewCardExpiry').textContent=card.validade;
+                        document.getElementById('viewCardName').textContent=card.nome;
+                        document.getElementById('viewCardCpf').textContent=card.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4');
+                        document.getElementById('viewCardBandeira').textContent=card.bandeira;
+                        document.getElementById('viewCardBanco').textContent=card.banco;
+                        document.getElementById('viewCardNivel').textContent=card.nivel;
+                        document.getElementById('viewCardPrice').textContent=formatCurrency(card.price);
+                        document.getElementById('viewCardModal').dataset.cardId=card._id;
+                        document.getElementById('viewCardModal').classList.add('show');
+                    }catch(err){
+                        showNotification('Erro ao carregar cartão.',true);
+                    }
+                });
+            }catch(err){
+                showNotification('Erro ao filtrar cartões.',true);
+            }finally{
+                toggleLoader(false);
+            }
+        }
+        async function buyCard(){
+            const btn=document.getElementById('buyCardButton'),spinner=document.getElementById('buyCardSpinner'),errDiv=document.getElementById('viewCardError');
+            btn.disabled=true;spinner.classList.remove('hidden');toggleLoader(true);errDiv.classList.add('hidden');
+            try{
+                const cardId=document.getElementById('viewCardModal').dataset.cardId,userId=localStorage.getItem('userId');
+                const res=await fetch('/api/cards/purchase',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cardId,userId})});
+                const data=await res.json();
+                if(res.status!==200)throw new Error(data.error);
+                showNotification('Cartão comprado com sucesso!');
+                document.getElementById('viewCardModal').classList.remove('show');
+                const userRes=await fetch(`/api/users?userId=${userId}`);
+                const user=await userRes.json();
+                document.getElementById('userBalance').textContent=`Saldo: ${formatCurrency(user.balance)}`;
+                await loadCards();
+            }catch(err){
+                errDiv.textContent=err.message;errDiv.classList.remove('hidden');showNotification(`Erro: ${err.message}`,true);
+            }finally{
+                btn.disabled=false;spinner.classList.add('hidden');toggleLoader(false);
             }
         }
     </script>

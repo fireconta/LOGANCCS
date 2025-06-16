@@ -21,13 +21,14 @@
     </div>
   </main>
   <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40"></div>
+  <script src="debug.js"></script>
   <script src="app.js"></script>
   <script>
-    debugLog('Iniciando loja...');
+    console.log('shop.html carregado');
     document.addEventListener('DOMContentLoaded', async () => {
-      debugLog('DOM carregado');
+      console.log('DOM carregado');
       if (!localStorage.getItem('userId')) {
-        debugLog('Usuário não logado');
+        console.warn('Usuário não logado, redirecionando para index.html');
         window.location.href = 'index.html';
       }
       await loadBalance();
@@ -36,21 +37,25 @@
 
     async function loadBalance() {
       try {
+        console.log('Carregando saldo');
         const res = await fetch(`/api/balance?userId=${localStorage.getItem('userId')}`);
         const data = await res.json();
-        if (res.status !== 200) throw new Error(data.error);
+        console.log('Resposta do saldo:', { status: res.status, data });
+        if (res.status !== 200) throw new Error(data.error || 'Erro ao carregar saldo');
         document.getElementById('balance').textContent = formatCurrency(data.balance);
-        debugLog('Saldo carregado: ' + formatCurrency(data.balance));
+        console.log('Saldo carregado:', data.balance);
       } catch (err) {
-        debugLog('Erro ao carregar saldo: ' + err.message);
+        console.error('Erro ao carregar saldo:', err.message);
       }
     }
 
     async function loadCards() {
       try {
+        console.log('Carregando cartões');
         const res = await fetch('/api/cards');
         const cards = await res.json();
-        if (res.status !== 200) throw new Error(cards.error);
+        console.log('Resposta dos cartões:', { status: res.status, cards });
+        if (res.status !== 200) throw new Error(cards.error || 'Erro ao carregar cartões');
         const cardsDiv = document.getElementById('cards');
         cardsDiv.innerHTML = '';
         cards.forEach(card => {
@@ -72,9 +77,9 @@
           `;
           cardsDiv.appendChild(cardDiv);
         });
-        debugLog('Cartões carregados: ' + cards.length);
+        console.log('Cartões carregados:', cards.length);
       } catch (err) {
-        debugLog('Erro ao carregar cartões: ' + err.message);
+        console.error('Erro ao carregar cartões:', err.message);
       }
     }
 
@@ -83,20 +88,21 @@
       btn.disabled = true;
       spinner.classList.remove('hidden');
       try {
-        debugLog('Comprando cartão ' + cardId);
+        console.log('Iniciando compra', { cardId, price });
         const res = await fetch('/api/buy', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: localStorage.getItem('userId'), cardId, price })
         });
         const data = await res.json();
-        if (res.status !== 200) throw new Error(data.error);
-        debugLog(`Cartão ${cardId} comprado. Novo saldo: ${formatCurrency(data.newBalance)}`);
+        console.log('Resposta da compra:', { status: res.status, data });
+        if (res.status !== 200) throw new Error(data.error || 'Erro na compra');
+        console.log('Compra bem-sucedida', { newBalance: data.newBalance });
         showNotification('LOGAN CC\'s', `Cartão comprado por ${formatCurrency(price)}!`);
         await loadBalance();
         await loadCards();
       } catch (err) {
-        debugLog('Erro ao comprar: ' + err.message);
+        console.error('Erro na compra:', err.message);
       } finally {
         btn.disabled = false;
         spinner.classList.add('hidden');

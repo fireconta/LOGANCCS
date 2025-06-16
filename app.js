@@ -2,16 +2,18 @@ if (typeof window === 'undefined') {
   // Backend (Node.js, Netlify Function)
   const { MongoClient } = require('mongodb');
 
-  const mongoClient = new MongoClient('mongodb+srv://loganccs_admin:V8JCm5teHVQEGFxw@loganccs-cluster.hlc6mov.mongodb.net/loganccs?retryWrites=true&w=majority');
+  const mongoClient = new MongoClient(process.env.MONGODB_URI || 'mongodb+srv://loganccs_admin:V8JCm5teHVQEGFxw@loganccs-cluster.hlc6mov.mongodb.net/loganccs?retryWrites=true&w=majority');
 
   let db;
   let isInitialized = false;
 
   async function initializeDatabase() {
     if (isInitialized) return;
+    console.log('Inicializando banco de dados...');
     try {
       await mongoClient.connect();
       db = mongoClient.db('loganccs');
+      console.log('Conexão com MongoDB estabelecida');
 
       const collections = await db.listCollections().toArray();
       const collectionNames = collections.map(c => c.name);
@@ -27,7 +29,7 @@ if (typeof window === 'undefined') {
           is_admin: true,
           created_at: new Date()
         });
-        console.log('Coleção users criada e usuário inicial inserido.');
+        console.log('Coleção users criada e usuário inicial inserido');
       }
 
       if (!collectionNames.includes('cards')) {
@@ -49,13 +51,13 @@ if (typeof window === 'undefined') {
           user_id: null,
           created_at: new Date()
         });
-        console.log('Coleção cards criada e cartão inicial inserido.');
+        console.log('Coleção cards criada e cartão inicial inserido');
       }
 
       if (!collectionNames.includes('transactions')) {
         await db.createCollection('transactions');
         await db.collection('transactions').createIndex({ user_id: 1, timestamp: -1 });
-        console.log('Coleção transactions criada.');
+        console.log('Coleção transactions criada');
       }
 
       isInitialized = true;
@@ -77,6 +79,7 @@ if (typeof window === 'undefined') {
   }
 
   exports.handler = async (event, context) => {
+    console.log('Função app invocada:', { httpMethod: event.httpMethod, path: event.path });
     const { httpMethod, path, queryStringParameters, body } = event;
     try {
       const db = await connectDB();
@@ -85,7 +88,7 @@ if (typeof window === 'undefined') {
       const transactions = db.collection('transactions');
 
       const headers = {
-        'Access-Control-Allow-Origin': 'https://loganccs.netlify.app',
+        'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
       };
@@ -97,49 +100,58 @@ if (typeof window === 'undefined') {
       switch (path) {
         case '/api/register':
           if (httpMethod !== 'POST') return { statusCode: 405, headers, body: 'Método não permitido' };
-          const { username, password } = JSON.parse(body);
+          const { username, password } = JSON.parse(body || '{}');
+          console.log('Tentando registro:', { username });
           if (!username || !password) {
             return { statusCode: 400, headers, body: JSON.stringify({ error: 'Username e senha são obrigatórios' }) };
           }
           const existingUser = await users.findOne({ username: username.toLowerCase() });
           if (existingUser) {
+            console.warn('Username já registrado:', username);
             return { statusCode: 400, headers, body: JSON.stringify({ error: 'Username já registrado' }) };
           }
           const newUser = {
             _id: generateId(),
             username: username.toLowerCase(),
-            password, // ATENÇÃO: Em produção, usar hash
+            password,
             balance: 1000.00,
             is_admin: false,
             created_at: new Date()
           };
           await users.insertOne(newUser);
+          console.log('Usuário registrado:', newUser._id);
           return { statusCode: 200, headers, body: JSON.stringify({ userId: newUser._id, username: newUser.username }) };
 
         case '/api/login':
           if (httpMethod !== 'POST') return { statusCode: 405, headers, body: 'Método não permitido' };
-          const { username, password } = JSON.parse(body);
+          const { username, password } = JSON.parse(body || '{}');
+          console.log('Tentando login:', { username });
           const user = await users.findOne({ username: username.toLowerCase() });
           if (!user || user.password !== password) {
+            console.warn('Login falhou:', username);
             return { statusCode: 401, headers, body: JSON.stringify({ error: 'Usuário ou senha incorretos' }) };
           }
+          console.log('Login bem-sucedido:', user._id);
           return { statusCode: 200, headers, body: JSON.stringify({ userId: user._id, username: user.username }) };
 
         case '/api/balance':
           if (httpMethod !== 'GET') return { statusCode: 405, headers, body: 'Método não permitido' };
           const { userId } = queryStringParameters;
+          console.log('Consultando saldo:', userId);
           const balanceUser = await users.findOne({ _id: userId });
           if (!balanceUser) return { statusCode: 404, headers, body: 'Usuário não encontrado' };
           return { statusCode: 200, headers, body: JSON.stringify({ balance: balanceUser.balance }) };
 
         case '/api/cards':
           if (httpMethod !== 'GET') return { statusCode: 405, headers, body: 'Método não permitido' };
+          console.log('Listando cartões disponíveis');
           const availableCards = await cards.find({ acquired: false }).toArray();
           return { statusCode: 200, headers, body: JSON.stringify(availableCards) };
 
         case '/api/buy':
           if (httpMethod !== 'POST') return { statusCode: 405, headers, body: 'Método não permitido' };
-          const { userId, cardId, price } = JSON.parse(body);
+          const { userId, cardId, price } = JSON.parse(body || '{}');
+          console.log('Tentando compra:', { userId, cardId, price });
           const session = mongoClient.startSession();
           try {
             await session.withTransaction(async () => {
@@ -161,8 +173,10 @@ if (typeof window === 'undefined') {
               }, { session });
             });
             const updatedUser = await users.findOne({ _id: userId });
+            console.log('Compra concluída:', { userId, newBalance: updatedUser.balance });
             return { statusCode: 200, headers, body: JSON.stringify({ success: true, newBalance: updatedUser.balance }) };
           } catch (err) {
+            console.error('Erro na compra:', err.message);
             throw err;
           } finally {
             await session.endSession();
@@ -170,7 +184,8 @@ if (typeof window === 'undefined') {
 
         case '/api/deposit':
           if (httpMethod !== 'POST') return { statusCode: 405, headers, body: 'Método não permitido' };
-          const { userId, amount } = JSON.parse(body);
+          const { userId, amount } = JSON.parse(body || '{}');
+          console.log('Tentando depósito:', { userId, amount });
           if (amount <= 0) return { statusCode: 400, headers, body: JSON.stringify({ error: 'Valor inválido' }) };
           const depositSession = mongoClient.startSession();
           try {
@@ -189,8 +204,10 @@ if (typeof window === 'undefined') {
               }, { session: depositSession });
             });
             const updatedUser = await users.findOne({ _id: userId });
+            console.log('Depósito concluído:', { userId, newBalance: updatedUser.balance });
             return { statusCode: 200, headers, body: JSON.stringify({ success: true, newBalance: updatedUser.balance }) };
           } catch (err) {
+            console.error('Erro no depósito:', err.message);
             throw err;
           } finally {
             await depositSession.endSession();
@@ -199,38 +216,31 @@ if (typeof window === 'undefined') {
         case '/api/transactions':
           if (httpMethod !== 'GET') return { statusCode: 405, headers, body: 'Método não permitido' };
           const { userId } = queryStringParameters;
+          console.log('Listando transações:', userId);
           const userTransactions = await transactions.find({ user_id: userId }).sort({ timestamp: -1 }).toArray();
           return { statusCode: 200, headers, body: JSON.stringify(userTransactions) };
 
         default:
+          console.warn('Rota não encontrada:', path);
           return { statusCode: 404, headers, body: 'Rota não encontrada' };
       }
     } catch (err) {
-      console.error(err);
+      console.error('Erro no handler:', err);
       return {
         statusCode: 500,
-        headers: { 'Access-Control-Allow-Origin': 'https://loganccs.netlify.app' },
+        headers: { 'Access-Control-Allow-Origin': '*' },
         body: JSON.stringify({ error: err.message || 'Erro interno' })
       };
     }
   };
 } else {
   // Frontend (Browser)
-  function debugLog(message) {
-    const debug = document.getElementById('debug');
-    if (debug) {
-      const timestamp = new Date().toLocaleTimeString();
-      debug.innerHTML += `[${timestamp}] ${message}<br>`;
-      debug.scrollTop = debug.scrollHeight;
-    }
-    console.log(`[${timestamp}] ${message}`);
-  }
-
-  function formatCurrency(value) {
+  window.formatCurrency = function(value) {
     return `R$ ${value.toFixed(2)}`;
-  }
+  };
 
-  function showNotification(title, body) {
+  window.showNotification = function(title, body) {
+    console.log(`Notificação: ${title} - ${body}`);
     if (Notification.permission === 'granted') {
       new Notification(title, { body });
     } else if (Notification.permission !== 'denied') {
@@ -240,7 +250,7 @@ if (typeof window === 'undefined') {
         }
       });
     }
-  }
+  };
 
-  debugLog('app.js carregado com sucesso');
+  console.log('app.js carregado no frontend');
 }

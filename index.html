@@ -6,7 +6,6 @@
     <title>LOGAN CC's - Login</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.9/purify.min.js"></script>
     <style>
         #globalLoader {
             position: fixed;
@@ -149,14 +148,25 @@
     </div>
     <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40"></div>
     <script src="debug.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.9/purify.min.js"></script>
     <script>
         console.log('index.html carregado');
+
+        // Função de sanitização com fallback
+        function sanitizeInput(input) {
+            if (typeof DOMPurify !== 'undefined' && DOMPurify.sanitize) {
+                return DOMPurify.sanitize(input);
+            }
+            console.warn('DOMPurify não está disponível. Usando sanitização básica.');
+            return input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                        .replace(/[<>]/g, '');
+        }
 
         function showNotification(message, isError = false) {
             const notificationsDiv = document.getElementById('notifications');
             const notification = document.createElement('div');
             notification.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
-            notification.textContent = DOMPurify.sanitize(message);
+            notification.textContent = sanitizeInput(message);
             const closeButton = document.createElement('button');
             closeButton.innerHTML = '<i class="fas fa-times"></i>';
             closeButton.className = 'ml-2 text-white hover:text-gray-300';
@@ -211,8 +221,8 @@
                 loginErrorDiv.classList.add('hidden');
 
                 try {
-                    const username = DOMPurify.sanitize(document.getElementById('username').value.trim());
-                    const password = DOMPurify.sanitize(document.getElementById('password').value);
+                    const username = sanitizeInput(document.getElementById('username').value.trim());
+                    const password = sanitizeInput(document.getElementById('password').value);
                     if (!username.match(/^[a-zA-Z0-9]{3,}$/)) {
                         throw new Error('Usuário inválido. Use apenas letras e números, mínimo 3 caracteres.');
                     }
@@ -266,9 +276,9 @@
                 registerErrorDiv.classList.add('hidden');
 
                 try {
-                    const username = DOMPurify.sanitize(document.getElementById('registerUsername').value.trim());
-                    const password = DOMPurify.sanitize(document.getElementById('registerPassword').value);
-                    const confirmPassword = DOMPurify.sanitize(document.getElementById('confirmPassword').value);
+                    const username = sanitizeInput(document.getElementById('registerUsername').value.trim());
+                    const password = sanitizeInput(document.getElementById('registerPassword').value);
+                    const confirmPassword = sanitizeInput(document.getElementById('confirmPassword').value);
                     if (!username.match(/^[a-zA-Z0-9]{3,}$/)) {
                         throw new Error('Usuário inválido. Use apenas letras e números, mínimo 3 caracteres.');
                     }

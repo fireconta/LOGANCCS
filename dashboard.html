@@ -1,137 +1,1091 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LOGAN CC's - Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOGAN CC's - Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.9/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/inputmask/5.0.8/inputmask.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        #globalLoader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            visibility: hidden;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #10b981;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #notifications {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 10000;
+            max-width: 300px;
+        }
+        .notification {
+            background: #1f2937;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .notification-error {
+            background: #ef4444;
+        }
+        .notification-success {
+            background: #10b981;
+        }
+        #debug {
+            position: fixed;
+            bottom: 1rem;
+            left: 1rem;
+            background: #1a202c;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            max-width: 300px;
+            font-size: 0.75rem;
+            overflow-y: auto;
+            max-height: 160px;
+            z-index: 1000;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal.show {
+            display: flex;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #4b5563;
+        }
+        th {
+            background: #1f2937;
+            font-weight: 600;
+        }
+        .action-button, .delete-button {
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            margin-right: 0.5rem;
+        }
+        .action-button {
+            background: #3b82f6;
+            color: white;
+        }
+        .action-button:hover {
+            background: #2563eb;
+        }
+        .delete-button {
+            background: #ef4444;
+            color: white;
+        }
+        .delete-button:hover {
+            background: #dc2626;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col">
-  <header class="bg-white shadow">
-    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-      <h1 class="text-2xl font-bold text-green-600">LOGAN CC's</h1>
-      <button onclick="window.location.href='shop.html'" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition">Loja</button>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    <div id="globalLoader">
+        <div class="spinner"></div>
     </div>
-  </header>
-  <main class="flex-grow max-w-7xl mx-auto px-4 py-8">
-    <div class="bg-white p-6 rounded-lg shadow-lg">
-      <h2 class="text-2xl font-semibold text-gray-800 mb-4">Dashboard</h2>
-      <p class="text-lg mb-6">Saldo: <span id="balance" class="font-bold text-green-600">Carregando...</span></p>
-      <div class="mb-6">
-        <label for="depositAmount" class="block text-sm font-medium text-gray-700">Valor do Depósito</label>
-        <div class="flex space-x-2 mt-1">
-          <input type="number" id="depositAmount" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Digite o valor">
-          <button id="depositBtn" onclick="deposit()" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition flex items-center">
-            <span>Depositar</span>
-            <svg id="depositSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-            </svg>
-          </button>
+    <div id="notifications" class="space-y-2"></div>
+    <header class="bg-gray-800 p-4 flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-green-500">LOGAN CC's - Admin</h1>
+        <div class="flex items-center space-x-4">
+            <button type="button" id="shopButton" class="text-gray-300 hover:text-green-500"><i class="fas fa-store mr-2"></i>Loja</button>
+            <button type="button" id="logoutButton" class="text-gray-300 hover:text-red-500"><i class="fas fa-sign-out-alt"></i>Sair</button>
         </div>
-      </div>
-      <h3 class="text-lg font-semibold text-gray-800 mb-4">Histórico de Transações</h3>
-      <div id="transactions" class="overflow-x-auto">
-        <table class="w-full text-left">
-          <thead>
-            <tr class="bg-gray-100">
-              <th class="px-4 py-2 text-sm font-medium text-gray-700">Descrição</th>
-              <th class="px-4 py-2 text-sm font-medium text-gray-700">Valor</th>
-              <th class="px-4 py-2 text-sm font-medium text-gray-700">Data</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
+    </header>
+    <main class="container mx-auto p-6">
+        <div id="adminAuthSection" class="bg-gray-800 p-4 rounded-lg mb-6 hidden">
+            <h2 class="text-xl font-semibold mb-4"><i class="fas fa-lock mr-2"></i>Autenticação de Administrador</h2>
+            <div class="mb-4">
+                <label for="adminPassword" class="block text-sm font-medium">Senha Admin</label>
+                <input type="password" id="adminPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required aria-describedby="adminAuthError">
+            </div>
+            <p id="adminAuthError" class="text-red-500 text-sm hidden" role="alert"></p>
+            <div class="flex justify-end">
+                <button type="button" id="verifyAdminButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
+                    <span>Verificar</span>
+                    <svg id="verifySpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div id="usersSection" class="bg-gray-800 p-4 rounded-lg mb-6 hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold"><i class="fas fa-users mr-2"></i>Usuários</h2>
+                <button type="button" id="addUserButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-user-plus mr-2"></i>Adicionar Usuário</button>
+            </div>
+            <div id="userList" class="overflow-x-auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">Usuário</th>
+                            <th scope="col">Saldo</th>
+                            <th scope="col">Admin</th>
+                            <th scope="col">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+        <div id="cardsSection" class="bg-gray-800 p-4 rounded-lg hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold"><i class="fas fa-credit-card mr-2"></i>Cartões</h2>
+                <div class="space-x-2">
+                    <button type="button" id="addCardButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-plus mr-2"></i>Adicionar Cartão</button>
+                    <button type="button" id="importCardsButton" class="py-2 px-4 bg-blue-500 text-white rounded hover:bg-blue-600"><i class="fas fa-upload mr-2"></i>Importar .xlsx</button>
+                </div>
+            </div>
+            <input type="file" id="importCardsInput" accept=".xlsx" class="hidden">
+            <div id="adminCardList" class="overflow-x-auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">Número</th>
+                            <th scope="col">Bandeira</th>
+                            <th scope="col">Banco</th>
+                            <th scope="col">Nível</th>
+                            <th scope="col">Preço</th>
+                            <th scope="col">Adquirido</th>
+                            <th scope="col">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+    <div id="adminAuthModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="adminAuthTitle">
+        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h2 id="adminAuthTitle" class="text-xl font-semibold mb-4"><i class="fas fa-lock mr-2"></i>Autenticação de Administrador</h2>
+            <div class="mb-4">
+                <label for="modalAdminPassword" class="block text-sm font-medium">Senha Admin</label>
+                <input type="password" id="modalAdminPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required aria-describedby="modalAdminAuthError">
+            </div>
+            <p id="modalAdminAuthError" class="text-red-500 text-sm hidden" role="alert"></p>
+            <div class="flex justify-end">
+                <button type="button" id="modalVerifyAdminButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
+                    <span>Verificar</span>
+                    <svg id="modalVerifySpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 34">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
     </div>
-  </main>
-  <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40"></div>
-  <script src="debug.js"></script>
-  <script src="app.js"></script>
-  <script>
-    console.log('dashboard.html carregado');
-    document.addEventListener('DOMContentLoaded', async () => {
-      console.log('DOM carregado');
-      if (!localStorage.getItem('userId')) {
-        console.warn('Usuário não logado, redirecionando para index.html');
-        window.location.href = 'index.html';
-      }
-      await loadBalance();
-      await loadTransactions();
-    });
+    <div id="addUserModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="addUserTitle">
+        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h2 id="addUserTitle" class="text-xl font-semibold mb-4"><i class="fas fa-user-plus mr-2"></i>Adicionar Usuário</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="newUsername" class="block text-sm font-medium">Usuário</label>
+                    <input type="text" id="newUsername" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Nome do usuário" required pattern="[a-zA-Z0-9]{3,}" aria-describedby="addUserError">
+                </div>
+                <div>
+                    <label for="newPassword" class="block text-sm font-medium">Senha</label>
+                    <input type="password" id="newPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Nova senha" required minlength="4" aria-describedby="addUserError">
+                </div>
+                <div>
+                    <label for="newBalance" class="block text-sm font-medium">Saldo Inicial</label>
+                    <input type="number" id="newBalance" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Ex: 0.00" step="0.01" min="0" required aria-describedby="addUserError">
+                </div>
+                <div>
+                    <label for="newIsAdmin" class="block text-sm font-medium">Admin</label>
+                    <select id="newIsAdmin" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500">
+                        <option value="false">Não</option>
+                        <option value="true">Sim</option>
+                    </select>
+                </div>
+            </div>
+            <p id="addUserError" class="text-red-500 text-sm hidden" role="alert"></p>
+            <div class="flex justify-end space-x-2 mt-4">
+                <button type="button" id="cancelAddUserButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
+                <button type="button" id="addUserConfirmButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
+                    <span>Adicionar</span>
+                    <svg id="addUserSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="editUserModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editUserTitle">
+        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h2 id="editUserTitle" class="text-xl font-semibold mb-4"><i class="fas fa-user-edit mr-2"></i>Editar Usuário</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="editUsername" class="block text-sm font-medium">Usuário</label>
+                    <input type="text" id="editUsername" readonly class="mt-1 w-full p-2 bg-gray-600 rounded">
+                </div>
+                <div>
+                    <label for="editPassword" class="block text-sm font-medium">Nova Senha (opcional)</label>
+                    <input type="password" id="editPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Deixe em branco para manter" minlength="4" aria-describedby="editUserError">
+                </div>
+                <div>
+                    <label for="editBalance" class="block text-sm font-medium">Saldo</label>
+                    <input type="number" id="editBalance" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" step="0.01" min="0" required aria-describedby="editUserError">
+                </div>
+                <div>
+                    <label for="editIsAdmin" class="block text-sm font-medium">Admin</label>
+                    <select id="editIsAdmin" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500">
+                        <option value="false">Não</option>
+                        <option value="true">Sim</option>
+                    </select>
+                </div>
+            </div>
+            <p id="editUserError" class="text-red-500 text-sm hidden" role="alert"></p>
+            <div class="flex justify-end space-x-2 mt-4">
+                <button type="button" id="cancelUserButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
+                <button type="button" id="saveUserButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
+                    <span>Salvar</span>
+                    <svg id="saveUserSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="addCardModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="addCardTitle">
+        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h2 id="addCardTitle" class="text-xl font-semibold mb-4"><i class="fas fa-plus mr-2"></i>Adicionar Cartão</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="cardNumber" class="block text-sm font-medium">Número</label>
+                    <input type="text" id="cardNumber" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required pattern="\d{16}" inputmode="numeric" aria-describedby="addCardError">
+                </div>
+                <div>
+                    <label for="cardCvv" class="block text-sm font-medium">CVV</label>
+                    <input type="text" id="cardCvv" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required pattern="\d{3}" inputmode="numeric" aria-describedby="addCardError">
+                </div>
+                <div>
+                    <label for="cardExpiry" class="block text-sm font-medium">Validade</label>
+                    <input type="text" id="cardExpiry" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Ex: MM/AA" required pattern="\d{2}/\d{2}" aria-describedby="addCardError">
+                </div>
+                <div>
+                    <label for="cardName" class="block text-sm font-medium">Nome</label>
+                    <input type="text" id="cardName" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required aria-describedby="addCardError">
+                </div>
+                <div>
+                    <label for="cardCpf" class="block text-sm font-medium">CPF</label>
+                    <input type="text" id="cardCpf" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required pattern="\d{11}" inputmode="numeric" aria-describedby="addCardError">
+                </div>
+                <div>
+                    <label for="cardBandeira" class="block text-sm font-medium">Bandeira</label>
+                    <select id="cardBandeira" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required>
+                        <option value="Visa">Visa</option>
+                        <option value="Mastercard">Mastercard</option>
+                        <option value="Amex">Amex</option>
+                        <option value="Elo">Elo</option>
+                        <option value="Hipercard">Hipercard</option>
+                        <option value="Diners Club">Diners Club</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="cardBanco" class="block text-sm font-medium">Banco</label>
+                    <select id="cardBanco" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required>
+                        <option value="Nubank">Nubank</option>
+                        <option value="Itaú">Itaú</option>
+                        <option value="Bradesco">Bradesco</option>
+                        <option value="Santander">Santander</option>
+                        <option value="Banco do Brasil">Banco do Brasil</option>
+                        <option value="Caixa Econômica Federal">Caixa Econômica Federal</option>
+                        <option value="Sicredi">Sicredi</option>
+                        <option value="Sicoob">Sicoob</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="cardNivel" class="block text-sm font-medium">Nível</label>
+                    <select id="cardNivel" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required>
+                        <option value="Classic">Classic</option>
+                        <option value="Gold">Gold</option>
+                        <option value="Platinum">Platinum</option>
+                        <option value="Black">Black</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="cardPrice" class="block text-sm font-medium">Preço</label>
+                    <input type="number" id="cardPrice" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Ex: 10.00" step="0.01" min="0.01" required aria-describedby="addCardError">
+                </div>
+            </div>
+            <p id="addCardError" class="text-red-500 text-sm hidden" role="alert"></p>
+            <div class="flex justify-end space-x-2 mt-4">
+                <button type="button" id="cancelAddCardButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
+                <button type="button" id="addCardConfirmButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
+                    <span>Adicionar</span>
+                    <svg id="addCardSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="editCardModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editCardTitle">
+        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h2 id="editCardTitle" class="text-xl font-semibold mb-4"><i class="fas fa-credit-card mr-2"></i>Editar Cartão</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="editCardNumber" class="block text-sm font-medium">Número</label>
+                    <input type="text" id="editCardNumber" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required pattern="\d{16}" inputmode="numeric" aria-describedby="editCardError">
+                </div>
+                <div>
+                    <label for="editCardCvv" class="block text-sm font-medium">CVV</label>
+                    <input type="text" id="editCardCvv" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required pattern="\d{3}" inputmode="numeric" aria-describedby="editCardError">
+                </div>
+                <div>
+                    <label for="editCardExpiry" class="block text-sm font-medium">Validade</label>
+                    <input type="text" id="editCardExpiry" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Ex: MM/AA" required pattern="\d{2}/\d{2}" aria-describedby="editCardError">
+                </div>
+                <div>
+                    <label for="editCardName" class="block text-sm font-medium">Nome</label>
+                    <input type="text" id="editCardName" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required aria-describedby="editCardError">
+                </div>
+                <div>
+                    <label for="editCardCpf" class="block text-sm font-medium">CPF</label>
+                    <input type="text" id="editCardCpf" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required pattern="\d{11}" inputmode="numeric" aria-describedby="editCardError">
+                </div>
+                <div>
+                    <label for="editCardBandeira" class="block text-sm font-medium">Bandeira</label>
+                    <select id="editCardBandeira" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required>
+                        <option value="Visa">Visa</option>
+                        <option value="Mastercard">Mastercard</option>
+                        <option value="Amex">Amex</option>
+                        <option value="Elo">Elo</option>
+                        <option value="Hipercard">Hipercard</option>
+                        <option value="Diners Club">Diners Club</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="editCardBanco" class="block text-sm font-medium">Banco</label>
+                    <select id="editCardBanco" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required>
+                        <option value="Nubank">Nubank</option>
+                        <option value="Itaú">Itaú</option>
+                        <option value="Bradesco">Bradesco</option>
+                        <option value="Santander">Santander</option>
+                        <option value="Banco do Brasil">Banco do Brasil</option>
+                        <option value="Caixa Econômica Federal">Caixa Econômica Federal</option>
+                        <option value="Sicredi">Sicredi</option>
+                        <option value="Sicoob">Sicoob</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="editCardNivel" class="block text-sm font-medium">Nível</label>
+                    <select id="editCardNivel" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required>
+                        <option value="Classic">Classic</option>
+                        <option value="Gold">Gold</option>
+                        <option value="Platinum">Platinum</option>
+                        <option value="Black">Black</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="editCardPrice" class="block text-sm font-medium">Preço</label>
+                    <input type="number" id="editCardPrice" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" step="0.01" min="0.01" required aria-describedby="editCardError">
+                </div>
+            </div>
+            <p id="editCardError" class="text-red-500 text-sm hidden" role="alert"></p>
+            <div class="flex justify-end space-x-2 mt-4">
+                <button type="button" id="cancelCardButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
+                <button type="button" id="saveCardButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
+                    <span>Salvar</span>
+                    <svg id="saveCardSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40"></div>
+    <script src="debug.js"></script>
+    <script>
+        console.log('dashboard.html carregado');
+        let currentUserId = null;
+        let currentCardId = null;
+        let isAdminAuthenticated = false;
 
-    async function loadBalance() {
-      try {
-        console.log('Carregando saldo');
-        const res = await fetch(`/api/balance?userId=${localStorage.getItem('userId')}`);
-        const data = await res.json();
-        console.log('Resposta do saldo:', { status: res.status, data });
-        if (res.status !== 200) throw new Error(data.error || 'Erro ao carregar saldo');
-        document.getElementById('balance').textContent = formatCurrency(data.balance);
-        console.log('Saldo carregado:', data.balance);
-      } catch (err) {
-        console.error('Erro ao carregar saldo:', err.message);
-      }
-    }
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        }
 
-    async function loadTransactions() {
-      try {
-        console.log('Carregando transações');
-        const res = await fetch(`/api/transactions?userId=${localStorage.getItem('userId')}`);
-        const transactions = await res.json();
-        console.log('Resposta das transações:', { status: res.status, transactions });
-        if (res.status !== 200) throw new Error(transactions.error || 'Erro ao carregar transações');
-        const tbody = document.getElementById('transactions').querySelector('tbody');
-        tbody.innerHTML = '';
-        transactions.forEach(tx => {
-          const row = document.createElement('tr');
-          row.className = 'border-t';
-          row.innerHTML = `
-            <td class="px-4 py-2 text-sm text-gray-600">${tx.description}</td>
-            <td class="px-4 py-2 text-sm text-gray-600">${formatCurrency(tx.amount)}</td>
-            <td class="px-4 py-2 text-sm text-gray-600">${new Date(tx.timestamp).toLocaleString()}</td>
-          `;
-          tbody.appendChild(row);
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('DOM carregado');
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                showNotification('Faça login para acessar o dashboard.', true);
+                setTimeout(() => window.location.href = 'index.html', 1000);
+                return;
+            }
+            document.getElementById('globalLoader').style.visibility = 'visible';
+            try {
+                const res = await fetch(`/api/users?userId=${userId}`);
+                if (res.status !== 200) {
+                    throw new Error('Sessão inválida. Faça login novamente.');
+                }
+                const user = await res.json();
+                if (!user.is_admin) {
+                    showNotification('Acesso negado. Apenas administradores.', true);
+                    setTimeout(() => window.location.href = 'shop.html', 1000);
+                    return;
+                }
+                Inputmask({ mask: '9999 9999 9999 9999' }).mask(document.getElementById('cardNumber'));
+                Inputmask({ mask: '9999 9999 9999 9999' }).mask(document.getElementById('editCardNumber'));
+                Inputmask({ mask: '999' }).mask(document.getElementById('cardCvv'));
+                Inputmask({ mask: '999' }).mask(document.getElementById('editCardCvv'));
+                Inputmask({ mask: '99/99' }).mask(document.getElementById('cardExpiry'));
+                Inputmask({ mask: '99/99' }).mask(document.getElementById('editCardExpiry'));
+                Inputmask({ mask: '999.999.999-99' }).mask(document.getElementById('cardCpf'));
+                Inputmask({ mask: '999.999.999-99' }).mask(document.getElementById('editCardCpf'));
+                document.getElementById('adminAuthModal').classList.add('show');
+                document.getElementById('modalAdminPassword').focus();
+                setupEventListeners();
+            } catch (err) {
+                console.error('Erro ao verificar usuário:', err.message);
+                showNotification(err.message, true);
+                localStorage.removeItem('userId');
+                localStorage.removeItem('username');
+                setTimeout(() => window.location.href = 'index.html', 1000);
+            } finally {
+                document.getElementById('globalLoader').style.visibility = 'hidden';
+            }
         });
-        console.log('Transações carregadas:', transactions.length);
-      } catch (err) {
-        console.error('Erro ao carregar transações:', err.message);
-      }
-    }
 
-    async function deposit() {
-      const btn = document.getElementById('depositBtn');
-      const spinner = document.getElementById('depositSpinner');
-      btn.disabled = true;
-      spinner.classList.remove('hidden');
-      const amount = parseFloat(document.getElementById('depositAmount').value);
-      if (!amount || amount <= 0) {
-        console.warn('Valor de depósito inválido:', amount);
-        btn.disabled = false;
-        spinner.classList.add('hidden');
-        return;
-      }
-      try {
-        console.log('Iniciando depósito', { amount });
-        const res = await fetch('/api/deposit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: localStorage.getItem('userId'), amount })
-        });
-        const data = await res.json();
-        console.log('Resposta do depósito:', { status: res.status, data });
-        if (res.status !== 200) throw new Error(data.error || 'Erro no depósito');
-        console.log('Depósito bem-sucedido', { newBalance: data.newBalance });
-        showNotification('LOGAN CC\'s', `Depósito de ${formatCurrency(amount)} realizado!`);
-        await loadBalance();
-        await loadTransactions();
-      } catch (err) {
-        console.error('Erro no depósito:', err.message);
-      } finally {
-        btn.disabled = false;
-        spinner.classList.add('hidden');
-      }
-    }
-  </script>
+        function showNotification(message, isError = false) {
+            const notificationsDiv = document.getElementById('notifications');
+            const notification = document.createElement('div');
+            notification.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
+            notification.textContent = DOMPurify.sanitize(message);
+            const closeButton = document.createElement('button');
+            closeButton.innerHTML = '<i class="fas fa-times"></i>';
+            closeButton.className = 'ml-2 text-white hover:text-gray-300';
+            closeButton.addEventListener('click', () => notification.remove());
+            notification.appendChild(closeButton);
+            notificationsDiv.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        }
+
+        async function verifyAdmin(password, fromModal = true) {
+            const btn = fromModal ? document.getElementById('modalVerifyAdminButton') : document.getElementById('verifyAdminButton');
+            const spinner = fromModal ? document.getElementById('modalVerifySpinner') : document.getElementById('verifySpinner');
+            const errorDiv = fromModal ? document.getElementById('modalAdminAuthError') : document.getElementById('adminAuthError');
+            btn.disabled = true;
+            spinner.classList.remove('hidden');
+            document.getElementById('globalLoader').style.visibility = 'visible';
+            errorDiv.classList.add('hidden');
+            try {
+                const res = await fetch('/api/verify-admin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: localStorage.getItem('userId'), adminPassword: password })
+                });
+                const data = await res.json();
+                if (res.status !== 200) {
+                    throw new Error(data.error || 'Acesso negado');
+                }
+                isAdminAuthenticated = true;
+                document.getElementById('adminAuthModal').classList.remove('show');
+                document.getElementById('adminAuthSection').classList.add('hidden');
+                document.getElementById('usersSection').classList.remove('hidden');
+                document.getElementById('cardsSection').classList.remove('hidden');
+                await loadUsers();
+                await loadCards();
+                showNotification('Autenticação bem-sucedida!');
+            } catch (err) {
+                console.error('Erro na autenticação:', err.message);
+                errorDiv.textContent = err.message;
+                errorDiv.classList.remove('hidden');
+                showNotification('Erro: ' + err.message, true);
+            } finally {
+                btn.disabled = false;
+                spinner.classList.add('hidden');
+                document.getElementById('globalLoader').style.visibility = 'hidden';
+            }
+        }
+
+        async function loadUsers() {
+            if (!isAdminAuthenticated) return;
+            document.getElementById('globalLoader').style.visibility = 'visible';
+            try {
+                const res = await fetch('/api/admin/users');
+                const users = await res.json();
+                console.log('Usuários carregados:', users);
+                const userTableBody = document.querySelector('#userList table tbody');
+                userTableBody.innerHTML = '';
+                if (users.length === 0) {
+                    userTableBody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500">Nenhum usuário encontrado.</td></tr>';
+                } else {
+                    users.forEach(user => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${DOMPurify.sanitize(user.username)}</td>
+                            <td>${formatCurrency(user.balance)}</td>
+                            <td>${user.is_admin ? 'Sim' : 'Não'}</td>
+                            <td>
+                                <button class="action-button edit-user-btn" data-user-id="${user._id}"><i class="fas fa-edit mr-1"></i></button>
+                                <button class="delete-button delete-user-btn" data-user-id="${user._id}"><i class="fas fa-trash mr-1"></i></button>
+                            </td>
+                        `;
+                        userTableBody.appendChild(row);
+                    });
+                }
+                showNotification('Usuários carregados com sucesso!');
+            } catch (err) {
+                console.error('Erro ao carregar usuários:', err.message);
+                showNotification('Erro ao carregar usuários.', true);
+            } finally {
+                document.getElementById('globalLoader').style.visibility = 'hidden';
+            }
+        }
+
+        async function loadCards() {
+            if (!isAdminAuthenticated) return;
+            document.getElementById('globalLoader').style.visibility = 'visible';
+            try {
+                const res = await fetch('/api/admin/cards');
+                const cards = await res.json();
+                console.log('Cartões carregados:', cards);
+                const cardsTableBody = document.querySelector('#adminCardList tbody');
+                cardsTableBody.innerHTML = '';
+                if (cards.length === 0) {
+                    cardsTableBody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-500">Nenhum cartão encontrado.</td></tr>';
+                } else {
+                    cards.forEach(card => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${DOMPurify.sanitize(card.numero)}</td>
+                            <td>${DOMPurify.sanitize(card.bandeira)}</td>
+                            <td>${DOMPurify.sanitize(card.banco)}</td>
+                            <td>${DOMPurify.sanitize(card.nivel)}</td>
+                            <td>${formatCurrency(card.price)}</td>
+                            <td>${card.acquired ? 'Sim' : 'Não'}</td>
+                            <td>
+                                <button class="action-button edit-card-btn" data-card-id="${card._id}"><i class="fas fa-edit mr-1"></i></button>
+                                <button class="delete-button delete-card-btn" data-card-id="${card._id}"><i class="fas fa-trash mr-1"></i></button>
+                            </td>
+                        `;
+                        cardsTableBody.appendChild(row);
+                    });
+                }
+                showNotification('Cartões carregados com sucesso!');
+            } catch (err) {
+                console.error('Erro ao carregar cartões:', err.message);
+                showNotification('Erro ao carregar cartões.', true);
+            } finally {
+                document.getElementById('globalLoader').style.visibility = 'hidden';
+            }
+        }
+
+        async function addUser() {
+            const btn = document.getElementById('addUserConfirmButton');
+            const spinner = document.getElementById('addUserSpinner');
+            const errorDiv = document.getElementById('addUserError');
+            btn.disabled = true;
+            spinner.classList.remove('hidden');
+            document.getElementById('globalLoader').style.visibility = 'visible';
+            errorDiv.classList.add('hidden');
+            try {
+                const username = DOMPurify.sanitize(document.getElementById('newUsername').value.trim());
+                const password = DOMPurify.sanitize(document.getElementById('newPassword').value);
+                const balance = parseFloat(document.getElementById('newBalance').value);
+                const isAdmin = document.getElementById('newIsAdmin').value === 'true';
+                if (!username.match(/^[a-zA-Z0-9]{3,}$/)) {
+                    throw new Error('Usuário deve ter pelo menos 3 caracteres alfanuméricos.');
+                }
+                if (!password || password.length < 4) {
+                    throw new Error('A senha deve ter pelo menos 4 caracteres.');
+                }
+                if (isNaN(balance) || balance < 0) {
+                    throw new Error('Saldo inválido.');
+                }
+                const res = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (res.status !== 200) {
+                    throw new Error(data.error || 'Erro ao adicionar usuário');
+                }
+                await fetch('/api/admin/users', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: data.userId, balance, is_admin: isAdmin })
+                });
+                document.getElementById('addUserModal').classList.remove('show');
+                await loadUsers();
+                showNotification('Usuário adicionado com sucesso!');
+            } catch (err) {
+                console.error('Erro ao adicionar usuário:', err.message);
+                errorDiv.textContent = err.message;
+                errorDiv.classList.remove('hidden');
+                showNotification('Erro: ' + err.message, true);
+            } finally {
+                btn.disabled = false;
+                spinner.classList.add('hidden');
+                document.getElementById('globalLoader').style.visibility = 'hidden';
+            }
+        }
+
+        async function saveUser() {
+            const btn = document.getElementById('saveUserButton');
+            const spinner = document.getElementById('saveUserSpinner');
+            const errorDiv = document.getElementById('editUserError');
+            btn.disabled = true;
+            spinner.classList.remove('hidden');
+            document.getElementById('globalLoader').style.visibility = 'visible';
+            errorDiv.classList.add('hidden');
+            try {
+                const password = DOMPurify.sanitize(document.getElementById('editPassword').value);
+                const balance = parseFloat(document.getElementById('editBalance').value);
+                const isAdmin = document.getElementById('editIsAdmin').value === 'true';
+                if (password && password.length < 4) {
+                    throw new Error('A senha deve ter pelo menos 4 caracteres.');
+                }
+                if (isNaN(balance) || balance < 0) {
+                    throw new Error('Saldo inválido.');
+                }
+                const updateData = { userId: currentUserId, balance, is_admin: isAdmin };
+                if (password) updateData.password = password;
+                const res = await fetch('/api/admin/users', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updateData)
+                });
+                const data = await res.json();
+                if (res.status !== 200) {
+                    throw new Error(data.error || 'Erro ao atualizar usuário');
+                }
+                document.getElementById('editUserModal').classList.remove('show');
+                await loadUsers();
+                showNotification('Usuário atualizado com sucesso!');
+            } catch (err) {
+                console.error('Erro ao atualizar usuário:', err.message);
+                errorDiv.textContent = err.message;
+                errorDiv.classList.remove('hidden');
+                showNotification('Erro: ' + err.message, true);
+            } finally {
+                btn.disabled = false;
+                spinner.classList.add('hidden');
+                document.getElementById('globalLoader').style.visibility = 'hidden';
+            }
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
+            document.getElementById('globalLoader').style.visibility = 'visible';
+            try {
+                const res = await fetch('/api/admin/users', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+                const data = await res.json();
+                if (res.status !== 200) {
+                    throw new Error(data.error || 'Erro ao excluir usuário');
+                }
+                await loadUsers();
+                showNotification('Usuário excluído com sucesso!');
+            } catch (err) {
+                console.error('Erro ao excluir usuário:', err.message);
+                showNotification('Erro: ' + err.message, true);
+            } finally {
+                document.getElementById('globalLoader').style.visibility = 'hidden';
+            }
+        }
+
+        async function addCard() {
+            const btn = document.getElementById('addCardConfirmButton');
+            const spinner = document.getElementById('addCardSpinner');
+            const errorDiv = document.getElementById('addCardError');
+            btn.disabled = true;
+            spinner.classList.remove('hidden');
+            document.getElementById('globalLoader').style.visibility = 'visible';
+            errorDiv.classList.add('hidden');
+            try {
+                const cardData = {
+                    numero: document.getElementById('cardNumber').value.replace(/\s/g, ''),
+                    cvv: document.getElementById('cardCvv').value,
+                    expiry: document.getElementById('cardExpiry').value,
+                    name: DOMPurify.sanitize(document.getElementById('cardName').value.trim()),
+                    cpf: document.getElementById('cardCpf').value.replace(/[\.-]/g, ''),
+                    bandeira: document.getElementById('cardBandeira').value,
+                    banco: document.getElementById('cardBanco').value,
+                    nivel: document.getElementById('cardNivel').value,
+                    price: parseFloat(document.getElementById('cardPrice').value)
+                };
+                if (!cardData.numero.match(/^\d{16}$/)) {
+                    throw new Error('Número do cartão inválido.');
+                }
+                if (!cardData.cvv.match(/^\d{3}$/)) {
+                    throw new Error('CVV inválido.');
+                }
+                if (!cardData.expiry.match(/^\d{2}\/\d{2}$/)) {
+                    throw new Error('Validade inválida.');
+                }
+                if (!cardData.name) {
+                    throw new Error('Nome é obrigatório.');
+                }
+                if (!cardData.cpf.match(/^\d{11}$/)) {
+                    throw new Error('CPF inválido.');
+                }
+                if (isNaN(cardData.price) || cardData.price <= 0) {
+                    throw new Error('Preço inválido.');
+                }
+                const res = await fetch('/api/admin/cards', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(cardData)
+                });
+                const data = await res.json();
+                if (res.status !== 200) {
+                    throw new Error(data.error || 'Erro ao adicionar cartão');
+                }
+                document.getElementById('addCardModal').classList.remove('show');
+                await loadCards();
+                showNotification('Cartão adicionado com sucesso!');
+            } catch (err) {
+                console.error('Erro ao adicionar cartão:', err.message);
+                errorDiv.textContent = err.message;
+                errorDiv.classList.remove('hidden');
+                showNotification('Erro: ' + err.message, true);
+            } finally {
+                btn.disabled = false;
+                spinner.classList.add('hidden');
+                document.getElementById('globalLoader').style.visibility = 'hidden';
+            }
+        }
+
+        async function editCard() {
+            const btn = document.getElementById('saveCardButton');
+            const spinner = document.getElementById('saveCardSpinner');
+            const errorDiv = document.getElementById('editCardError');
+            btn.disabled = true;
+            spinner.classList.remove('hidden');
+            document.getElementById('globalLoader').style.visibility = 'visible';
+            errorDiv.classList.add('hidden');
+            try {
+                const cardData = {
+                    cardId: currentCardId,
+                    numero: document.getElementById('editCardNumber').value.replace(/\s/g, ''),
+                    cvv: document.getElementById('editCardCvv').value,
+                    expiry: document.getElementById('editCardExpiry').value,
+                    name: DOMPurify.sanitize(document.getElementById('editCardName').value.trim()),
+                    cpf: document.getElementById('editCardCpf').value.replace(/[\.-]/g, ''),
+                    bandeira: document.getElementById('editCardBandeira').value,
+                    banco: document.getElementById('editCardBanco').value,
+                    nivel: document.getElementById('editCardNivel').value,
+                    price: parseFloat(document.getElementById('editCardPrice').value)
+                };
+                if (!cardData.numero.match(/^\d{16}$/)) {
+                    throw new Error('Número do cartão inválido.');
+                }
+                if (!cardData.cvv.match(/^\d{3}$/)) {
+                    throw new Error('CVV inválido.');
+                }
+                if (!cardData.expiry.match(/^\d{2}\/\d{2}$/)) {
+                    throw new Error('Validade inválida.');
+                }
+                if (!cardData.name) {
+                    throw new Error('Nome é obrigatório.');
+                }
+                if (!cardData.cpf.match(/^\d{11}$/)) {
+                    throw new Error('CPF inválido.');
+                }
+                if (isNaN(cardData.price) || cardData.price <= 0) {
+                    throw new Error('Preço inválido.');
+                }
+                const res = await fetch('/api/admin/cards', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(cardData)
+                });
+                const data = await res.json();
+                if (res.status !== 200) {
+                    throw new Error(data.error || 'Erro ao atualizar cartão');
+                }
+                document.getElementById('editCardModal').classList.remove('show');
+                await loadCards();
+                showNotification('Cartão atualizado com sucesso!');
+            } catch (err) {
+                console.error('Erro ao atualizar cartão:', err.message);
+                errorDiv.textContent = err.message;
+                errorDiv.classList.remove('hidden');
+                showNotification('Erro: ' + err.message, true);
+            } finally {
+                btn.disabled = false;
+                spinner.classList.add('hidden');
+                document.getElementById('globalLoader').style.visibility = 'hidden';
+            }
+        }
+
+        async function deleteCard(cardId) {
+            if (!confirm('Tem certeza que deseja excluir este cartão?')) return;
+            document.getElementById('globalLoader').style.visibility = 'visible';
+            try {
+                const res = await fetch('/api/admin/cards', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cardId })
+                });
+                const data = await res.json();
+                if (res.status !== 200) {
+                    throw new Error(data.error || 'Erro ao excluir cartão');
+                }
+                await loadCards();
+                showNotification('Cartão excluído com sucesso!');
+            } catch (err) {
+                console.error('Erro ao excluir cartão:', err.message);
+                showNotification('Erro: ' + err.message, true);
+            } finally {
+                document.getElementById('globalLoader').style.visibility = 'hidden';
+            }
+        }
+
+        async function importCards(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            document.getElementById('globalLoader').style.visibility = 'visible';
+            try {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const sheet = workbook.Sheets[sheetName];
+                    const json = XLSX.utils.sheet_to_json(sheet);
+                    const cards = json.map(row => ({
+                        numero: String(row.Numero).replace(/\s/g, ''),
+                        cvv: String(row.CVV),
+                        expiry: String(row.Validade),
+                        name: DOMPurify.sanitize(String(row.Nome).trim()),
+                        cpf: String(row.CPF).replace(/[\.-]/g, ''),
+                        bandeira: String(row.Bandeira),
+                        banco: String(row.Banco),
+                        nivel: String(row.Nivel),
+                        price: parseFloat(row.Preco)
+                    }));
+                    for (const card of cards) {
+                        if (!card.numero.match(/^\d{16}$/)) {
+                            throw new Error(`Número do cartão inválido: ${card.numero}`);
+                        }
+                        if (!card.cvv.match(/^\d{3}$/)) {
+                            throw new Error(`CVV inválido: ${card.cvv}`);
+                        }
+                        if (!card.expiry.match(/^\d{2}\/\d{2}$/)) {
+                            throw new Error(`Validade inválida: ${card.expiry}`);
+                        }
+                        if (!card.name) {
+                            throw new Error('Nome é obrigatório.');
+                        }
+                        if (!card.cpf.match(/^\d{11}$/)) {
+                            throw new Error(`CPF inválido: ${card.cpf}`);
+                        }
+                        if (isNaN(card.price) || card.price <= 0) {
+                            throw new Error(`Preço inválido: ${card.price}`);
+                        }
+                        const validBandeiras = ['Visa', 'Mastercard', 'Amex', 'Elo', 'Hipercard', 'Diners Club'];
+                        if (!validBandeiras.includes(card.bandeira)) {
+                            throw new Error(`Bandeira inválida: ${card.bandeira}`);
+                        }
+                        const validBancos = ['Nubank', 'Itaú', 'Bradesco', 'Santander', 'Banco do Brasil', 'Caixa Econômica Federal', 'Sicredi', 'Sicoob'];
+                        if (!validBancos.includes(card.banco)) {
+                            throw new Error(`Banco inválido: ${card.banco}`);
+                        }
+                        const validNiveis = ['Classic', 'Gold', 'Platinum', 'Black'];
+                        if (!validNiveis.includes(card.nivel)) {
+                            throw new Error(`Nível inválido: ${card.nivel}`);
+                        }
+                    }
+                    for (const card of cards) {
+                        await fetch('/api/admin/cards', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(card)
+                        });
+                    }
+                    document.getElementById('importCardsInput').value = '';
+                    await loadCards();
+                    showNotification('Cartões importados com sucesso!');
+                };
+                reader.readAsArrayBuffer(file);
+            } catch (err) {
+                console.error('Erro ao importar cartões:', err.message);
+                showNotification('Erro: ' + err.message, true);
+                document.getElementById('importCardsInput').value = '';
+            } finally {
+                document.getElementById('globalLoader').style.visibility = 'hidden';
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('logoutButton').addEventListener('click', () => {
+                console.log('Saindo...');
+                localStorage.removeItem('userId');
+                localStorage.removeItem('username');
+                window.location.href = 'index.html';
+            });
+            document.getElementById('shopButton').addEventListener('click', () => {
+                window.location.href = 'shop.html';
+            });
+            document.getElementById('modalVerifyAdminButton').addEventListener('click', () => {
+                const password = document.getElementById('modalAdminPassword').value;
+                verifyAdmin(password, true);
+            });
+            document.getElementById('verifyAdminButton').addEventListener('click', () => {
+                const password = document.getElementById('adminPassword').value;
+                verifyAdmin(password, false);
+            });
+            document.getElementById('addUserButton').addEventListener('click', () => {
+                document.getElementById('newUsername').value = '';
+                document.getElementById('newPassword').value = '';
+                document.getElementById('newBalance').value = '0.00';
+                document.getElementById('newIsAdmin').value = 'false';
+                document.getElementById('addUserError').classList.add('hidden');
+                document.getElementById('addUserModal').classList.add('show');
+                document.getElementById('newUsername').focus();
+            });
+            document.getElementById('addUserConfirmButton').addEventListener('click', addUser);
+            document.getElementById('cancelAddUserButton').addEventListener('click', () => {
+                document.getElementById('addUserModal').classList.remove('show');
+            });
+            document.getElementById('userList').addEventListener('click', async (e) => {
+                if (e.target.closest('.edit-user-btn')) {
+                    const btn = e.target.closest('.edit-user-btn');
+                    currentUserId = btn.dataset.userId;
+                    try {
+                        const res = await fetch(`/api/users?userId=${currentUserId}`);
+                        const user = await res.json();
+                        document.getElementById('editUsername').value = DOMPurify.sanitize(user.username);
+                        document.getElementById('editPassword').value = '';
+                        document.getElementById('editBalance').value = user.balance.toFixed(2);
+                        document.getElementById('editIsAdmin').value = user.is_admin.toString();
+                        document.getElementById('editUserError').classList.add('hidden');
+                        document.getElementById('editUserModal').classList.add('show');
+                        document.getElementById('editBalance').focus();
+                    } catch (err) {
+                        console.error('Erro ao carregar usuário:', err.message);
+                        showNotification('Erro ao carregar usuário.', true);
+                    }
+                } else if (e.target.closest('.delete-user-btn')) {
+                    const btn = e.target.closest('.delete-user-btn');
+                    deleteUser(btn.dataset.userId);
+                }
+            });
+            document.getElementById('saveUserButton').addEventListener('click', saveUser);
+            document.getElementById('cancelUserButton').addEventListener('click', () => {
+                document.getElementById('editUserModal').classList.remove('show');
+            });
+            document.getElementById('addCardButton').addEventListener('click', () => {
+                document.getElementById('cardNumber').value = '';
+                document.getElementById('cardCvv').value = '';
+                document.getElementById('cardExpiry').value = '';
+                document.getElementById('cardName').value = '';
+                document.getElementById('cardCpf').value = '';
+                document.getElementById('cardBandeira').value = 'Visa';
+                document.getElementById('cardBanco').value = 'Nubank';
+                document.getElementById('cardNivel').value = 'Classic';
+                document.getElementById('cardPrice').value = '0.00';
+                document.getElementById('addCardError').classList.add('hidden');
+                document.getElementById('addCardModal').classList.add('show');
+                document.getElementById('cardNumber').focus();
+            });
+            document.getElementById('addCardConfirmButton').addEventListener('click', addCard);
+            document.getElementById('cancelAddCardButton').addEventListener('click', () => {
+                document.getElementById('addCardModal').classList.remove('show');
+            });
+            document.getElementById('adminCardList').addEventListener('click', async (e) => {
+                if (e.target.closest('.edit-card-btn')) {
+                    const btn = e.target.closest('.edit-card-btn');
+                    currentCardId = btn.dataset.cardId;
+                    try {
+                        const res = await fetch(`/api/cards?cardId=${currentCardId}`);
+                        const card = await res.json();
+                        document.getElementById('editCardNumber').value = card.numero;
+                        document.getElementById('editCardCvv').value = card.cvv;
+                        document.getElementById('editCardExpiry').value = card.expiry;
+                        document.getElementById('editCardName').value = DOMPurify.sanitize(card.name);
+                        document.getElementById('editCardCpf').value = card.cpf;
+                        document.getElementById('editCardBandeira').value = card.bandeira;
+                        document.getElementById('editCardBanco').value = card.banco;
+                        document.getElementById('editCardNivel').value = card.nivel;
+                        document.getElementById('editCardPrice').value = card.price.toFixed(2);
+                        document.getElementById('editCardError').classList.add('hidden');
+                        document.getElementById('editCardModal').classList.add('show');
+                        document.getElementById('editCardNumber').focus();
+                    } catch (err) {
+                        console.error('Erro ao carregar cartão:', err.message);
+                        showNotification('Erro ao carregar cartão.', true);
+                    }
+                } else if (e.target.closest('.delete-card-btn')) {
+                    const btn = e.target.closest('.delete-card-btn');
+                    deleteCard(btn.dataset.cardId);
+                }
+            });
+            document.getElementById('saveCardButton').addEventListener('click', editCard);
+            document.getElementById('cancelCardButton').addEventListener('click', () => {
+                document.getElementById('editCardModal').classList.remove('show');
+            });
+            document.getElementById('importCardsButton').addEventListener('click', () => {
+                document.getElementById('importCardsInput').click();
+            });
+            document.getElementById('importCardsInput').addEventListener('change', importCards);
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Escape') {
+                    document.querySelectorAll('.modal.show').forEach(modal => modal.classList.remove('show'));
+                }
+            });
+            document.getElementById('modalAdminPassword').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') document.getElementById('modalVerifyAdminButton').click();
+            });
+            document.getElementById('adminPassword').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') document.getElementById('verifyAdminButton').click();
+            });
+        }
+    </script>
 </body>
 </html>

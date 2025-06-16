@@ -46,13 +46,14 @@
     </div>
   </main>
   <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40"></div>
+  <script src="debug.js"></script>
   <script src="app.js"></script>
   <script>
-    debugLog('Iniciando dashboard...');
+    console.log('dashboard.html carregado');
     document.addEventListener('DOMContentLoaded', async () => {
-      debugLog('DOM carregado');
+      console.log('DOM carregado');
       if (!localStorage.getItem('userId')) {
-        debugLog('Usuário não logado');
+        console.warn('Usuário não logado, redirecionando para index.html');
         window.location.href = 'index.html';
       }
       await loadBalance();
@@ -61,21 +62,25 @@
 
     async function loadBalance() {
       try {
+        console.log('Carregando saldo');
         const res = await fetch(`/api/balance?userId=${localStorage.getItem('userId')}`);
         const data = await res.json();
-        if (res.status !== 200) throw new Error(data.error);
+        console.log('Resposta do saldo:', { status: res.status, data });
+        if (res.status !== 200) throw new Error(data.error || 'Erro ao carregar saldo');
         document.getElementById('balance').textContent = formatCurrency(data.balance);
-        debugLog('Saldo carregado: ' + formatCurrency(data.balance));
+        console.log('Saldo carregado:', data.balance);
       } catch (err) {
-        debugLog('Erro ao carregar saldo: ' + err.message);
+        console.error('Erro ao carregar saldo:', err.message);
       }
     }
 
     async function loadTransactions() {
       try {
+        console.log('Carregando transações');
         const res = await fetch(`/api/transactions?userId=${localStorage.getItem('userId')}`);
         const transactions = await res.json();
-        if (res.status !== 200) throw new Error(transactions.error);
+        console.log('Resposta das transações:', { status: res.status, transactions });
+        if (res.status !== 200) throw new Error(transactions.error || 'Erro ao carregar transações');
         const tbody = document.getElementById('transactions').querySelector('tbody');
         tbody.innerHTML = '';
         transactions.forEach(tx => {
@@ -88,9 +93,9 @@
           `;
           tbody.appendChild(row);
         });
-        debugLog('Transações carregadas: ' + transactions.length);
+        console.log('Transações carregadas:', transactions.length);
       } catch (err) {
-        debugLog('Erro ao carregar transações: ' + err.message);
+        console.error('Erro ao carregar transações:', err.message);
       }
     }
 
@@ -101,26 +106,27 @@
       spinner.classList.remove('hidden');
       const amount = parseFloat(document.getElementById('depositAmount').value);
       if (!amount || amount <= 0) {
-        debugLog('Valor de depósito inválido');
+        console.warn('Valor de depósito inválido:', amount);
         btn.disabled = false;
         spinner.classList.add('hidden');
         return;
       }
       try {
-        debugLog('Depositando ' + formatCurrency(amount));
+        console.log('Iniciando depósito', { amount });
         const res = await fetch('/api/deposit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: localStorage.getItem('userId'), amount })
         });
         const data = await res.json();
-        if (res.status !== 200) throw new Error(data.error);
-        debugLog(`Depósito de ${formatCurrency(amount)} realizado. Novo saldo: ${formatCurrency(data.newBalance)}`);
+        console.log('Resposta do depósito:', { status: res.status, data });
+        if (res.status !== 200) throw new Error(data.error || 'Erro no depósito');
+        console.log('Depósito bem-sucedido', { newBalance: data.newBalance });
         showNotification('LOGAN CC\'s', `Depósito de ${formatCurrency(amount)} realizado!`);
         await loadBalance();
         await loadTransactions();
       } catch (err) {
-        debugLog('Erro ao depositar: ' + err.message);
+        console.error('Erro no depósito:', err.message);
       } finally {
         btn.disabled = false;
         spinner.classList.add('hidden');

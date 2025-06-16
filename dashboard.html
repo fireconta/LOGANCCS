@@ -6,7 +6,6 @@
     <title>LOGAN CC's - Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.9/purify.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/inputmask/5.0.8/inputmask.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -139,7 +138,7 @@
             <h2 class="text-xl font-semibold mb-4"><i class="fas fa-lock mr-2"></i>Autenticação de Administrador</h2>
             <div class="mb-4">
                 <label for="adminPassword" class="block text-sm font-medium">Senha Admin</label>
-                <input type="password" id="adminPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required aria-describedby="adminAuthError">
+                <input type="password" id="adminPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required aria-describedby="adminAuthError">
             </div>
             <p id="adminAuthError" class="text-red-500 text-sm hidden" role="alert"></p>
             <div class="flex justify-end">
@@ -209,7 +208,7 @@
             <div class="flex justify-end">
                 <button type="button" id="modalVerifyAdminButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
                     <span>Verificar</span>
-                    <svg id="modalVerifySpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 34">
+                    <svg id="modalVerifySpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                     </svg>
@@ -443,14 +442,39 @@
     </div>
     <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40"></div>
     <script src="debug.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.9/purify.min.js"></script>
     <script>
         console.log('dashboard.html carregado');
         let currentUserId = null;
         let currentCardId = null;
         let isAdminAuthenticated = false;
 
+        // Função de sanitização com fallback
+        function sanitizeInput(input) {
+            if (typeof DOMPurify !== 'undefined' && DOMPurify.sanitize) {
+                return DOMPurify.sanitize(input);
+            }
+            console.warn('DOMPurify não está disponível. Usando sanitização básica.');
+            return input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                        .replace(/[<>]/g, '');
+        }
+
         function formatCurrency(value) {
             return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        }
+
+        function showNotification(message, isError = false) {
+            const notificationsDiv = document.getElementById('notifications');
+            const notification = document.createElement('div');
+            notification.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
+            notification.textContent = sanitizeInput(message);
+            const closeButton = document.createElement('button');
+            closeButton.innerHTML = '<i class="fas fa-times"></i>';
+            closeButton.className = 'ml-2 text-white hover:text-gray-300';
+            closeButton.addEventListener('click', () => notification.remove());
+            notification.appendChild(closeButton);
+            notificationsDiv.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -473,6 +497,7 @@
                     setTimeout(() => window.location.href = 'shop.html', 1000);
                     return;
                 }
+                // Aplicar máscaras de entrada
                 Inputmask({ mask: '9999 9999 9999 9999' }).mask(document.getElementById('cardNumber'));
                 Inputmask({ mask: '9999 9999 9999 9999' }).mask(document.getElementById('editCardNumber'));
                 Inputmask({ mask: '999' }).mask(document.getElementById('cardCvv'));
@@ -495,18 +520,117 @@
             }
         });
 
-        function showNotification(message, isError = false) {
-            const notificationsDiv = document.getElementById('notifications');
-            const notification = document.createElement('div');
-            notification.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
-            notification.textContent = DOMPurify.sanitize(message);
-            const closeButton = document.createElement('button');
-            closeButton.innerHTML = '<i class="fas fa-times"></i>';
-            closeButton.className = 'ml-2 text-white hover:text-gray-300';
-            closeButton.addEventListener('click', () => notification.remove());
-            notification.appendChild(closeButton);
-            notificationsDiv.appendChild(notification);
-            setTimeout(() => notification.remove(), 3000);
+        function setupEventListeners() {
+            document.getElementById('logoutButton').addEventListener('click', () => {
+                localStorage.removeItem('userId');
+                localStorage.removeItem('username');
+                window.location.href = 'index.html';
+            });
+
+            document.getElementById('shopButton').addEventListener('click', () => {
+                window.location.href = 'shop.html';
+            });
+
+            document.getElementById('modalVerifyAdminButton').addEventListener('click', () => {
+                const password = document.getElementById('modalAdminPassword').value;
+                verifyAdmin(password, true);
+            });
+
+            document.getElementById('verifyAdminButton').addEventListener('click', () => {
+                const password = document.getElementById('adminPassword').value;
+                verifyAdmin(password, false);
+            });
+
+            document.getElementById('addUserButton').addEventListener('click', () => {
+                document.getElementById('addUserModal').classList.add('show');
+                document.getElementById('newUsername').focus();
+                document.getElementById('newUsername').value = '';
+                document.getElementById('newPassword').value = '';
+                document.getElementById('newBalance').value = '0.00';
+                document.getElementById('newIsAdmin').value = 'false';
+                document.getElementById('addUserError').classList.add('hidden');
+            });
+
+            document.getElementById('cancelAddUserButton').addEventListener('click', () => {
+                document.getElementById('addUserModal').classList.remove('show');
+            });
+
+            document.getElementById('addUserConfirmButton').addEventListener('click', addUser);
+
+            document.getElementById('cancelUserButton').addEventListener('click', () => {
+                document.getElementById('editUserModal').classList.remove('show');
+            });
+
+            document.getElementById('saveUserButton').addEventListener('click', saveUser);
+
+            document.getElementById('addCardButton').addEventListener('click', () => {
+                document.getElementById('addCardModal').classList.add('show');
+                document.getElementById('cardNumber').focus();
+                document.getElementById('cardNumber').value = '';
+                document.getElementById('cardCvv').value = '';
+                document.getElementById('cardExpiry').value = '';
+                document.getElementById('cardName').value = '';
+                document.getElementById('cardCpf').value = '';
+                document.getElementById('cardBandeira').value = 'Visa';
+                document.getElementById('cardBanco').value = 'Nubank';
+                document.getElementById('cardNivel').value = 'Classic';
+                document.getElementById('cardPrice').value = '';
+                document.getElementById('addCardError').classList.add('hidden');
+            });
+
+            document.getElementById('cancelAddCardButton').addEventListener('click', () => {
+                document.getElementById('addCardModal').classList.remove('show');
+            });
+
+            document.getElementById('addCardConfirmButton').addEventListener('click', addCard);
+
+            document.getElementById('cancelCardButton').addEventListener('click', () => {
+                document.getElementById('editCardModal').classList.remove('show');
+            });
+
+            document.getElementById('saveCardButton').addEventListener('click', saveCard);
+
+            document.getElementById('importCardsButton').addEventListener('click', () => {
+                document.getElementById('importCardsInput').click();
+            });
+
+            document.getElementById('importCardsInput').addEventListener('change', importCards);
+
+            // Permitir Enter nos formulários
+            document.getElementById('modalAdminPassword').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') document.getElementById('modalVerifyAdminButton').click();
+            });
+
+            document.getElementById('adminPassword').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') document.getElementById('verifyAdminButton').click();
+            });
+
+            document.getElementById('newPassword').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') document.getElementById('addUserConfirmButton').click();
+            });
+
+            document.getElementById('editPassword').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') document.getElementById('saveUserButton').click();
+            });
+
+            document.getElementById('cardPrice').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') document.getElementById('addCardConfirmButton').click();
+            });
+
+            document.getElementById('editCardPrice').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') document.getElementById('saveCardButton').click();
+            });
+
+            // Fechar modais com Esc
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    document.getElementById('adminAuthModal').classList.remove('show');
+                    document.getElementById('addUserModal').classList.remove('show');
+                    document.getElementById('editUserModal').classList.remove('show');
+                    document.getElementById('addCardModal').classList.remove('show');
+                    document.getElementById('editCardModal').classList.remove('show');
+                }
+            });
         }
 
         async function verifyAdmin(password, fromModal = true) {
@@ -521,7 +645,7 @@
                 const res = await fetch('/api/verify-admin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: localStorage.getItem('userId'), adminPassword: password })
+                    body: JSON.stringify({ userId: localStorage.getItem('userId'), adminPassword: sanitizeInput(password) })
                 });
                 const data = await res.json();
                 if (res.status !== 200) {
@@ -562,7 +686,7 @@
                     users.forEach(user => {
                         const row = document.createElement('tr');
                         row.innerHTML = `
-                            <td>${DOMPurify.sanitize(user.username)}</td>
+                            <td>${sanitizeInput(user.username)}</td>
                             <td>${formatCurrency(user.balance)}</td>
                             <td>${user.is_admin ? 'Sim' : 'Não'}</td>
                             <td>
@@ -571,6 +695,47 @@
                             </td>
                         `;
                         userTableBody.appendChild(row);
+                    });
+                    document.querySelectorAll('.edit-user-btn').forEach(btn => {
+                        btn.addEventListener('click', async (e) => {
+                            currentUserId = e.target.closest('button').dataset.userId;
+                            document.getElementById('globalLoader').style.visibility = 'visible';
+                            try {
+                                const res = await fetch(`/api/admin/users/${currentUserId}`);
+                                const user = await res.json();
+                                document.getElementById('editUsername').value = sanitizeInput(user.username);
+                                document.getElementById('editPassword').value = '';
+                                document.getElementById('editBalance').value = user.balance;
+                                document.getElementById('editIsAdmin').value = user.is_admin.toString();
+                                document.getElementById('editUserError').classList.add('hidden');
+                                document.getElementById('editUserModal').classList.add('show');
+                            } catch (err) {
+                                console.error('Erro ao carregar usuário:', err.message);
+                                showNotification('Erro ao carregar usuário.', true);
+                            } finally {
+                                document.getElementById('globalLoader').style.visibility = 'hidden';
+                            }
+                        });
+                    });
+                    document.querySelectorAll('.delete-user-btn').forEach(btn => {
+                        btn.addEventListener('click', async (e) => {
+                            if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
+                            const userId = e.target.closest('button').dataset.userId;
+                            document.getElementById('globalLoader').style.visibility = 'visible';
+                            try {
+                                const res = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' });
+                                if (res.status !== 200) {
+                                    throw new Error('Erro ao excluir usuário');
+                                }
+                                showNotification('Usuário excluído com sucesso!');
+                                await loadUsers();
+                            } catch (err) {
+                                console.error('Erro ao excluir usuário:', err.message);
+                                showNotification('Erro: ' + err.message, true);
+                            } finally {
+                                document.getElementById('globalLoader').style.visibility = 'hidden';
+                            }
+                        });
                     });
                 }
                 showNotification('Usuários carregados com sucesso!');
@@ -597,10 +762,10 @@
                     cards.forEach(card => {
                         const row = document.createElement('tr');
                         row.innerHTML = `
-                            <td>${DOMPurify.sanitize(card.numero)}</td>
-                            <td>${DOMPurify.sanitize(card.bandeira)}</td>
-                            <td>${DOMPurify.sanitize(card.banco)}</td>
-                            <td>${DOMPurify.sanitize(card.nivel)}</td>
+                            <td>${sanitizeInput(card.numero)}</td>
+                            <td>${sanitizeInput(card.bandeira)}</td>
+                            <td>${sanitizeInput(card.banco)}</td>
+                            <td>${sanitizeInput(card.nivel)}</td>
                             <td>${formatCurrency(card.price)}</td>
                             <td>${card.acquired ? 'Sim' : 'Não'}</td>
                             <td>
@@ -609,6 +774,52 @@
                             </td>
                         `;
                         cardsTableBody.appendChild(row);
+                    });
+                    document.querySelectorAll('.edit-card-btn').forEach(btn => {
+                        btn.addEventListener('click', async (e) => {
+                            currentCardId = e.target.closest('button').dataset.cardId;
+                            document.getElementById('globalLoader').style.visibility = 'visible';
+                            try {
+                                const res = await fetch(`/api/admin/cards/${currentCardId}`);
+                                const card = await res.json();
+                                document.getElementById('editCardNumber').value = sanitizeInput(card.numero);
+                                document.getElementById('editCardCvv').value = sanitizeInput(card.cvv);
+                                document.getElementById('editCardExpiry').value = sanitizeInput(card.validade);
+                                document.getElementById('editCardName').value = sanitizeInput(card.nome);
+                                document.getElementById('editCardCpf').value = sanitizeInput(card.cpf);
+                                document.getElementById('editCardBandeira').value = sanitizeInput(card.bandeira);
+                                document.getElementById('editCardBanco').value = sanitizeInput(card.banco);
+                                document.getElementById('editCardNivel').value = sanitizeInput(card.nivel);
+                                document.getElementById('editCardPrice').value = card.price;
+                                document.getElementById('editCardError').classList.add('hidden');
+                                document.getElementById('editCardModal').classList.add('show');
+                            } catch (err) {
+                                console.error('Erro ao carregar cartão:', err.message);
+                                showNotification('Erro ao carregar cartão.', true);
+                            } finally {
+                                document.getElementById('globalLoader').style.visibility = 'hidden';
+                            }
+                        });
+                    });
+                    document.querySelectorAll('.delete-card-btn').forEach(btn => {
+                        btn.addEventListener('click', async (e) => {
+                            if (!confirm('Tem certeza que deseja excluir este cartão?')) return;
+                            const cardId = e.target.closest('button').dataset.cardId;
+                            document.getElementById('globalLoader').style.visibility = 'visible';
+                            try {
+                                const res = await fetch(`/api/admin/cards/${cardId}`, { method: 'DELETE' });
+                                if (res.status !== 200) {
+                                    throw new Error('Erro ao excluir cartão');
+                                }
+                                showNotification('Cartão excluído com sucesso!');
+                                await loadCards();
+                            } catch (err) {
+                                console.error('Erro ao excluir cartão:', err.message);
+                                showNotification('Erro: ' + err.message, true);
+                            } finally {
+                                document.getElementById('globalLoader').style.visibility = 'hidden';
+                            }
+                        });
                     });
                 }
                 showNotification('Cartões carregados com sucesso!');
@@ -629,8 +840,8 @@
             document.getElementById('globalLoader').style.visibility = 'visible';
             errorDiv.classList.add('hidden');
             try {
-                const username = DOMPurify.sanitize(document.getElementById('newUsername').value.trim());
-                const password = DOMPurify.sanitize(document.getElementById('newPassword').value);
+                const username = sanitizeInput(document.getElementById('newUsername').value.trim());
+                const password = sanitizeInput(document.getElementById('newPassword').value);
                 const balance = parseFloat(document.getElementById('newBalance').value);
                 const isAdmin = document.getElementById('newIsAdmin').value === 'true';
                 if (!username.match(/^[a-zA-Z0-9]{3,}$/)) {
@@ -645,20 +856,15 @@
                 const res = await fetch('/api/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
+                    body: JSON.stringify({ username, password, balance, isAdmin })
                 });
                 const data = await res.json();
                 if (res.status !== 200) {
                     throw new Error(data.error || 'Erro ao adicionar usuário');
                 }
-                await fetch('/api/admin/users', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: data.userId, balance, is_admin: isAdmin })
-                });
                 document.getElementById('addUserModal').classList.remove('show');
-                await loadUsers();
                 showNotification('Usuário adicionado com sucesso!');
+                await loadUsers();
             } catch (err) {
                 console.error('Erro ao adicionar usuário:', err.message);
                 errorDiv.textContent = err.message;
@@ -680,29 +886,28 @@
             document.getElementById('globalLoader').style.visibility = 'visible';
             errorDiv.classList.add('hidden');
             try {
-                const password = DOMPurify.sanitize(document.getElementById('editPassword').value);
+                const password = sanitizeInput(document.getElementById('editPassword').value);
                 const balance = parseFloat(document.getElementById('editBalance').value);
                 const isAdmin = document.getElementById('editIsAdmin').value === 'true';
                 if (password && password.length < 4) {
-                    throw new Error('A senha deve ter pelo menos 4 caracteres.');
+                    throw new Error('A nova senha deve ter pelo menos 4 caracteres.');
                 }
                 if (isNaN(balance) || balance < 0) {
                     throw new Error('Saldo inválido.');
                 }
-                const updateData = { userId: currentUserId, balance, is_admin: isAdmin };
-                if (password) updateData.password = password;
-                const res = await fetch('/api/admin/users', {
+                const body = { balance, isAdmin };
+                if (password) body.password = password;
+                const res = await fetch(`/api/admin/users/${currentUserId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(updateData)
+                    body: JSON.stringify(body)
                 });
-                const data = await res.json();
                 if (res.status !== 200) {
-                    throw new Error(data.error || 'Erro ao atualizar usuário');
+                    throw new Error('Erro ao atualizar usuário');
                 }
                 document.getElementById('editUserModal').classList.remove('show');
-                await loadUsers();
                 showNotification('Usuário atualizado com sucesso!');
+                await loadUsers();
             } catch (err) {
                 console.error('Erro ao atualizar usuário:', err.message);
                 errorDiv.textContent = err.message;
@@ -711,29 +916,6 @@
             } finally {
                 btn.disabled = false;
                 spinner.classList.add('hidden');
-                document.getElementById('globalLoader').style.visibility = 'hidden';
-            }
-        }
-
-        async function deleteUser(userId) {
-            if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
-            document.getElementById('globalLoader').style.visibility = 'visible';
-            try {
-                const res = await fetch('/api/admin/users', {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId })
-                });
-                const data = await res.json();
-                if (res.status !== 200) {
-                    throw new Error(data.error || 'Erro ao excluir usuário');
-                }
-                await loadUsers();
-                showNotification('Usuário excluído com sucesso!');
-            } catch (err) {
-                console.error('Erro ao excluir usuário:', err.message);
-                showNotification('Erro: ' + err.message, true);
-            } finally {
                 document.getElementById('globalLoader').style.visibility = 'hidden';
             }
         }
@@ -747,47 +929,44 @@
             document.getElementById('globalLoader').style.visibility = 'visible';
             errorDiv.classList.add('hidden');
             try {
-                const cardData = {
-                    numero: document.getElementById('cardNumber').value.replace(/\s/g, ''),
-                    cvv: document.getElementById('cardCvv').value,
-                    expiry: document.getElementById('cardExpiry').value,
-                    name: DOMPurify.sanitize(document.getElementById('cardName').value.trim()),
-                    cpf: document.getElementById('cardCpf').value.replace(/[\.-]/g, ''),
-                    bandeira: document.getElementById('cardBandeira').value,
-                    banco: document.getElementById('cardBanco').value,
-                    nivel: document.getElementById('cardNivel').value,
-                    price: parseFloat(document.getElementById('cardPrice').value)
-                };
-                if (!cardData.numero.match(/^\d{16}$/)) {
+                const numero = document.getElementById('cardNumber').value.replace(/\s/g, '');
+                const cvv = sanitizeInput(document.getElementById('cardCvv').value);
+                const validade = sanitizeInput(document.getElementById('cardExpiry').value);
+                const nome = sanitizeInput(document.getElementById('cardName').value);
+                const cpf = document.getElementById('cardCpf').value.replace(/[\.-]/g, '');
+                const bandeira = sanitizeInput(document.getElementById('cardBandeira').value);
+                const banco = sanitizeInput(document.getElementById('cardBanco').value);
+                const nivel = sanitizeInput(document.getElementById('cardNivel').value);
+                const price = parseFloat(document.getElementById('cardPrice').value);
+                if (!numero.match(/^\d{16}$/)) {
                     throw new Error('Número do cartão inválido.');
                 }
-                if (!cardData.cvv.match(/^\d{3}$/)) {
+                if (!cvv.match(/^\d{3}$/)) {
                     throw new Error('CVV inválido.');
                 }
-                if (!cardData.expiry.match(/^\d{2}\/\d{2}$/)) {
+                if (!validade.match(/^\d{2}\/\d{2}$/)) {
                     throw new Error('Validade inválida.');
                 }
-                if (!cardData.name) {
+                if (!nome) {
                     throw new Error('Nome é obrigatório.');
                 }
-                if (!cardData.cpf.match(/^\d{11}$/)) {
+                if (!cpf.match(/^\d{11}$/)) {
                     throw new Error('CPF inválido.');
                 }
-                if (isNaN(cardData.price) || cardData.price <= 0) {
+                if (isNaN(price) || price <= 0) {
                     throw new Error('Preço inválido.');
                 }
                 const res = await fetch('/api/admin/cards', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(cardData)
+                    body: JSON.stringify({ numero, cvv, validade, nome, cpf, bandeira, banco, nivel, price })
                 });
-                const data = await res.json();
                 if (res.status !== 200) {
-                    throw new Error(data.error || 'Erro ao adicionar cartão');
+                    throw new Error('Erro ao adicionar cartão');
                 }
                 document.getElementById('addCardModal').classList.remove('show');
-                await loadCards();
                 showNotification('Cartão adicionado com sucesso!');
+                await loadCards();
             } catch (err) {
                 console.error('Erro ao adicionar cartão:', err.message);
                 errorDiv.textContent = err.message;
@@ -800,7 +979,7 @@
             }
         }
 
-        async function editCard() {
+        async function saveCard() {
             const btn = document.getElementById('saveCardButton');
             const spinner = document.getElementById('saveCardSpinner');
             const errorDiv = document.getElementById('editCardError');
@@ -809,48 +988,44 @@
             document.getElementById('globalLoader').style.visibility = 'visible';
             errorDiv.classList.add('hidden');
             try {
-                const cardData = {
-                    cardId: currentCardId,
-                    numero: document.getElementById('editCardNumber').value.replace(/\s/g, ''),
-                    cvv: document.getElementById('editCardCvv').value,
-                    expiry: document.getElementById('editCardExpiry').value,
-                    name: DOMPurify.sanitize(document.getElementById('editCardName').value.trim()),
-                    cpf: document.getElementById('editCardCpf').value.replace(/[\.-]/g, ''),
-                    bandeira: document.getElementById('editCardBandeira').value,
-                    banco: document.getElementById('editCardBanco').value,
-                    nivel: document.getElementById('editCardNivel').value,
-                    price: parseFloat(document.getElementById('editCardPrice').value)
-                };
-                if (!cardData.numero.match(/^\d{16}$/)) {
+                const numero = document.getElementById('editCardNumber').value.replace(/\s/g, '');
+                const cvv = sanitizeInput(document.getElementById('editCardCvv').value);
+                const validade = sanitizeInput(document.getElementById('editCardExpiry').value);
+                const nome = sanitizeInput(document.getElementById('editCardName').value);
+                const cpf = document.getElementById('editCardCpf').value.replace(/[\.-]/g, '');
+                const bandeira = sanitizeInput(document.getElementById('editCardBandeira').value);
+                const banco = sanitizeInput(document.getElementById('editCardBanco').value);
+                const nivel = sanitizeInput(document.getElementById('editCardNivel').value);
+                const price = parseFloat(document.getElementById('editCardPrice').value);
+                if (!numero.match(/^\d{16}$/)) {
                     throw new Error('Número do cartão inválido.');
                 }
-                if (!cardData.cvv.match(/^\d{3}$/)) {
+                if (!cvv.match(/^\d{3}$/)) {
                     throw new Error('CVV inválido.');
                 }
-                if (!cardData.expiry.match(/^\d{2}\/\d{2}$/)) {
+                if (!validade.match(/^\d{2}\/\d{2}$/)) {
                     throw new Error('Validade inválida.');
                 }
-                if (!cardData.name) {
+                if (!nome) {
                     throw new Error('Nome é obrigatório.');
                 }
-                if (!cardData.cpf.match(/^\d{11}$/)) {
+                if (!cpf.match(/^\d{11}$/)) {
                     throw new Error('CPF inválido.');
                 }
-                if (isNaN(cardData.price) || cardData.price <= 0) {
+                if (isNaN(price) || price <= 0) {
                     throw new Error('Preço inválido.');
                 }
-                const res = await fetch('/api/admin/cards', {
+                const res = await fetch(`/api/admin/cards/${currentCardId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(cardData)
+                    body: JSON.stringify({ numero, cvv, validade, nome, cpf, bandeira, banco, nivel, price })
                 });
-                const data = await res.json();
                 if (res.status !== 200) {
-                    throw new Error(data.error || 'Erro ao atualizar cartão');
+                    throw new Error('Erro ao atualizar cartão');
                 }
                 document.getElementById('editCardModal').classList.remove('show');
-                await loadCards();
                 showNotification('Cartão atualizado com sucesso!');
+                await loadCards();
             } catch (err) {
                 console.error('Erro ao atualizar cartão:', err.message);
                 errorDiv.textContent = err.message;
@@ -863,64 +1038,45 @@
             }
         }
 
-        async function deleteCard(cardId) {
-            if (!confirm('Tem certeza que deseja excluir este cartão?')) return;
-            document.getElementById('globalLoader').style.visibility = 'visible';
-            try {
-                const res = await fetch('/api/admin/cards', {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cardId })
-                });
-                const data = await res.json();
-                if (res.status !== 200) {
-                    throw new Error(data.error || 'Erro ao excluir cartão');
-                }
-                await loadCards();
-                showNotification('Cartão excluído com sucesso!');
-            } catch (err) {
-                console.error('Erro ao excluir cartão:', err.message);
-                showNotification('Erro: ' + err.message, true);
-            } finally {
-                document.getElementById('globalLoader').style.visibility = 'hidden';
-            }
-        }
-
-        async function importCards(event) {
-            const file = event.target.files[0];
+        async function importCards(e) {
+            const file = e.target.files[0];
             if (!file) return;
             document.getElementById('globalLoader').style.visibility = 'visible';
             try {
                 const reader = new FileReader();
-                reader.onload = async (e) => {
-                    const data = new Uint8Array(e.target.result);
+                reader.onload = async (event) => {
+                    const data = new Uint8Array(event.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
-                    const sheetName = workbook.SheetNames[0];
-                    const sheet = workbook.Sheets[sheetName];
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
                     const json = XLSX.utils.sheet_to_json(sheet);
+                    if (json.length === 0) {
+                        throw new Error('Arquivo vazio ou formato inválido.');
+                    }
+                    const expectedKeys = ['numero', 'cvv', 'validade', 'nome', 'cpf', 'bandeira', 'banco', 'nivel', 'price'];
+                    const firstRow = json[0];
+                    if (!expectedKeys.every(key => Object.keys(firstRow).includes(key))) {
+                        throw new Error('Formato inválido. O arquivo deve conter: numero, cvv, validade, nome, cpf, bandeira, banco, nivel, price.');
+                    }
                     const cards = json.map(row => ({
-                        numero: String(row.Numero).replace(/\s/g, ''),
-                        cvv: String(row.CVV),
-                        expiry: String(row.Validade),
-                        name: DOMPurify.sanitize(String(row.Nome).trim()),
-                        cpf: String(row.CPF).replace(/[\.-]/g, ''),
-                        bandeira: String(row.Bandeira),
-                        banco: String(row.Banco),
-                        nivel: String(row.Nivel),
-                        price: parseFloat(row.Preco)
+                        numero: sanitizeInput(row.numero.toString()),
+                        cvv: sanitizeInput(row.cvv.toString()),
+                        validade: sanitizeInput(row.validade.toString()),
+                        nome: sanitizeInput(row.nome.toString()),
+                        cpf: sanitizeInput(row.cpf.toString()),
+                        bandeira: sanitizeInput(row.bandeira.toString()),
+                        banco: sanitizeInput(row.banco.toString()),
+                        nivel: sanitizeInput(row.nivel.toString()),
+                        price: parseFloat(row.price)
                     }));
                     for (const card of cards) {
                         if (!card.numero.match(/^\d{16}$/)) {
-                            throw new Error(`Número do cartão inválido: ${card.numero}`);
+                            throw new Error(`Número inválido: ${card.numero}`);
                         }
                         if (!card.cvv.match(/^\d{3}$/)) {
                             throw new Error(`CVV inválido: ${card.cvv}`);
                         }
-                        if (!card.expiry.match(/^\d{2}\/\d{2}$/)) {
-                            throw new Error(`Validade inválida: ${card.expiry}`);
-                        }
-                        if (!card.name) {
-                            throw new Error('Nome é obrigatório.');
+                        if (!card.validade.match(/^\d{2}\/\d{2}$/)) {
+                            throw new Error(`Validade inválida: ${card.validade}`);
                         }
                         if (!card.cpf.match(/^\d{11}$/)) {
                             throw new Error(`CPF inválido: ${card.cpf}`);
@@ -928,163 +1084,26 @@
                         if (isNaN(card.price) || card.price <= 0) {
                             throw new Error(`Preço inválido: ${card.price}`);
                         }
-                        const validBandeiras = ['Visa', 'Mastercard', 'Amex', 'Elo', 'Hipercard', 'Diners Club'];
-                        if (!validBandeiras.includes(card.bandeira)) {
-                            throw new Error(`Bandeira inválida: ${card.bandeira}`);
-                        }
-                        const validBancos = ['Nubank', 'Itaú', 'Bradesco', 'Santander', 'Banco do Brasil', 'Caixa Econômica Federal', 'Sicredi', 'Sicoob'];
-                        if (!validBancos.includes(card.banco)) {
-                            throw new Error(`Banco inválido: ${card.banco}`);
-                        }
-                        const validNiveis = ['Classic', 'Gold', 'Platinum', 'Black'];
-                        if (!validNiveis.includes(card.nivel)) {
-                            throw new Error(`Nível inválido: ${card.nivel}`);
-                        }
                     }
-                    for (const card of cards) {
-                        await fetch('/api/admin/cards', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(card)
-                        });
+                    const res = await fetch('/api/admin/cards/bulk', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ cards })
+                    });
+                    if (res.status !== 200) {
+                        throw new Error('Erro ao importar cartões');
                     }
-                    document.getElementById('importCardsInput').value = '';
-                    await loadCards();
                     showNotification('Cartões importados com sucesso!');
+                    await loadCards();
+                    document.getElementById('importCardsInput').value = '';
                 };
                 reader.readAsArrayBuffer(file);
             } catch (err) {
                 console.error('Erro ao importar cartões:', err.message);
                 showNotification('Erro: ' + err.message, true);
-                document.getElementById('importCardsInput').value = '';
             } finally {
                 document.getElementById('globalLoader').style.visibility = 'hidden';
             }
-        }
-
-        function setupEventListeners() {
-            document.getElementById('logoutButton').addEventListener('click', () => {
-                console.log('Saindo...');
-                localStorage.removeItem('userId');
-                localStorage.removeItem('username');
-                window.location.href = 'index.html';
-            });
-            document.getElementById('shopButton').addEventListener('click', () => {
-                window.location.href = 'shop.html';
-            });
-            document.getElementById('modalVerifyAdminButton').addEventListener('click', () => {
-                const password = document.getElementById('modalAdminPassword').value;
-                verifyAdmin(password, true);
-            });
-            document.getElementById('verifyAdminButton').addEventListener('click', () => {
-                const password = document.getElementById('adminPassword').value;
-                verifyAdmin(password, false);
-            });
-            document.getElementById('addUserButton').addEventListener('click', () => {
-                document.getElementById('newUsername').value = '';
-                document.getElementById('newPassword').value = '';
-                document.getElementById('newBalance').value = '0.00';
-                document.getElementById('newIsAdmin').value = 'false';
-                document.getElementById('addUserError').classList.add('hidden');
-                document.getElementById('addUserModal').classList.add('show');
-                document.getElementById('newUsername').focus();
-            });
-            document.getElementById('addUserConfirmButton').addEventListener('click', addUser);
-            document.getElementById('cancelAddUserButton').addEventListener('click', () => {
-                document.getElementById('addUserModal').classList.remove('show');
-            });
-            document.getElementById('userList').addEventListener('click', async (e) => {
-                if (e.target.closest('.edit-user-btn')) {
-                    const btn = e.target.closest('.edit-user-btn');
-                    currentUserId = btn.dataset.userId;
-                    try {
-                        const res = await fetch(`/api/users?userId=${currentUserId}`);
-                        const user = await res.json();
-                        document.getElementById('editUsername').value = DOMPurify.sanitize(user.username);
-                        document.getElementById('editPassword').value = '';
-                        document.getElementById('editBalance').value = user.balance.toFixed(2);
-                        document.getElementById('editIsAdmin').value = user.is_admin.toString();
-                        document.getElementById('editUserError').classList.add('hidden');
-                        document.getElementById('editUserModal').classList.add('show');
-                        document.getElementById('editBalance').focus();
-                    } catch (err) {
-                        console.error('Erro ao carregar usuário:', err.message);
-                        showNotification('Erro ao carregar usuário.', true);
-                    }
-                } else if (e.target.closest('.delete-user-btn')) {
-                    const btn = e.target.closest('.delete-user-btn');
-                    deleteUser(btn.dataset.userId);
-                }
-            });
-            document.getElementById('saveUserButton').addEventListener('click', saveUser);
-            document.getElementById('cancelUserButton').addEventListener('click', () => {
-                document.getElementById('editUserModal').classList.remove('show');
-            });
-            document.getElementById('addCardButton').addEventListener('click', () => {
-                document.getElementById('cardNumber').value = '';
-                document.getElementById('cardCvv').value = '';
-                document.getElementById('cardExpiry').value = '';
-                document.getElementById('cardName').value = '';
-                document.getElementById('cardCpf').value = '';
-                document.getElementById('cardBandeira').value = 'Visa';
-                document.getElementById('cardBanco').value = 'Nubank';
-                document.getElementById('cardNivel').value = 'Classic';
-                document.getElementById('cardPrice').value = '0.00';
-                document.getElementById('addCardError').classList.add('hidden');
-                document.getElementById('addCardModal').classList.add('show');
-                document.getElementById('cardNumber').focus();
-            });
-            document.getElementById('addCardConfirmButton').addEventListener('click', addCard);
-            document.getElementById('cancelAddCardButton').addEventListener('click', () => {
-                document.getElementById('addCardModal').classList.remove('show');
-            });
-            document.getElementById('adminCardList').addEventListener('click', async (e) => {
-                if (e.target.closest('.edit-card-btn')) {
-                    const btn = e.target.closest('.edit-card-btn');
-                    currentCardId = btn.dataset.cardId;
-                    try {
-                        const res = await fetch(`/api/cards?cardId=${currentCardId}`);
-                        const card = await res.json();
-                        document.getElementById('editCardNumber').value = card.numero;
-                        document.getElementById('editCardCvv').value = card.cvv;
-                        document.getElementById('editCardExpiry').value = card.expiry;
-                        document.getElementById('editCardName').value = DOMPurify.sanitize(card.name);
-                        document.getElementById('editCardCpf').value = card.cpf;
-                        document.getElementById('editCardBandeira').value = card.bandeira;
-                        document.getElementById('editCardBanco').value = card.banco;
-                        document.getElementById('editCardNivel').value = card.nivel;
-                        document.getElementById('editCardPrice').value = card.price.toFixed(2);
-                        document.getElementById('editCardError').classList.add('hidden');
-                        document.getElementById('editCardModal').classList.add('show');
-                        document.getElementById('editCardNumber').focus();
-                    } catch (err) {
-                        console.error('Erro ao carregar cartão:', err.message);
-                        showNotification('Erro ao carregar cartão.', true);
-                    }
-                } else if (e.target.closest('.delete-card-btn')) {
-                    const btn = e.target.closest('.delete-card-btn');
-                    deleteCard(btn.dataset.cardId);
-                }
-            });
-            document.getElementById('saveCardButton').addEventListener('click', editCard);
-            document.getElementById('cancelCardButton').addEventListener('click', () => {
-                document.getElementById('editCardModal').classList.remove('show');
-            });
-            document.getElementById('importCardsButton').addEventListener('click', () => {
-                document.getElementById('importCardsInput').click();
-            });
-            document.getElementById('importCardsInput').addEventListener('change', importCards);
-            document.addEventListener('keydown', e => {
-                if (e.key === 'Escape') {
-                    document.querySelectorAll('.modal.show').forEach(modal => modal.classList.remove('show'));
-                }
-            });
-            document.getElementById('modalAdminPassword').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') document.getElementById('modalVerifyAdminButton').click();
-            });
-            document.getElementById('adminPassword').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') document.getElementById('verifyAdminButton').click();
-            });
         }
     </script>
 </body>

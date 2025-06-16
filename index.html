@@ -106,14 +106,14 @@
       const spinner = document.getElementById('loginSpinner');
       btn.disabled = true;
       spinner.classList.remove('hidden');
-      const loginUsername = document.getElementById('loginUsername').value;
-      const loginPassword = document.getElementById('loginPassword').value;
+      const usernameInput = document.getElementById('loginUsername').value;
+      const passwordInput = document.getElementById('loginPassword').value;
       try {
-        console.log('Iniciando login', { username: loginUsername });
+        console.log('Iniciando login', { username: usernameInput });
         const res = await fetch('/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: loginUsername, password: loginPassword })
+          body: JSON.stringify({ username: usernameInput, password: passwordInput })
         });
         const data = await res.json();
         console.log('Resposta do login:', { status: res.status, data });
@@ -139,14 +139,14 @@
       const spinner = document.getElementById('registerSpinner');
       btn.disabled = true;
       spinner.classList.remove('hidden');
-      const registerUsername = document.getElementById('registerUsername').value;
-      const registerPassword = document.getElementById('registerPassword').value;
+      const usernameInput = document.getElementById('registerUsername').value;
+      const passwordInput = document.getElementById('registerPassword').value;
       try {
-        console.log('Iniciando registro', { username: registerUsername });
+        console.log('Iniciando registro', { username: usernameInput });
         const res = await fetch('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: registerUsername, password: registerPassword })
+          body: JSON.stringify({ username: usernameInput, password: passwordInput })
         });
         const data = await res.json();
         console.log('Resposta do registro:', { status: res.status, data });

@@ -6,6 +6,7 @@
     <title>LOGAN CC's - Loja</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.9/purify.min.js"></script>
     <style>
         #globalLoader {
             position: fixed;
@@ -162,6 +163,10 @@
                         <option value="Black">Black</option>
                     </select>
                 </div>
+                <div>
+                    <label for="filterNumero" class="block text-sm font-medium">Número (Parcial)</label>
+                    <input type="text" id="filterNumero" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Digite parte do número">
+                </div>
             </div>
             <div id="cardList" class="overflow-x-auto">
                 <table>
@@ -202,27 +207,17 @@
     </div>
     <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40"></div>
     <script src="debug.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.9/purify.min.js"></script>
     <script>
         console.log('shop.html carregado');
         let currentCardId = null;
         let userBalance = 0;
 
-        function sanitizeInput(input) {
-            if (typeof DOMPurify !== 'undefined' && DOMPurify.sanitize) {
-                return DOMPurify.sanitize(input);
-            }
-            console.warn('DOMPurify não disponível. Usando sanitização básica.');
-            return input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-                        .replace(/[<>]/g, '');
-        }
-
         function formatCurrency(value) {
             return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
         }
 
-        function formatCardNumber(number) {
-            return number.replace(/\d(?=\d{4})/g, '*').match(/.{1,4}/g).join(' ');
+        function sanitizeInput(input) {
+            return DOMPurify.sanitize(input);
         }
 
         function showNotification(message, isError = false) {
@@ -242,6 +237,7 @@
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('DOM carregado');
             const userId = localStorage.getItem('userId');
+            const isAdmin = localStorage.getItem('is_admin') === 'true';
             if (!userId) {
                 showNotification('Faça login para acessar a loja.', true);
                 setTimeout(() => window.location.href = 'index.html', 1000);
@@ -256,7 +252,7 @@
                 const user = await res.json();
                 userBalance = user.balance;
                 document.getElementById('userBalance').textContent = `Saldo: ${formatCurrency(userBalance)}`;
-                if (user.isAdmin) {
+                if (isAdmin) {
                     document.getElementById('dashboardButton').classList.remove('hidden');
                 }
                 await loadCards();
@@ -266,6 +262,7 @@
                 showNotification(err.message, true);
                 localStorage.removeItem('userId');
                 localStorage.removeItem('username');
+                localStorage.removeItem('is_admin');
                 setTimeout(() => window.location.href = 'index.html', 1000);
             } finally {
                 document.getElementById('globalLoader').style.visibility = 'hidden';
@@ -278,12 +275,16 @@
                 const bandeira = document.getElementById('filterBandeira').value;
                 const banco = document.getElementById('filterBanco').value;
                 const nivel = document.getElementById('filterNivel').value;
+                const numero = document.getElementById('filterNumero').value.trim();
                 let query = '/api/cards?';
                 if (bandeira) query += `bandeira=${encodeURIComponent(bandeira)}&`;
                 if (banco) query += `banco=${encodeURIComponent(banco)}&`;
                 if (nivel) query += `nivel=${encodeURIComponent(nivel)}&`;
                 const res = await fetch(query);
-                const cards = await res.json();
+                let cards = await res.json();
+                if (numero) {
+                    cards = cards.filter(card => card.numero.includes(numero));
+                }
                 console.log('Cartões carregados:', cards);
                 const cardTableBody = document.querySelector('#cardList table tbody');
                 cardTableBody.innerHTML = '';
@@ -293,13 +294,13 @@
                     cards.forEach(card => {
                         const row = document.createElement('tr');
                         row.innerHTML = `
-                            <td>${formatCardNumber(sanitizeInput(card.number))}</td>
+                            <td>${sanitizeInput(card.numero)}</td>
                             <td>${sanitizeInput(card.bandeira)}</td>
                             <td>${sanitizeInput(card.banco)}</td>
                             <td>${sanitizeInput(card.nivel)}</td>
                             <td>${formatCurrency(card.price)}</td>
                             <td>
-                                <button class="action-button buy-card-btn" data-card-id="${card.cardId}" data-price="${card.price}" data-numero="${card.number}" data-bandeira="${card.bandeira}" data-banco="${card.banco}" data-nivel="${card.nivel}"><i class="fas fa-shopping-cart mr-1"></i>Comprar</button>
+                                <button class="action-button buy-card-btn" data-card-id="${card._id}" data-price="${card.price}" data-numero="${card.numero}" data-bandeira="${card.bandeira}" data-banco="${card.banco}" data-nivel="${card.nivel}"><i class="fas fa-shopping-cart mr-1"></i>Comprar</button>
                             </td>
                         `;
                         cardTableBody.appendChild(row);
@@ -323,7 +324,7 @@
             document.getElementById('globalLoader').style.visibility = 'visible';
             errorDiv.classList.add('hidden');
             try {
-                const res = await fetch('/api/cards/purchase', {
+                const res = await fetch('/api/buy', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId: localStorage.getItem('userId'), cardId })
@@ -332,7 +333,7 @@
                 if (res.status !== 200) {
                     throw new Error(data.error || 'Erro ao comprar cartão');
                 }
-                userBalance -= price;
+                userBalance = data.newBalance;
                 document.getElementById('userBalance').textContent = `Saldo: ${formatCurrency(userBalance)}`;
                 document.getElementById('buyCardModal').classList.remove('show');
                 await loadCards();
@@ -354,6 +355,7 @@
                 console.log('Saindo...');
                 localStorage.removeItem('userId');
                 localStorage.removeItem('username');
+                localStorage.removeItem('is_admin');
                 window.location.href = 'index.html';
             });
             document.getElementById('dashboardButton').addEventListener('click', () => {
@@ -362,6 +364,7 @@
             document.getElementById('filterBandeira').addEventListener('change', loadCards);
             document.getElementById('filterBanco').addEventListener('change', loadCards);
             document.getElementById('filterNivel').addEventListener('change', loadCards);
+            document.getElementById('filterNumero').addEventListener('input', loadCards);
             document.getElementById('cardList').addEventListener('click', (e) => {
                 if (e.target.closest('.buy-card-btn')) {
                     const btn = e.target.closest('.buy-card-btn');
@@ -371,16 +374,8 @@
                     const bandeira = btn.dataset.bandeira;
                     const banco = btn.dataset.banco;
                     const nivel = btn.dataset.nivel;
-                    if (isNaN(price) || price <= 0) {
-                        showNotification('Preço do cartão inválido.', true);
-                        return;
-                    }
-                    if (price > userBalance) {
-                        showNotification('Saldo insuficiente para comprar este cartão.', true);
-                        return;
-                    }
                     document.getElementById('cardDetails').innerHTML = sanitizeInput(
-                        `Cartão: ${formatCardNumber(numero)}<br>Bandeira: ${bandeira}<br>Banco: ${banco}<br>Nível: ${nivel}<br>Preço: ${formatCurrency(price)}`
+                        `Cartão: ${numero}<br>Bandeira: ${bandeira}<br>Banco: ${banco}<br>Nível: ${nivel}<br>Preço: ${formatCurrency(price)}`
                     );
                     document.getElementById('balanceInfo').innerHTML = sanitizeInput(
                         `Seu saldo: ${formatCurrency(userBalance)}`

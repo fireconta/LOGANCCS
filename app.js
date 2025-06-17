@@ -1,521 +1,574 @@
-if (typeof window === 'undefined') {
-  const { MongoClient } = require('mongodb');
-  const bcrypt = require('bcryptjs');
+const express = require('express');
+const { MongoClient, ObjectId } = require('mongodb');
+const bcrypt = require('bcryptjs');
+const { body, validationResult } = require('express-validator');
+require('dotenv').config();
 
-  const mongoClient = new MongoClient(process.env.MONGODB_URI || 'mongodb+srv://loganccs_admin:V8JCm5teHVQEGFxw@loganccs-cluster.hlc6mov.mongodb.net/Loganccs?retryWrites=true&w=majority');
+const app = express();
+const port = process.env.PORT || 3000;
+const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017';
+let db;
 
-  let db;
-  let isInitialized = false;
+// Middleware
+app.use(express.json());
+app.use(express.static('public'));
 
-  async function initializeDatabase() {
-    if (isInitialized) return;
-    console.log('Inicializando banco de dados...');
+// Função para conectar ao MongoDB com retry
+async function connectToDatabase() {
+    const maxRetries = 5;
+    let retries = 0;
+    while (retries < maxRetries) {
+        try {
+            const client = new MongoClient(mongoUri, {
+                useUnifiedTopology: true,
+                serverSelectionTimeoutMS: 5000,
+                maxPoolSize: 10,
+            });
+            await client.connect();
+            db = client.db('logan_ccs');
+            console.log('Conectado ao MongoDB');
+            await initializeDatabase();
+            return;
+        } catch (err) {
+            retries++;
+            console.error(`Tentativa ${retries}/${maxRetries} falhou: ${err.message}`);
+            if (retries === maxRetries) {
+                console.error('Não foi possível conectar ao MongoDB após várias tentativas.');
+                process.exit(1);
+            }
+            await new Promise(resolve => setTimeout(resolve, 2000 * retries));
+        }
+    }
+}
+
+// Função para inicializar o banco de dados
+async function initializeDatabase() {
     try {
-      await mongoClient.connect();
-      db = mongoClient.db('Loganccs');
-      console.log('Conexão com MongoDB estabelecida ao banco Loganccs');
+        const collections = await db.listCollections().toArray();
+        const collectionNames = collections.map(c => c.name);
 
-      const collections = await db.listCollections().toArray();
-      const collectionNames = collections.map(c => c.name);
-      console.log('Coleções existentes:', collectionNames);
+        // Criar coleção 'users' se não existir
+        if (!collectionNames.includes('users')) {
+            await db.createCollection('users');
+            await db.collection('users').createIndex({ username: 1 }, { unique: true });
+            console.log('Coleção users criada');
+        }
 
-      if (!collectionNames.includes('users')) {
-        await db.createCollection('users');
-        await db.collection('users').createIndex({ username: 1 }, { unique: true });
-        await db.collection('users').insertOne({
-          _id: '1',
-          username: 'LVz',
-          password: await bcrypt.hash('123456', 10),
-          balance: 1000.00,
-          is_admin: true,
-          created_at: new Date()
-        });
-        console.log('Coleção users criada e usuário inicial inserido');
-      }
+        // Criar coleção 'cards' se não existir
+        if (!collectionNames.includes('cards')) {
+            await db.createCollection('cards');
+            await db.collection('cards').createIndex({ numero: 1 }, { unique: true });
+            console.log('Coleção cards criada');
+        }
 
-      if (!collectionNames.includes('cards')) {
-        await db.createCollection('cards');
-        await db.collection('cards').createIndex({ acquired: 1 });
-        await db.collection('cards').insertOne({
-          _id: '1',
-          numero: '4532015112830366',
-          cvv: '123',
-          expiry: '12/27',
-          name: 'João Silva',
-          cpf: '12345678901',
-          bandeira: 'Visa',
-          banco: 'Nubank',
-          nivel: 'Platinum',
-          price: 25.00,
-          bin: '453201',
-          acquired: false,
-          user_id: null,
-          created_at: new Date()
-        });
-        console.log('Coleção cards criada e cartão inicial inserido');
-      }
+        // Criar coleção 'levels' se não existir
+        if (!collectionNames.includes('levels')) {
+            await db.createCollection('levels');
+            const defaultLevels = [
+                { level: 'Classic', price: 50.00 },
+                { level: 'Gold', price: 100.00 },
+                { level: 'Platinum', price: 200.00 },
+                { level: 'Black', price: 500.00 }
+            ];
+            await db.collection('levels').insertMany(defaultLevels);
+            console.log('Coleção levels criada com níveis padrão');
+        }
 
-      if (!collectionNames.includes('transactions')) {
-        await db.createCollection('transactions');
-        await db.collection('transactions').createIndex({ user_id: 1, timestamp: -1 });
-        console.log('Coleção transactions criada');
-      }
+        // Criar coleção 'transactions' se não existir
+        if (!collectionNames.includes('transactions')) {
+            await db.createCollection('transactions');
+            await db.collection('transactions').createIndex({ user_id: 1, timestamp: -1 });
+            console.log('Coleção transactions criada');
+        }
 
-      if (!collectionNames.includes('levels')) {
-        await db.createCollection('levels');
-        await db.collection('levels').createIndex({ level: 1 }, { unique: true });
-        await db.collection('levels').insertMany([
-          { level: 'Classic', price: 10.00 },
-          { level: 'Gold', price: 20.00 },
-          { level: 'Platinum', price: 25.00 },
-          { level: 'Black', price: 50.00 }
-        ]);
-        console.log('Coleção levels criada com níveis padrão');
-      }
+        // Verificar e criar usuário LVz (admin)
+        const lvzUser = await db.collection('users').findOne({ username: 'LVz' });
+        if (!lvzUser) {
+            const hashedPassword = await bcrypt.hash('123456', 10);
+            await db.collection('users').insertOne({
+                username: 'LVz',
+                password: hashedPassword,
+                balance: 0,
+                is_admin: true,
+                created_at: new Date()
+            });
+            console.log('Usuário LVz criado como admin');
+        }
 
-      isInitialized = true;
+        // Verificar e criar usuário Carlos (não admin)
+        const carlosUser = await db.collection('users').findOne({ username: 'Carlos' });
+        if (!carlosUser) {
+            const hashedPassword = await bcrypt.hash('123456', 10);
+            await db.collection('users').insertOne({
+                username: 'Carlos',
+                password: hashedPassword,
+                balance: 0,
+                is_admin: false,
+                created_at: new Date()
+            });
+            console.log('Usuário Carlos criado');
+        }
     } catch (err) {
-      console.error('Erro ao inicializar banco:', err);
-      throw err;
+        console.error('Erro ao inicializar o banco de dados:', err);
+        throw err;
     }
-  }
+}
 
-  async function connectDB() {
-    if (!db) {
-      await initializeDatabase();
+// Middleware para verificar autenticação
+const authenticateUser = async (req, res, next) => {
+    const userId = req.body.userId || req.query.userId;
+    if (!userId || !ObjectId.isValid(userId)) {
+        return res.status(401).json({ error: 'Usuário não autenticado' });
     }
-    return db;
-  }
-
-  function generateId() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-  }
-
-  exports.handler = async (event, context) => {
-    console.log('Função app invocada:', { httpMethod: event.httpMethod, path: event.path });
-    const { httpMethod, path, queryStringParameters, body } = event;
     try {
-      const db = await connectDB();
-      const users = db.collection('users');
-      const cards = db.collection('cards');
-      const transactions = db.collection('transactions');
-      const levels = db.collection('levels');
+        const user = await db.collection('users').findOne({ _id: new ObjectId(userId) });
+        if (!user) {
+            return res.status(401).json({ error: 'Usuário não encontrado' });
+        }
+        req.user = user;
+        next();
+    } catch (err) {
+        console.error('Erro na autenticação:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+};
 
-      const headers = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
-      };
+// Middleware para verificar admin
+const requireAdmin = (req, res, next) => {
+    if (!req.user.is_admin) {
+        return res.status(403).json({ error: 'Acesso negado: apenas administradores' });
+    }
+    next();
+};
 
-      if (httpMethod === 'OPTIONS') {
-        return { statusCode: 200, headers, body: '' };
-      }
-
-      switch (path) {
-        case '/api/register':
-          if (httpMethod !== 'POST') return { statusCode: 405, headers, body: 'Método não permitido' };
-          const registerBody = JSON.parse(body || '{}');
-          console.log('Tentando registro:', { username: registerBody.username });
-          if (!registerBody.username || !registerBody.password) {
-            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Username e senha são obrigatórios' }) };
-          }
-          if (!registerBody.username.match(/^[a-zA-Z0-9]{3,}$/)) {
-            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Username deve ter pelo menos 3 caracteres alfanuméricos' }) };
-          }
-          if (registerBody.password.length < 4) {
-            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Senha deve ter pelo menos 4 caracteres' }) };
-          }
-          const existingUser = await users.findOne({ username: registerBody.username.toLowerCase() });
-          if (existingUser) {
-            console.warn('Username já registrado:', registerBody.username);
-            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Username já registrado' }) };
-          }
-          const salt = await bcrypt.genSalt(10);
-          const hashedPassword = await bcrypt.hash(registerBody.password, salt);
-          const newUser = {
-            _id: generateId(),
-            username: registerBody.username.toLowerCase(),
+// Rota de Registro
+app.post('/api/register', [
+    body('username').trim().matches(/^[a-zA-Z0-9_]{3,}$/).withMessage('Usuário inválido (mínimo 3 caracteres, apenas letras, números ou _)'),
+    body('password').isLength({ min: 6 }).withMessage('Senha deve ter pelo menos 6 caracteres')
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ error: errors.array()[0].msg });
+    }
+    try {
+        const { username, password } = req.body;
+        const existingUser = await db.collection('users').findOne({ username });
+        if (existingUser) {
+            return res.status(409).json({ error: 'Usuário já existe' });
+        }
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const result = await db.collection('users').insertOne({
+            username,
             password: hashedPassword,
-            balance: 0.00,
+            balance: 0,
             is_admin: false,
             created_at: new Date()
-          };
-          await users.insertOne(newUser);
-          console.log('Usuário registrado:', newUser._id);
-          return { statusCode: 200, headers, body: JSON.stringify({ userId: newUser._id, username: newUser.username }) };
-
-        case '/api/login':
-          if (httpMethod !== 'POST') return { statusCode: 405, headers, body: 'Método não permitido' };
-          const loginBody = JSON.parse(body || '{}');
-          console.log('Tentando login:', { username: loginBody.username });
-          if (!loginBody.username || !loginBody.password) {
-            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Username e senha são obrigatórios' }) };
-          }
-          const user = await users.findOne({ username: loginBody.username.toLowerCase() });
-          if (!user || !(await bcrypt.compare(loginBody.password, user.password))) {
-            console.warn('Login falhou:', loginBody.username);
-            return { statusCode: 401, headers, body: JSON.stringify({ error: 'Usuário ou senha incorretos' }) };
-          }
-          console.log('Login bem-sucedido:', user._id);
-          return { statusCode: 200, headers, body: JSON.stringify({ userId: user._id, username: user.username, is_admin: user.is_admin }) };
-
-        case '/api/users':
-          if (httpMethod !== 'GET') return { statusCode: 405, headers, body: 'Método não permitido' };
-          console.log('Consultando usuário:', queryStringParameters.userId);
-          if (!queryStringParameters.userId) {
-            return { statusCode: 400, headers, body: JSON.stringify({ error: 'UserId é obrigatório' }) };
-          }
-          const userInfo = await users.findOne({ _id: queryStringParameters.userId });
-          if (!userInfo) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Usuário não encontrado' }) };
-          return { statusCode: 200, headers, body: JSON.stringify({ balance: userInfo.balance, is_admin: userInfo.is_admin, username: userInfo.username }) };
-
-        case '/api/cards':
-          if (httpMethod === 'GET') {
-            console.log('Listando cartões disponíveis:', queryStringParameters);
-            let query = { acquired: false };
-            if (queryStringParameters.bandeira) query.bandeira = queryStringParameters.bandeira;
-            if (queryStringParameters.banco) query.banco = queryStringParameters.banco;
-            if (queryStringParameters.nivel) query.nivel = queryStringParameters.nivel;
-            const availableCards = await cards.find(query).toArray();
-            const levelPrices = await levels.find().toArray();
-            const levelPriceMap = levelPrices.reduce((map, level) => {
-              map[level.level] = level.price;
-              return map;
-            }, {});
-            const enrichedCards = availableCards.map(card => ({
-              ...card,
-              price: levelPriceMap[card.nivel] || card.price
-            }));
-            return { statusCode: 200, headers, body: JSON.stringify(enrichedCards) };
-          } else if (httpMethod === 'POST') {
-            const cardBody = JSON.parse(body || '{}');
-            console.log('Adicionando cartão:', cardBody);
-            if (!cardBody.numero || !cardBody.cvv || !cardBody.expiry || !cardBody.name || !cardBody.cpf || !cardBody.bandeira || !cardBody.banco || !cardBody.nivel) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'Todos os campos do cartão são obrigatórios' }) };
-            }
-            if (!cardBody.numero.match(/^\d{16}$/)) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'Número do cartão inválido' }) };
-            }
-            if (!cardBody.cvv.match(/^\d{3}$/)) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'CVV inválido' }) };
-            }
-            if (!cardBody.expiry.match(/^\d{2}\/\d{2}$/)) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'Validade inválida' }) };
-            }
-            if (!cardBody.cpf.match(/^\d{11}$/)) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'CPF inválido' }) };
-            }
-            const levelPrice = await levels.findOne({ level: cardBody.nivel });
-            if (!levelPrice) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nível inválido' }) };
-            }
-            const newCard = {
-              _id: generateId(),
-              numero: cardBody.numero,
-              cvv: cardBody.cvv,
-              expiry: cardBody.expiry,
-              name: cardBody.name,
-              cpf: cardBody.cpf,
-              bandeira: cardBody.bandeira,
-              banco: cardBody.banco,
-              nivel: cardBody.nivel,
-              price: levelPrice.price,
-              bin: cardBody.numero.substr(0, 6),
-              acquired: false,
-              user_id: null,
-              created_at: new Date()
-            };
-            await cards.insertOne(newCard);
-            console.log('Cartão adicionado:', newCard._id);
-            return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
-          }
-          return { statusCode: 405, headers, body: 'Método não permitido' };
-
-        case '/api/buy':
-          if (httpMethod !== 'POST') return { statusCode: 405, headers, body: 'Método não permitido' };
-          const buyBody = JSON.parse(body || '{}');
-          console.log('Tentando compra:', { userId: buyBody.userId, cardId: buyBody.cardId });
-          if (!buyBody.userId || !buyBody.cardId) {
-            return { statusCode: 400, headers, body: JSON.stringify({ error: 'UserId e CardId são obrigatórios' }) };
-          }
-          const session = mongoClient.startSession();
-          try {
-            let result;
-            await session.withTransaction(async () => {
-              const buyUser = await users.findOne({ _id: buyBody.userId }, { session });
-              if (!buyUser) throw new Error('Usuário não encontrado');
-              const card = await cards.findOne({ _id: buyBody.cardId }, { session });
-              if (!card || card.acquired) throw new Error('Cartão indisponível');
-              const levelPrice = await levels.findOne({ level: card.nivel }, { session });
-              if (!levelPrice) throw new Error('Nível inválido');
-              if (buyUser.balance < levelPrice.price) throw new Error('Saldo insuficiente');
-              await users.updateOne({ _id: buyBody.userId }, { $inc: { balance: -levelPrice.price } }, { session });
-              await cards.updateOne({ _id: buyBody.cardId }, { $set: { acquired: true, user_id: buyBody.userId } }, { session });
-              const transactionId = generateId();
-              await transactions.insertOne({
-                _id: transactionId,
-                user_id: buyBody.userId,
-                type: 'purchase',
-                amount: -levelPrice.price,
-                description: `Compra de cartão ${buyBody.cardId.slice(-4)}`,
-                timestamp: new Date()
-              }, { session });
-              result = await users.findOne({ _id: buyBody.userId }, { session });
-            });
-            console.log('Compra concluída:', { userId: buyBody.userId, newBalance: result.balance });
-            return { statusCode: 200, headers, body: JSON.stringify({ success: true, newBalance: result.balance }) };
-          } catch (err) {
-            console.error('Erro na compra:', err.message);
-            return { statusCode: 400, headers, body: JSON.stringify({ error: err.message }) };
-          } finally {
-            await session.endSession();
-          }
-
-        case '/api/deposit':
-          if (httpMethod !== 'POST') return { statusCode: 405, headers, body: 'Método não permitido' };
-          const depositBody = JSON.parse(body || '{}');
-          console.log('Tentando depósito:', { userId: depositBody.userId, amount: depositBody.amount });
-          if (!depositBody.userId || !depositBody.amount || depositBody.amount <= 0) {
-            return { statusCode: 400, headers, body: JSON.stringify({ error: 'UserId e valor válido são obrigatórios' }) };
-          }
-          const depositSession = mongoClient.startSession();
-          try {
-            let result;
-            await depositSession.withTransaction(async () => {
-              const depositUser = await users.findOne({ _id: depositBody.userId }, { session: depositSession });
-              if (!depositUser) throw new Error('Usuário não encontrado');
-              await users.updateOne({ _id: depositBody.userId }, { $inc: { balance: depositBody.amount } }, { session: depositSession });
-              const transactionId = generateId();
-              await transactions.insertOne({
-                _id: transactionId,
-                user_id: depositBody.userId,
-                type: 'deposit',
-                amount: depositBody.amount,
-                description: `Depósito de R$ ${depositBody.amount.toFixed(2)}`,
-                timestamp: new Date()
-              }, { session: depositSession });
-              result = await users.findOne({ _id: depositBody.userId }, { session: depositSession });
-            });
-            console.log('Depósito concluído:', { userId: depositBody.userId, newBalance: result.balance });
-            return { statusCode: 200, headers, body: JSON.stringify({ success: true, newBalance: result.balance }) };
-          } catch (err) {
-            console.error('Erro no depósito:', err.message);
-            return { statusCode: 400, headers, body: JSON.stringify({ error: err.message }) };
-          } finally {
-            await depositSession.endSession();
-          }
-
-        case '/api/verify-admin':
-          if (httpMethod !== 'POST') return { statusCode: 405, headers, body: 'Método não permitido' };
-          const verifyBody = JSON.parse(body || '{}');
-          console.log('Verificando admin:', { userId: verifyBody.userId });
-          if (!verifyBody.userId || !verifyBody.adminPassword) {
-            return { statusCode: 400, headers, body: JSON.stringify({ error: 'UserId e senha de admin são obrigatórios' }) };
-          }
-          const adminUser = await users.findOne({ _id: verifyBody.userId });
-          const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'default_password';
-          if (!adminUser || !adminUser.is_admin || verifyBody.adminPassword !== ADMIN_PASSWORD) {
-            console.warn('Falha na verificação de admin:', verifyBody.userId);
-            return { statusCode: 401, headers, body: JSON.stringify({ error: 'Acesso negado' }) };
-          }
-          console.log('Admin verificado:', adminUser._id);
-          return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
-
-        case '/api/admin/users':
-          if (httpMethod === 'GET') {
-            console.log('Listando todos os usuários');
-            const allUsers = await users.find().toArray();
-            return { statusCode: 200, headers, body: JSON.stringify(allUsers) };
-          } else if (httpMethod === 'PUT') {
-            const updateBody = JSON.parse(body || '{}');
-            console.log('Atualizando usuário:', updateBody.userId);
-            if (!updateBody.userId) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'UserId é obrigatório' }) };
-            }
-            const updateData = {};
-            if (updateBody.password) {
-              const salt = await bcrypt.genSalt(10);
-              updateData.password = await bcrypt.hash(updateBody.password, salt);
-            }
-            if (typeof updateBody.balance !== 'undefined') {
-              if (isNaN(updateBody.balance) || updateBody.balance < 0) {
-                return { statusCode: 400, headers, body: JSON.stringify({ error: 'Saldo inválido' }) };
-              }
-              updateData.balance = parseFloat(updateBody.balance);
-            }
-            if (typeof updateBody.is_admin !== 'undefined') {
-              updateData.is_admin = updateBody.is_admin;
-            }
-            if (Object.keys(updateData).length === 0) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nenhum dado para atualizar' }) };
-            }
-            const result = await users.updateOne({ _id: updateBody.userId }, { $set: updateData });
-            if (result.matchedCount === 0) {
-              return { statusCode: 404, headers, body: JSON.stringify({ error: 'Usuário não encontrado' }) };
-            }
-            console.log('Usuário atualizado:', updateBody.userId);
-            return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
-          } else if (httpMethod === 'DELETE') {
-            const deleteBody = JSON.parse(body || '{}');
-            console.log('Excluindo usuário:', deleteBody.userId);
-            if (!deleteBody.userId) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'UserId é obrigatório' }) };
-            }
-            const deleteResult = await users.deleteOne({ _id: deleteBody.userId });
-            if (deleteResult.deletedCount === 0) {
-              return { statusCode: 404, headers, body: JSON.stringify({ error: 'Usuário não encontrado' }) };
-            }
-            console.log('Usuário excluído:', deleteBody.userId);
-            return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
-          }
-          return { statusCode: 405, headers, body: 'Método não permitido' };
-
-        case '/api/admin/cards':
-          if (httpMethod === 'GET') {
-            console.log('Listando todos os cartões');
-            const allCards = await cards.find().toArray();
-            const levelPrices = await levels.find().toArray();
-            const levelPriceMap = levelPrices.reduce((map, level) => {
-              map[level.level] = level.price;
-              return map;
-            }, {});
-            const enrichedCards = allCards.map(card => ({
-              ...card,
-              price: levelPriceMap[card.nivel] || card.price
-            }));
-            return { statusCode: 200, headers, body: JSON.stringify(enrichedCards) };
-          } else if (httpMethod === 'POST') {
-            const cardBody = JSON.parse(body || '{}');
-            console.log('Adicionando cartão:', cardBody);
-            if (!cardBody.numero || !cardBody.cvv || !cardBody.expiry || !cardBody.name || !cardBody.cpf || !cardBody.bandeira || !cardBody.banco || !cardBody.nivel) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'Todos os campos do cartão são obrigatórios' }) };
-            }
-            if (!cardBody.numero.match(/^\d{16}$/)) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'Número do cartão inválido' }) };
-            }
-            if (!cardBody.cvv.match(/^\d{3}$/)) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'CVV inválido' }) };
-            }
-            if (!cardBody.expiry.match(/^\d{2}\/\d{2}$/)) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'Validade inválida' }) };
-            }
-            if (!cardBody.cpf.match(/^\d{11}$/)) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'CPF inválido' }) };
-            }
-            const levelPrice = await levels.findOne({ level: cardBody.nivel });
-            if (!levelPrice) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nível inválido' }) };
-            }
-            const newCard = {
-              _id: generateId(),
-              numero: cardBody.numero,
-              cvv: cardBody.cvv,
-              expiry: cardBody.expiry,
-              name: cardBody.name,
-              cpf: cardBody.cpf,
-              bandeira: cardBody.bandeira,
-              banco: cardBody.banco,
-              nivel: cardBody.nivel,
-              price: levelPrice.price,
-              bin: cardBody.numero.substr(0, 6),
-              acquired: false,
-              user_id: null,
-              created_at: new Date()
-            };
-            await cards.insertOne(newCard);
-            console.log('Cartão adicionado:', newCard._id);
-            return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
-          } else if (httpMethod === 'PUT') {
-            const updateCardBody = JSON.parse(body || '{}');
-            console.log('Atualizando cartão:', updateCardBody.cardId);
-            if (!updateCardBody.cardId || !updateCardBody.numero || !updateCardBody.cvv || !updateCardBody.expiry || !updateCardBody.name || !updateCardBody.cpf || !updateCardBody.bandeira || !updateCardBody.banco || !updateCardBody.nivel) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'Todos os campos do cartão são obrigatórios' }) };
-            }
-            if (!updateCardBody.numero.match(/^\d{16}$/)) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'Número do cartão inválido' }) };
-            }
-            if (!updateCardBody.cvv.match(/^\d{3}$/)) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'CVV inválido' }) };
-            }
-            if (!updateCardBody.expiry.match(/^\d{2}\/\d{2}$/)) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'Validade inválida' }) };
-            }
-            if (!updateCardBody.cpf.match(/^\d{11}$/)) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'CPF inválido' }) };
-            }
-            const levelPrice = await levels.findOne({ level: updateCardBody.nivel });
-            if (!levelPrice) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nível inválido' }) };
-            }
-            const updateCardResult = await cards.updateOne({ _id: updateCardBody.cardId }, {
-              $set: {
-                numero: updateCardBody.numero,
-                cvv: updateCardBody.cvv,
-                expiry: updateCardBody.expiry,
-                name: updateCardBody.name,
-                cpf: updateCardBody.cpf,
-                bandeira: updateCardBody.bandeira,
-                banco: updateCardBody.banco,
-                nivel: updateCardBody.nivel,
-                price: levelPrice.price,
-                bin: updateCardBody.numero.substr(0, 6)
-              }
-            });
-            if (updateCardResult.matchedCount === 0) {
-              return { statusCode: 404, headers, body: JSON.stringify({ error: 'Cartão não encontrado' }) };
-            }
-            console.log('Cartão atualizado:', updateCardBody.cardId);
-            return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
-          } else if (httpMethod === 'DELETE') {
-            const deleteCardBody = JSON.parse(body || '{}');
-            console.log('Excluindo cartão:', deleteCardBody.cardId);
-            if (!deleteCardBody.cardId) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'CardId é obrigatório' }) };
-            }
-            const deleteCardResult = await cards.deleteOne({ _id: deleteCardBody.cardId });
-            if (deleteCardResult.deletedCount === 0) {
-              return { statusCode: 404, headers, body: JSON.stringify({ error: 'Cartão não encontrado' }) };
-            }
-            console.log('Cartão excluído:', deleteCardBody.cardId);
-            return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
-          }
-          return { statusCode: 405, headers, body: 'Método não permitido' };
-
-        case '/api/levels':
-          if (httpMethod === 'GET') {
-            console.log('Listando níveis');
-            const allLevels = await levels.find().toArray();
-            return { statusCode: 200, headers, body: JSON.stringify(allLevels) };
-          } else if (httpMethod === 'PUT') {
-            const levelBody = JSON.parse(body || '{}');
-            console.log('Atualizando nível:', levelBody);
-            if (!levelBody.level || !levelBody.price) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nível e preço são obrigatórios' }) };
-            }
-            if (levelBody.price <= 0) {
-              return { statusCode: 400, headers, body: JSON.stringify({ error: 'Preço deve ser maior que 0' }) };
-            }
-            await levels.updateOne({ level: levelBody.level }, { $set: { price: parseFloat(levelBody.price) } }, { upsert: true });
-            await cards.updateMany({ nivel: levelBody.level }, { $set: { price: parseFloat(levelBody.price) } });
-            console.log('Nível atualizado:', levelBody.level);
-            return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
-          }
-          return { statusCode: 405, headers, body: 'Método não permitido' };
-
-        default:
-          return { statusCode: 404, headers, body: JSON.stringify({ error: 'Rota não encontrada' }) };
-      }
+        });
+        res.json({ userId: result.insertedId.toString() });
     } catch (err) {
-      console.error('Erro no handler:', err);
-      return {
-        statusCode: 500,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': 'Content-Type',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
-        },
-        body: JSON.stringify({ error: err.message || 'Erro interno do servidor' })
-      };
+        console.error('Erro no registro:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
     }
-  };
+});
+
+// Rota de Login
+app.post('/api/login', [
+    body('username').trim().notEmpty().withMessage('Usuário é obrigatório'),
+    body('password').notEmpty().withMessage('Senha é obrigatória')
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ error: errors.array()[0].msg });
+    }
+    try {
+        const { username, password } = req.body;
+        const user = await db.collection('users').findOne({ username });
+        if (!user) {
+            return res.status(401).json({ error: 'Usuário ou senha inválidos' });
+        }
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Usuário ou senha inválidos' });
+        }
+        res.json({ userId: user._id.toString(), is_admin: user.is_admin });
+    } catch (err) {
+        console.error('Erro no login:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Rota para obter dados do usuário
+app.post('/api/user', [
+    body('userId').isMongoId().withMessage('ID de usuário inválido')
+], authenticateUser, async (req, res) => {
+    try {
+        res.json({
+            username: req.user.username,
+            balance: req.user.balance,
+            is_admin: req.user.is_admin
+        });
+    } catch (err) {
+        console.error('Erro ao obter usuário:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Rota para verificar admin
+app.post('/api/verify-admin', [
+    body('userId').isMongoId().withMessage('ID de usuário inválido'),
+    body('adminPassword').notEmpty().withMessage('Senha admin é obrigatória')
+], authenticateUser, requireAdmin, async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ error: errors.array()[0].msg });
+    }
+    try {
+        const { adminPassword } = req.body;
+        const isMatch = await bcrypt.compare(adminPassword, req.user.password);
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Senha admin inválida' });
+        }
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Erro na verificação de admin:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Rota para listar níveis
+app.get('/api/levels', async (req, res) => {
+    try {
+        const levels = await db.collection('levels').find().toArray();
+        res.json(levels);
+    } catch (err) {
+        console.error('Erro ao listar níveis:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Rota para atualizar nível
+app.put('/api/levels', [
+    body('level').notEmpty().withMessage('Nível é obrigatório'),
+    body('price').isFloat({ min: 0 }).withMessage('Preço inválido')
+], authenticateUser, requireAdmin, async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ error: errors.array()[0].msg });
+    }
+    try {
+        const { level, price } = req.body;
+        const result = await db.collection('levels').updateOne(
+            { level },
+            { $set: { price, updated_at: new Date() } }
+        );
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ error: 'Nível não encontrado' });
+        }
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Erro ao atualizar nível:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Rota para listar usuários
+app.get('/api/admin/users', authenticateUser, requireAdmin, async (req, res) => {
+    try {
+        const users = await db.collection('users').find().project({ password: 0 }).toArray();
+        res.json(users);
+    } catch (err) {
+        console.error('Erro ao listar usuários:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Rota para adicionar usuário
+app.post('/api/admin/users', [
+    body('username').trim().matches(/^[a-zA-Z0-9_]{3,}$/).withMessage('Usuário inválido'),
+    body('password').isLength({ min: 6 }).withMessage('Senha deve ter pelo menos 6 caracteres'),
+    body('balance').isFloat({ min: 0 }).withMessage('Saldo inválido'),
+    body('is_admin').isBoolean().withMessage('Campo admin inválido')
+], authenticateUser, requireAdmin, async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ error: errors.array()[0].msg });
+    }
+    try {
+        const { username, password, balance, is_admin } = req.body;
+        const existingUser = await db.collection('users').findOne({ username });
+        if (existingUser) {
+            return res.status(409).json({ error: 'Usuário já existe' });
+        }
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const result = await db.collection('users').insertOne({
+            username,
+            password: hashedPassword,
+            balance,
+            is_admin,
+            created_at: new Date()
+        });
+        res.json({ userId: result.insertedId.toString() });
+    } catch (err) {
+        console.error('Erro ao adicionar usuário:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Rota para atualizar usuário
+app.put('/api/admin/users', [
+    body('userId').isMongoId().withMessage('ID de usuário inválido'),
+    body('balance').isFloat({ min: 0 }).withMessage('Saldo inválido'),
+    body('is_admin').isBoolean().withMessage('Campo admin inválido'),
+    body('password').optional().isLength({ min: 6 }).withMessage('Nova senha deve ter pelo menos 6 caracteres')
+], authenticateUser, requireAdmin, async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ error: errors.array()[0].msg });
+    }
+    try {
+        const { userId, password, balance, is_admin } = req.body;
+        const updateData = { balance, is_admin, updated_at: new Date() };
+        if (password) {
+            updateData.password = await bcrypt.hash(password, 10);
+        }
+        const result = await db.collection('users').updateOne(
+            { _id: new ObjectId(userId) },
+            { $set: updateData }
+        );
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Erro ao atualizar usuário:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Rota para excluir usuário
+app.delete('/api/admin/users', [
+    body('userId').isMongoId().withMessage('ID de usuário inválido')
+], authenticateUser, requireAdmin, async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ error: errors.array()[0].msg });
+    }
+    try {
+        const { userId } = req.body;
+        const result = await db.collection('users').deleteOne({ _id: new ObjectId(userId) });
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Erro ao excluir usuário:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Rota para listar cartões disponíveis na loja
+app.post('/api/cards', [
+    body('userId').isMongoId().withMessage('ID de usuário inválido')
+], authenticateUser, async (req, res) => {
+    try {
+        const cards = await db.collection('cards').find({ acquired: false }).toArray();
+        res.json(cards);
+    } catch (err) {
+        console.error('Erro ao listar cartões:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Rota para listar cartões (admin)
+app.get('/api/admin/cards', authenticateUser, requireAdmin, async (req, res) => {
+    try {
+        const cards = await db.collection('cards').find().toArray();
+        res.json(cards);
+    } catch (err) {
+        console.error('Erro ao listar cartões:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Rota para adicionar cartão
+app.post('/api/admin/cards', [
+    body('numero').matches(/^\d{16}$/).withMessage('Número do cartão inválido'),
+    body('cvv').matches(/^\d{3}$/).withMessage('CVV inválido'),
+    body('expiry').matches(/^\d{2}\/\d{2}$/).withMessage('Validade inválida'),
+    body('name').trim().notEmpty().withMessage('Nome é obrigatório'),
+    body('cpf').matches(/^\d{11}$/).withMessage('CPF inválido'),
+    body('bandeira').isIn(['Visa', 'Mastercard', 'Amex', 'Elo', 'Hipercard', 'Diners Club']).withMessage('Bandeira inválida'),
+    body('banco').isIn(['Nubank', 'Itaú', 'Bradesco', 'Santander', 'Banco do Brasil', 'Caixa Econômica Federal', 'Sicredi', 'Sicoob']).withMessage('Banco inválido'),
+    body('nivel').isIn(['Classic', 'Gold', 'Platinum', 'Black']).withMessage('Nível inválido')
+], authenticateUser, requireAdmin, async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ error: errors.array()[0].msg });
+    }
+    try {
+        const { numero, cvv, expiry, name, cpf, bandeira, banco, nivel } = req.body;
+        const existingCard = await db.collection('cards').findOne({ numero });
+        if (existingCard) {
+            return res.status(409).json({ error: 'Cartão já existe' });
+        }
+        const result = await db.collection('cards').insertOne({
+            numero,
+            cvv,
+            expiry,
+            name,
+            cpf,
+            bandeira,
+            banco,
+            nivel,
+            acquired: false,
+            user_id: null,
+            created_at: new Date()
+        });
+        res.json({ cardId: result.insertedId.toString() });
+    } catch (err) {
+        console.error('Erro ao adicionar cartão:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Rota para atualizar cartão
+app.put('/api/admin/cards', [
+    body('cardId').isMongoId().withMessage('ID do cartão inválido'),
+    body('numero').matches(/^\d{16}$/).withMessage('Número do cartão inválido'),
+    body('cvv').matches(/^\d{3}$/).withMessage('CVV inválido'),
+    body('expiry').matches(/^\d{2}\/\d{2}$/).withMessage('Validade inválida'),
+    body('name').trim().notEmpty().withMessage('Nome é obrigatório'),
+    body('cpf').matches(/^\d{11}$/).withMessage('CPF inválido'),
+    body('bandeira').isIn(['Visa', 'Mastercard', 'Amex', 'Elo', 'Hipercard', 'Diners Club']).withMessage('Bandeira inválida'),
+    body('banco').isIn(['Nubank', 'Itaú', 'Bradesco', 'Santander', 'Banco do Brasil', 'Caixa Econômica Federal', 'Sicredi', 'Sicoob']).withMessage('Banco inválido'),
+    body('nivel').isIn(['Classic', 'Gold', 'Platinum', 'Black']).withMessage('Nível inválido')
+], authenticateUser, requireAdmin, async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ error: errors.array()[0].msg });
+    }
+    try {
+        const { cardId, numero, cvv, expiry, name, cpf, bandeira, banco, nivel } = req.body;
+        const existingCard = await db.collection('cards').findOne({ numero, _id: { $ne: new ObjectId(cardId) } });
+        if (existingCard) {
+            return res.status(409).json({ error: 'Cartão já existe' });
+        }
+        const result = await db.collection('cards').updateOne(
+            { _id: new ObjectId(cardId) },
+            { $set: { numero, cvv, expiry, name, cpf, bandeira, banco, nivel, updated_at: new Date() } }
+        );
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ error: 'Cartão não encontrado' });
+        }
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Erro ao atualizar cartão:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Rota para excluir cartão
+app.delete('/api/admin/cards', [
+    body('cardId').isMongoId().withMessage('ID do cartão inválido')
+], authenticateUser, requireAdmin, async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ error: errors.array()[0].msg });
+    }
+    try {
+        const { cardId } = req.body;
+        const result = await db.collection('cards').deleteOne({ _id: new ObjectId(cardId) });
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ error: 'Cartão não encontrado' });
+        }
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Erro ao excluir cartão:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Rota para comprar cartão
+app.post('/api/purchase', [
+    body('userId').isMongoId().withMessage('ID de usuário inválido'),
+    body('cardId').isMongoId().withMessage('ID do cartão inválido')
+], authenticateUser, async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ error: errors.array()[0].msg });
+    }
+    try {
+        const { cardId } = req.body;
+        const userId = req.user._id;
+
+        // Verificar se o cartão existe e está disponível
+        const card = await db.collection('cards').findOne({ _id: new ObjectId(cardId), acquired: false });
+        if (!card) {
+            return res.status(404).json({ error: 'Cartão não encontrado ou já adquirido' });
+        }
+
+        // Obter o preço do nível do cartão
+        const level = await db.collection('levels').findOne({ level: card.nivel });
+        if (!level) {
+            return res.status(400).json({ error: 'Nível do cartão inválido' });
+        }
+        const price = level.price;
+
+        // Verificar saldo do usuário
+        if (req.user.balance < price) {
+            return res.status(400).json({ error: 'Saldo insuficiente' });
+        }
+
+        // Iniciar transação
+        const session = db.client.startSession();
+        try {
+            await session.withTransaction(async () => {
+                // Debitar saldo do usuário
+                const userUpdateResult = await db.collection('users').updateOne(
+                    { _id: userId },
+                    { $inc: { balance: -price }, $set: { updated_at: new Date() } },
+                    { session }
+                );
+                if (userUpdateResult.matchedCount === 0) {
+                    throw new Error('Usuário não encontrado');
+                }
+
+                // Marcar cartão como adquirido
+                const cardUpdateResult = await db.collection('cards').updateOne(
+                    { _id: new ObjectId(cardId), acquired: false },
+                    { $set: { acquired: true, user_id: userId.toString(), updated_at: new Date() } },
+                    { session }
+                );
+                if (cardUpdateResult.matchedCount === 0) {
+                    throw new Error('Cartão já adquirido ou não encontrado');
+                }
+
+                // Registrar transação
+                await db.collection('transactions').insertOne({
+                    user_id: userId.toString(),
+                    card_id: cardId,
+                    level: card.nivel,
+                    price,
+                    timestamp: new Date()
+                }, { session });
+            });
+            const updatedUser = await db.collection('users').findOne({ _id: userId });
+            res.json({ success: true, newBalance: updatedUser.balance });
+        } finally {
+            await session.endSession();
+        }
+    } catch (err) {
+        console.error('Erro na compra:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Iniciar o servidor
+async function startServer() {
+    await connectToDatabase();
+    app.listen(port, () => {
+        console.log(`Servidor rodando na porta ${port}`);
+    });
 }
+
+startServer();

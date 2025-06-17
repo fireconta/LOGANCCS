@@ -17,11 +17,25 @@
         .notification { background: #1f2937; color: white; padding: 1rem; border-radius: 0.375rem; margin-bottom: 0.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: center; }
         .notification-error { background: #ef4444; }
         .notification-success { background: #10b981; }
+        #debugPanel { position: fixed; bottom: 1rem; right: 1rem; width: 400px; max-height: 300px; background: #1f2937; border: 1px solid #4b5563; border-radius: 0.375rem; z-index: 10001; overflow-y: auto; font-size: 0.75rem; }
+        #debugPanelHeader { background: #111827; padding: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+        .debug-message { padding: 0.25rem 0.5rem; border-bottom: 1px solid #4b5563; }
+        .debug-log { color: #e2e8f0; }
+        .debug-error { color: #ef4444; }
+        .debug-warn { color: #f59e0b; }
+        .debug-info { color: #10b981; }
     </style>
 </head>
 <body>
     <div id="globalLoader"><div class="spinner"></div></div>
     <div id="notifications" class="space-y-2"></div>
+    <div id="debugPanel" class="hidden">
+        <div id="debugPanelHeader">
+            <span class="text-white font-semibold">Debug Console</span>
+            <button id="clearDebugButton" class="text-gray-400 hover:text-white"><i class="fas fa-trash"></i></button>
+        </div>
+        <div id="debugMessages"></div>
+    </div>
     <header class="w-full bg-gray-800 p-4 flex justify-center items-center mb-6">
         <h1 class="text-2xl font-bold text-green-500">LOGAN CC's</h1>
     </header>
@@ -46,10 +60,60 @@
         </div>
     </section>
     <script>
+        // Inicializar painel de debug
+        const debugPanel = document.getElementById('debugPanel');
+        const debugMessages = document.getElementById('debugMessages');
+        const clearDebugButton = document.getElementById('clearDebugButton');
+        const maxMessages = 50;
+        debugPanel.classList.remove('hidden');
+
+        function addDebugMessage(message, type = 'log') {
+            const div = document.createElement('div');
+            div.className = `debug-message debug-${type}`;
+            const timestamp = new Date().toLocaleTimeString('pt-BR');
+            div.textContent = `[${timestamp}] ${message}`;
+            debugMessages.appendChild(div);
+            while (debugMessages.children.length > maxMessages) {
+                debugMessages.removeChild(debugMessages.firstChild);
+            }
+            debugMessages.scrollTop = debugMessages.scrollHeight;
+        }
+
+        // Sobrescrever funções de console
+        const originalConsole = {
+            log: console.log,
+            error: console.error,
+            warn: console.warn,
+            info: console.info
+        };
+        console.log = (...args) => {
+            addDebugMessage(args.join(' '), 'log');
+            originalConsole.log(...args);
+        };
+        console.error = (...args) => {
+            addDebugMessage(args.join(' '), 'error');
+            originalConsole.error(...args);
+        };
+        console.warn = (...args) => {
+            addDebugMessage(args.join(' '), 'warn');
+            originalConsole.warn(...args);
+        };
+        console.info = (...args) => {
+            addDebugMessage(args.join(' '), 'info');
+            originalConsole.info(...args);
+        };
+
+        clearDebugButton.addEventListener('click', () => {
+            debugMessages.innerHTML = '';
+            console.log('Debug panel cleared');
+        });
+
+        // Funções existentes
         function sanitizeInput(input) {
             return typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(input) : input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '').replace(/[<>]/g, '');
         }
         function showNotification(message, isError = false) {
+            console.log(`Notification: ${message}, Error: ${isError}`);
             const notificationsDiv = document.getElementById('notifications');
             const notification = document.createElement('div');
             notification.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
@@ -63,12 +127,14 @@
             setTimeout(() => notification.remove(), 3000);
         }
         function toggleSections(showLogin) {
+            console.log(`Toggling sections: showLogin=${showLogin}`);
             document.getElementById('loginSection').classList.toggle('hidden', !showLogin);
             document.getElementById('registerSection').classList.toggle('hidden', showLogin);
             document.getElementById('loginError').classList.add('hidden');
             document.getElementById('registerError').classList.add('hidden');
         }
         async function handleLogin() {
+            console.log('Iniciando login');
             const btn = document.getElementById('loginButton');
             const spinner = document.getElementById('loginSpinner');
             const errorDiv = document.getElementById('loginError');
@@ -79,18 +145,22 @@
             try {
                 const username = sanitizeInput(document.getElementById('loginUsername').value.trim());
                 const password = sanitizeInput(document.getElementById('loginPassword').value);
+                console.log(`Tentando login com usuário: ${username}`);
                 if (!username || !password) throw new Error('Preencha usuário e senha.');
                 const res = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
+                console.log(`Resposta do login: status=${res.status}`);
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || `Erro HTTP ${res.status}`);
                 localStorage.setItem('userId', data.userId);
+                console.log(`Login bem-sucedido, userId: ${data.userId}`);
                 showNotification('Login bem-sucedido!');
                 window.location.href = 'shop.html';
             } catch (err) {
+                console.error(`Erro no login: ${err.message}`);
                 errorDiv.textContent = err.message;
                 errorDiv.classList.remove('hidden');
                 showNotification(`Erro: ${err.message}`, true);
@@ -98,9 +168,11 @@
                 btn.disabled = false;
                 spinner.classList.add('hidden');
                 document.getElementById('globalLoader').style.visibility = 'hidden';
+                console.log('Finalizado login');
             }
         }
         async function handleRegister() {
+            console.log('Iniciando registro');
             const btn = document.getElementById('registerButton');
             const spinner = document.getElementById('registerSpinner');
             const errorDiv = document.getElementById('registerError');
@@ -111,6 +183,7 @@
             try {
                 const username = sanitizeInput(document.getElementById('registerUsername').value.trim());
                 const password = sanitizeInput(document.getElementById('registerPassword').value);
+                console.log(`Tentando registrar usuário: ${username}`);
                 if (!username.match(/^[a-zA-Z0-9_]{3,}$/)) throw new Error('Usuário inválido (mínimo 3 caracteres, apenas letras, números ou _).');
                 if (password.length < 6) throw new Error('Senha deve ter pelo menos 6 caracteres.');
                 const res = await fetch('/api/register', {
@@ -118,12 +191,15 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
+                console.log(`Resposta do registro: status=${res.status}`);
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || `Erro HTTP ${res.status}`);
                 localStorage.setItem('userId', data.userId);
+                console.log(`Registro bem-sucedido, userId: ${data.userId}`);
                 showNotification('Registro bem-sucedido! Redirecionando para a loja...');
                 window.location.href = 'shop.html';
             } catch (err) {
+                console.error(`Erro no registro: ${err.message}`);
                 errorDiv.textContent = err.message;
                 errorDiv.classList.remove('hidden');
                 showNotification(`Erro: ${err.message}`, true);
@@ -131,11 +207,14 @@
                 btn.disabled = false;
                 spinner.classList.add('hidden');
                 document.getElementById('globalLoader').style.visibility = 'hidden';
+                console.log('Finalizado registro');
             }
         }
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('Página index carregada');
             const userId = localStorage.getItem('userId');
             if (userId) {
+                console.log(`Usuário já logado com userId: ${userId}, redirecionando para shop.html`);
                 window.location.href = 'shop.html';
                 return;
             }
@@ -143,10 +222,12 @@
             document.getElementById('registerButton').addEventListener('click', handleRegister);
             document.getElementById('showRegisterLink').addEventListener('click', (e) => {
                 e.preventDefault();
+                console.log('Clicado em Registrar-se');
                 toggleSections(false);
             });
             document.getElementById('showLoginLink').addEventListener('click', (e) => {
                 e.preventDefault();
+                console.log('Clicado em Fazer login');
                 toggleSections(true);
             });
         });

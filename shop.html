@@ -18,11 +18,25 @@
         .notification-error { background: #ef4444; }
         .notification-success { background: #10b981; }
         .product-card { background: #2d3748; padding: 1rem; border-radius: 0.25rem; margin-bottom: 1rem; }
+        #debugPanel { position: fixed; bottom: 1rem; right: 1rem; width: 400px; max-height: 300px; background: #1f2937; border: 1px solid #4b5563; border-radius: 0.375rem; z-index: 10001; overflow-y: auto; font-size: 0.75rem; }
+        #debugPanelHeader { background: #111827; padding: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+        .debug-message { padding: 0.25rem 0.5rem; border-bottom: 1px solid #4b5563; }
+        .debug-log { color: #e2e8f0; }
+        .debug-error { color: #ef4444; }
+        .debug-warn { color: #f59e0b; }
+        .debug-info { color: #10b981; }
     </style>
 </head>
 <body>
     <div id="globalLoader"><div class="spinner"></div></div>
     <div id="notifications" class="space-y-2"></div>
+    <div id="debugPanel" class="hidden">
+        <div id="debugPanelHeader">
+            <span class="text-white font-semibold">Debug Console</span>
+            <button id="clearDebugButton" class="text-gray-400 hover:text-white"><i class="fas fa-trash"></i></button>
+        </div>
+        <div id="debugMessages"></div>
+    </div>
     <header class="w-full bg-gray-800 p-4 flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold text-green-500">LOGAN CC's</h1>
         <div id="userInfo" class="flex items-center space-x-4">
@@ -37,10 +51,60 @@
         <div id="productList" class="space-y-4"></div>
     </section>
     <script>
+        // Inicializar painel de debug
+        const debugPanel = document.getElementById('debugPanel');
+        const debugMessages = document.getElementById('debugMessages');
+        const clearDebugButton = document.getElementById('clearDebugButton');
+        const maxMessages = 50;
+        debugPanel.classList.remove('hidden');
+
+        function addDebugMessage(message, type = 'log') {
+            const div = document.createElement('div');
+            div.className = `debug-message debug-${type}`;
+            const timestamp = new Date().toLocaleTimeString('pt-BR');
+            div.textContent = `[${timestamp}] ${message}`;
+            debugMessages.appendChild(div);
+            while (debugMessages.children.length > maxMessages) {
+                debugMessages.removeChild(debugMessages.firstChild);
+            }
+            debugMessages.scrollTop = debugMessages.scrollHeight;
+        }
+
+        // Sobrescrever funções de console
+        const originalConsole = {
+            log: console.log,
+            error: console.error,
+            warn: console.warn,
+            info: console.info
+        };
+        console.log = (...args) => {
+            addDebugMessage(args.join(' '), 'log');
+            originalConsole.log(...args);
+        };
+        console.error = (...args) => {
+            addDebugMessage(args.join(' '), 'error');
+            originalConsole.error(...args);
+        };
+        console.warn = (...args) => {
+            addDebugMessage(args.join(' '), 'warn');
+            originalConsole.warn(...args);
+        };
+        console.info = (...args) => {
+            addDebugMessage(args.join(' '), 'info');
+            originalConsole.info(...args);
+        };
+
+        clearDebugButton.addEventListener('click', () => {
+            debugMessages.innerHTML = '';
+            console.log('Debug panel cleared');
+        });
+
+        // Funções existentes
         function sanitizeInput(input) {
             return typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(input) : input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '').replace(/[<>]/g, '');
         }
         function showNotification(message, isError = false) {
+            console.log(`Notification: ${message}, Error: ${isError}`);
             const notificationsDiv = document.getElementById('notifications');
             const notification = document.createElement('div');
             notification.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
@@ -54,41 +118,55 @@
             setTimeout(() => notification.remove(), 3000);
         }
         async function loadUserData() {
+            console.log('Carregando dados do usuário');
             const userId = localStorage.getItem('userId');
             try {
+                console.log(`Enviando requisição para /api/user com userId: ${userId}`);
                 const res = await fetch('/api/user', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId })
                 });
+                console.log(`Resposta de /api/user: status=${res.status}`);
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'Erro ao carregar dados do usuário');
                 document.getElementById('usernameDisplay').textContent = data.username;
                 document.getElementById('balanceDisplay').textContent = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.balance);
-                if (data.is_admin) document.getElementById('adminButton').classList.remove('hidden');
+                if (data.is_admin) {
+                    console.log('Usuário é admin, exibindo botão de dashboard');
+                    document.getElementById('adminButton').classList.remove('hidden');
+                }
+                console.info(`Dados do usuário carregados: username=${data.username}, balance=${data.balance}`);
             } catch (err) {
+                console.error(`Erro ao carregar dados do usuário: ${err.message}`);
                 showNotification(`Erro: ${err.message}`, true);
                 localStorage.removeItem('userId');
                 window.location.href = 'index.html';
             }
         }
         async function loadShop() {
+            console.log('Carregando loja');
             const shopSection = document.getElementById('shopSection');
             const productList = document.getElementById('productList');
             const userId = localStorage.getItem('userId');
             shopSection.classList.remove('hidden');
             try {
+                console.log(`Enviando requisição para /api/cards com userId: ${userId}`);
                 const res = await fetch('/api/cards', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId })
                 });
+                console.log(`Resposta de /api/cards: status=${res.status}`);
                 const cards = await res.json();
                 if (!res.ok) throw new Error(cards.error || 'Erro ao carregar cartões');
                 productList.innerHTML = cards.length === 0 ? '<p class="text-gray-500 text-center">Nenhum cartão disponível.</p>' : '';
+                console.info(`Cartões carregados: ${cards.length} itens`);
                 for (const card of cards) {
+                    console.log(`Carregando nível para cartão: ${card.nivel}`);
                     const levelRes = await fetch('/api/levels');
                     const levels = await levelRes.json();
+                    console.log(`Resposta de /api/levels: status=${levelRes.status}`);
                     const price = levels.find(l => l.level === card.nivel)?.price || 0;
                     const cardDiv = document.createElement('div');
                     cardDiv.className = 'product-card';
@@ -102,45 +180,58 @@
                 productList.addEventListener('click', async (e) => {
                     if (e.target.classList.contains('buy-button')) {
                         const cardId = e.target.dataset.cardId;
+                        console.log(`Iniciando compra do cartão: ${cardId}`);
                         const btn = e.target;
                         btn.disabled = true;
                         document.getElementById('globalLoader').style.visibility = 'visible';
                         try {
+                            console.log(`Enviando requisição para /api/purchase com userId: ${userId}, cardId: ${cardId}`);
                             const res = await fetch('/api/purchase', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ userId, cardId })
                             });
+                            console.log(`Resposta de /api/purchase: status=${res.status}`);
                             const data = await res.json();
                             if (!res.ok) throw new Error(data.error || 'Erro na compra');
                             showNotification('Compra realizada com sucesso!');
                             document.getElementById('balanceDisplay').textContent = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.newBalance);
+                            console.info(`Compra realizada, novo saldo: ${data.newBalance}`);
                             await loadShop();
                         } catch (err) {
+                            console.error(`Erro na compra: ${err.message}`);
                             showNotification(`Erro: ${err.message}`, true);
                         } finally {
                             btn.disabled = false;
                             document.getElementById('globalLoader').style.visibility = 'hidden';
+                            console.log('Finalizado processo de compra');
                         }
                     }
                 });
             } catch (err) {
-                showNotification(`Erro ao carregar loja: ${err.message}`, true);
+                console.error(`Erro ao carregar loja: ${err.message}`);
+                showNotification(`Erro ao buscar cartões: ${err.message}`, true);
             }
         }
         document.addEventListener('DOMContentLoaded', async () => {
+            console.log('Página shop carregada');
             const userId = localStorage.getItem('userId');
             if (!userId) {
+                console.error('Nenhum userId encontrado no localStorage, redirecionando para index.html');
                 window.location.href = 'index.html';
                 return;
             }
+            console.log(`Usuário logado com userId: ${userId}`);
             await loadUserData();
             await loadShop();
             document.getElementById('logoutButton').addEventListener('click', () => {
+                console.log('Logout iniciado');
                 localStorage.removeItem('userId');
                 window.location.href = 'index.html';
+                console.log('Redirecionado para index.html após logout');
             });
             document.getElementById('adminButton').addEventListener('click', () => {
+                console.log('Clicado em Dashboard, redirecionando para dashboard.html');
                 window.location.href = 'dashboard.html';
             });
         });

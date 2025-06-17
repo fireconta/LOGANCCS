@@ -1,5 +1,17 @@
 {
+  "name": "loganccs",
+  "version": "1.0.0",
+  "description": "Projeto LOGAN CC's para gerenciamento de cartões",
+  "main": "app.js",
+  "scripts": {
+    "start": "netlify dev"
+  },
   "dependencies": {
-    "mongodb": "^6.8.0"
+    "mongodb": "^6.3.0",
+    "bcryptjs": "^2.4.3",
+    "serverless-http": "^3.2.0"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
   }
 }

@@ -1,4 +1,4 @@
-```javascript
+javascript
 const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');

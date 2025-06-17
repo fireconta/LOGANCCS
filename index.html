@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOGAN CC's - Login</title>
+    <title>LOGAN CC's - Login/Registro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="https://cdn.tailwindcss.com/"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
     <style>
         body { background-color: #1a202c; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 1rem; }
-        #loginSection { background-color: #2d3748; padding: 2rem; border-radius: 0.5rem; width: 100%; max-width: 400px; }
+        #loginSection, #registerSection { background-color: #2d3748; padding: 2rem; border-radius: 0.5rem; width: 100%; max-width: 400px; }
         #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; visibility: hidden; }
         .spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid #10b981; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -28,10 +28,21 @@
     <section id="loginSection" class="mx-4">
         <h2 class="text-xl font-semibold text-green-600 mb-4 text-center">Login</h2>
         <div class="space-y-4">
-            <div><label for="username" class="block text-sm font-medium">Usuário</label><input type="text" id="username" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required aria-describedby="loginError"></div>
-            <div><label for="password" class="block text-sm font-medium">Senha</label><input type="password" id="password" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required aria-describedby="loginError"></div>
+            <div><label for="loginUsername" class="block text-sm font-medium">Usuário</label><input type="text" id="loginUsername" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required aria-describedby="loginError"></div>
+            <div><label for="loginPassword" class="block text-sm font-medium">Senha</label><input type="password" id="loginPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required aria-describedby="loginError"></div>
             <p id="loginError" class="text-red-500 text-sm hidden" role="alert"></p>
             <button type="submit" id="loginButton" class="w-full py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center justify-center"><span>Entrar</span><svg id="loginSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg></button>
+            <p class="text-center text-sm text-gray-400">Não tem uma conta? <a href="#" id="showRegisterLink" class="text-green-500 hover:underline">Registre-se</a></p>
+        </div>
+    </section>
+    <section id="registerSection" class="mx-4 hidden">
+        <h2 class="text-xl font-semibold text-green-600 mb-4 text-center">Registro</h2>
+        <div class="space-y-4">
+            <div><label for="registerUsername" class="block text-sm font-medium">Usuário</label><input type="text" id="registerUsername" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required pattern="[a-zA-Z0-9_]{3,}" aria-describedby="registerError" title="Mínimo 3 caracteres, apenas letras, números ou _"></div>
+            <div><label for="registerPassword" class="block text-sm font-medium">Senha</label><input type="password" id="registerPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required minlength="6" aria-describedby="registerError" title="Mínimo 6 caracteres"></div>
+            <p id="registerError" class="text-red-500 text-sm hidden" role="alert"></p>
+            <button type="submit" id="registerButton" class="w-full py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center justify-center"><span>Registrar</span><svg id="registerSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg></button>
+            <p class="text-center text-sm text-gray-400">Já tem uma conta? <a href="#" id="showLoginLink" class="text-green-500 hover:underline">Faça login</a></p>
         </div>
     </section>
     <script>
@@ -51,46 +62,92 @@
             notificationsDiv.appendChild(notification);
             setTimeout(() => notification.remove(), 3000);
         }
+        function toggleSections(showLogin) {
+            document.getElementById('loginSection').classList.toggle('hidden', !showLogin);
+            document.getElementById('registerSection').classList.toggle('hidden', showLogin);
+            document.getElementById('loginError').classList.add('hidden');
+            document.getElementById('registerError').classList.add('hidden');
+        }
+        async function handleLogin() {
+            const btn = document.getElementById('loginButton');
+            const spinner = document.getElementById('loginSpinner');
+            const errorDiv = document.getElementById('loginError');
+            btn.disabled = true;
+            spinner.classList.remove('hidden');
+            document.getElementById('globalLoader').style.visibility = 'visible';
+            errorDiv.classList.add('hidden');
+            try {
+                const username = sanitizeInput(document.getElementById('loginUsername').value.trim());
+                const password = sanitizeInput(document.getElementById('loginPassword').value);
+                if (!username || !password) throw new Error('Preencha usuário e senha.');
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || `Erro HTTP ${res.status}`);
+                localStorage.setItem('userId', data.userId);
+                showNotification('Login bem-sucedido!');
+                window.location.href = 'shop.html';
+            } catch (err) {
+                errorDiv.textContent = err.message;
+                errorDiv.classList.remove('hidden');
+                showNotification(`Erro: ${err.message}`, true);
+            } finally {
+                btn.disabled = false;
+                spinner.classList.add('hidden');
+                document.getElementById('globalLoader').style.visibility = 'hidden';
+            }
+        }
+        async function handleRegister() {
+            const btn = document.getElementById('registerButton');
+            const spinner = document.getElementById('registerSpinner');
+            const errorDiv = document.getElementById('registerError');
+            btn.disabled = true;
+            spinner.classList.remove('hidden');
+            document.getElementById('globalLoader').style.visibility = 'visible';
+            errorDiv.classList.add('hidden');
+            try {
+                const username = sanitizeInput(document.getElementById('registerUsername').value.trim());
+                const password = sanitizeInput(document.getElementById('registerPassword').value);
+                if (!username.match(/^[a-zA-Z0-9_]{3,}$/)) throw new Error('Usuário inválido (mínimo 3 caracteres, apenas letras, números ou _).');
+                if (password.length < 6) throw new Error('Senha deve ter pelo menos 6 caracteres.');
+                const res = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || `Erro HTTP ${res.status}`);
+                localStorage.setItem('userId', data.userId);
+                showNotification('Registro bem-sucedido! Redirecionando para a loja...');
+                window.location.href = 'shop.html';
+            } catch (err) {
+                errorDiv.textContent = err.message;
+                errorDiv.classList.remove('hidden');
+                showNotification(`Erro: ${err.message}`, true);
+            } finally {
+                btn.disabled = false;
+                spinner.classList.add('hidden');
+                document.getElementById('globalLoader').style.visibility = 'hidden';
+            }
+        }
         document.addEventListener('DOMContentLoaded', () => {
             const userId = localStorage.getItem('userId');
             if (userId) {
                 window.location.href = 'shop.html';
                 return;
             }
-            document.getElementById('loginButton').addEventListener('click', async () => {
-                const btn = document.getElementById('loginButton');
-                const spinner = document.getElementById('loginSpinner');
-                const errorDiv = document.getElementById('loginError');
-                btn.disabled = true;
-                spinner.classList.remove('hidden');
-                document.getElementById('globalLoader').style.visibility = 'visible';
-                errorDiv.classList.add('hidden');
-                try {
-                    const username = sanitizeInput(document.getElementById('username').value.trim());
-                    const password = sanitizeInput(document.getElementById('password').value);
-                    if (!username || !password) throw new Error('Preencha usuário e senha.');
-                    const res = await fetch('/api/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username, password })
-                    });
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.error || `Erro HTTP ${res.status}`);
-                    localStorage.setItem('userId', data.userId);
-                    localStorage.setItem('username', username);
-                    localStorage.setItem('is_admin', data.is_admin);
-                    localStorage.setItem('balance', data.balance);
-                    showNotification('Login bem-sucedido!');
-                    window.location.href = 'shop.html';
-                } catch (err) {
-                    errorDiv.textContent = err.message;
-                    errorDiv.classList.remove('hidden');
-                    showNotification(`Erro: ${err.message}`, true);
-                } finally {
-                    btn.disabled = false;
-                    spinner.classList.add('hidden');
-                    document.getElementById('globalLoader').style.visibility = 'hidden';
-                }
+            document.getElementById('loginButton').addEventListener('click', handleLogin);
+            document.getElementById('registerButton').addEventListener('click', handleRegister);
+            document.getElementById('showRegisterLink').addEventListener('click', (e) => {
+                e.preventDefault();
+                toggleSections(false);
+            });
+            document.getElementById('showLoginLink').addEventListener('click', (e) => {
+                e.preventDefault();
+                toggleSections(true);
             });
         });
     </script>

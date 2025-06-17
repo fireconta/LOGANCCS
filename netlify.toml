@@ -1,13 +1,12 @@
 [build]
-  # Nenhum comando de build, pois o site é estático
-  command = ""
-  # Diretório de publicação (raiz do repositório)
   publish = "."
-  # Diretório das Netlify Functions (raiz, onde está app.js)
   functions = "."
 
 [[redirects]]
-  # Redireciona todas as rotas /api/* para a função app
   from = "/api/*"
-  to = "/.netlify/functions/app"
+  to = "/.netlify/functions/app/:splat"
   status = 200
+  force = true
+
+[functions]
+  node_bundler = "esbuild"

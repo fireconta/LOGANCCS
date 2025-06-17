@@ -152,12 +152,11 @@
     <script>
         console.log('index.html carregado');
 
-        // Função de sanitização com fallback
         function sanitizeInput(input) {
             if (typeof DOMPurify !== 'undefined' && DOMPurify.sanitize) {
                 return DOMPurify.sanitize(input);
             }
-            console.warn('DOMPurify não disponível. Usando sanitização básica.');
+            console.warn('DOMPurify não está disponível. Usando sanitização básica.');
             return input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
                         .replace(/[<>]/g, '');
         }
@@ -189,30 +188,33 @@
             const registerErrorDiv = document.getElementById('registerError');
             const cancelRegisterButton = document.getElementById('cancelRegisterButton');
 
-            // Verifica se já está logado
             const userId = localStorage.getItem('userId');
             if (userId) {
                 document.getElementById('globalLoader').style.visibility = 'visible';
-                fetch(`/api/users?userId=${userId}`, { method: 'GET' })
+                fetch(`/api/users?userId=${userId}`)
                     .then(res => {
                         if (res.status === 200) {
-                            window.location.href = 'shop.html';
+                            return res.json().then(data => {
+                                localStorage.setItem('is_admin', data.is_admin);
+                                window.location.href = 'shop.html';
+                            });
                         } else {
                             localStorage.removeItem('userId');
                             localStorage.removeItem('username');
+                            localStorage.removeItem('is_admin');
                         }
                     })
                     .catch(err => {
                         console.error('Erro ao verificar sessão:', err.message);
                         localStorage.removeItem('userId');
                         localStorage.removeItem('username');
+                        localStorage.removeItem('is_admin');
                     })
                     .finally(() => {
                         document.getElementById('globalLoader').style.visibility = 'hidden';
                     });
             }
 
-            // Evento de login
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 loginButton.disabled = true;
@@ -242,6 +244,7 @@
 
                     localStorage.setItem('userId', data.userId);
                     localStorage.setItem('username', data.username);
+                    localStorage.setItem('is_admin', data.is_admin);
                     showNotification('Login bem-sucedido!');
                     setTimeout(() => window.location.href = 'shop.html', 1000);
                 } catch (err) {
@@ -256,7 +259,6 @@
                 }
             });
 
-            // Abrir modal de registro
             registerLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 document.getElementById('registerModal').classList.add('show');
@@ -267,7 +269,6 @@
                 registerErrorDiv.classList.add('hidden');
             });
 
-            // Evento de registro
             registerForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 registerButton.disabled = true;
@@ -313,22 +314,18 @@
                 }
             });
 
-            // Fechar modal de registro
             cancelRegisterButton.addEventListener('click', () => {
                 document.getElementById('registerModal').classList.remove('show');
             });
 
-            // Permitir login com Enter
             document.getElementById('password').addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') loginForm.dispatchEvent(new Event('submit'));
             });
 
-            // Permitir registro com Enter
             document.getElementById('confirmPassword').addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') registerForm.dispatchEvent(new Event('submit'));
             });
 
-            // Fechar modal com Esc
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
                     document.getElementById('registerModal').classList.remove('show');

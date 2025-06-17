@@ -4,199 +4,296 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LOGAN CC's - Dashboard</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        #globalLoader{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;visibility:hidden;z-index:9999}.spinner{border:4px solid rgba(255,255,255,0.3);border-top:4px solid #10b981;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite}@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}#notifications{position:fixed;top:1rem;right:1rem;max-width:300px;z-index:10000}.notification{background:#1f2937;color:white;padding:1rem;border-radius:6px;margin-bottom:0.5rem;box-shadow:0 2px 4px rgba(0,0,0,0.2);display:flex;justify-content:space-between}.notification-error{background:#ef4444}.notification-success{background:#10b981}.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);align-items:center;justify-content:center}.modal.show{display:flex}table{width:100%;border-collapse:collapse}th,td{padding:0.75rem;text-align:left;border-bottom:1px solid #4b5563}th{background:#1f2937;font-weight:600}.action-button{padding:0.5rem;border-radius:4px;background:#3b82f6;color:white}.action-button:hover{background:#2563eb}.delete-button{padding:0.5rem;border-radius:4px;background:#ef4444;color:white}.delete-button:hover{background:#dc2626}
+        #globalLoader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            visibility: hidden;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #10b981;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #notifications {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 10000;
+            max-width: 300px;
+        }
+        .notification {
+            background: #1f2937;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .notification-error {
+            background: #ef4444;
+        }
+        .notification-success {
+            background: #10b981;
+        }
+        #debug {
+            position: fixed;
+            bottom: 1rem;
+            left: 1rem;
+            background: #1a202c;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            max-width: 300px;
+            font-size: 0.75rem;
+            overflow-y: auto;
+            max-height: 160px;
+            z-index: 1000;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal.show {
+            display: flex;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #4b5563;
+        }
+        th {
+            background: #1f2937;
+            font-weight: 600;
+        }
+        .action-button, .delete-button {
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            margin-right: 0.5rem;
+        }
+        .action-button {
+            background: #3b82f6;
+            color: white;
+        }
+        .action-button:hover {
+            background: #2563eb;
+        }
+        .delete-button {
+            background: #ef4444;
+            color: white;
+        }
+        .delete-button:hover {
+            background: #dc2626;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen">
-    <div id="globalLoader"><div class="spinner"></div></div>
-    <div id="notifications"></div>
+    <div id="globalLoader">
+        <div class="spinner"></div>
+    </div>
+    <div id="notifications" class="space-y-2"></div>
     <header class="bg-gray-800 p-4 flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-green-500">LOGAN CC's - Dashboard</h1>
+        <h1 class="text-2xl font-bold text-green-500">LOGAN CC's - Admin</h1>
         <div class="flex items-center space-x-4">
-            <button id="shopButton" class="text-gray-300 hover:text-green-500" aria-label="Ir para a Loja"><i class="fas fa-store mr-2"></i>Loja</button>
-            <button id="logoutButton" class="text-gray-300 hover:text-red-500" aria-label="Sair"><i class="fas fa-sign-out-alt"></i>Sair</button>
+            <button type="button" id="shopButton" class="text-gray-300 hover:text-green-500"><i class="fas fa-store mr-2"></i>Loja</button>
+            <button type="button" id="logoutButton" class="text-gray-300 hover:text-red-500"><i class="fas fa-sign-out-alt"></i>Sair</button>
         </div>
     </header>
     <main class="container mx-auto p-6">
-        <section id="adminAuthSection" class="bg-gray-800 p-6 rounded-lg mb-6">
-            <h2 class="text-xl font-semibold text-green-500 mb-4"><i class="fas fa-lock mr-2"></i>Autenticação de Administrador</h2>
-            <div class="space-y-4 max-w-md">
-                <div>
-                    <label for="adminPassword" class="block text-sm font-medium">Senha de Admin</label>
-                    <input type="password" id="adminPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" aria-describedby="adminAuthError">
-                    <p id="adminAuthError" class="text-red-500 text-sm hidden mt-1"></p>
-                </div>
-                <div class="flex justify-end">
-                    <button id="verifyAdminButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center" aria-busy="false">
-                        <span>Verificar</span>
-                        <svg id="verifyAdminSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" class="opacity-75"/></svg>
-                    </button>
-                </div>
-            </div>
-        </section>
-        <section id="usersSection" class="bg-gray-800 p-6 rounded-lg mb-6 hidden">
+        <div id="usersSection" class="bg-gray-800 p-4 rounded-lg mb-6 hidden">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold text-green-500"><i class="fas fa-users mr-2"></i>Gerenciar Usuários</h2>
-                <div class="flex items-center space-x-2">
-                    <input id="searchUser" class="p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Buscar usuário...">
-                    <button id="addUserButton" class="py-2 px-4 bg-blue-500 text-white rounded hover:bg-blue-600"><i class="fas fa-plus mr-2"></i>Adicionar Usuário</button>
-                </div>
+                <h2 class="text-xl font-semibold"><i class="fas fa-users mr-2"></i>Usuários</h2>
+                <button type="button" id="addUserButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-user-plus mr-2"></i>Adicionar Usuário</button>
             </div>
             <div id="userList" class="overflow-x-auto">
-                <table role="grid"><thead><tr><th>ID</th><th>Usuário</th><th>Saldo</th><th>Admin</th><th>Ações</th></tr></thead><tbody></tbody></table>
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">Usuário</th>
+                            <th scope="col">Saldo</th>
+                            <th scope="col">Admin</th>
+                            <th scope="col">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
-        </section>
-        <section id="cardsSection" class="bg-gray-800 p-6 rounded-lg mb-6 hidden">
+        </div>
+        <div id="cardsSection" class="bg-gray-800 p-4 rounded-lg hidden">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold text-green-500"><i class="fas fa-credit-card mr-2"></i>Gerenciar Cartões</h2>
-                <div class="flex items-center space-x-2">
-                    <button id="addCardButton" class="py-2 px-4 bg-blue-500 text-white rounded hover:bg-blue-600"><i class="fas fa-plus mr-2"></i>Adicionar Cartão</button>
-                    <button id="importCardsButton" class="py-2 px-4 bg-blue-500 text-white rounded hover:bg-blue-600"><i class="fas fa-file-import mr-2"></i>Importar .xlsx</button>
-                    <input type="file" id="importCardsInput" accept=".xlsx" class="hidden">
-                </div>
+                <h2 class="text-xl font-semibold"><i class="fas fa-credit-card mr-2"></i>Cartões</h2>
+                <button type="button" id="addCardButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-plus mr-2"></i>Adicionar Cartão</button>
             </div>
             <div id="adminCardList" class="overflow-x-auto">
-                <table role="grid"><thead><tr><th>Número</th><th>Bandeira</th><th>Banco</th><th>Nível</th><th>Preço</th><th>Adquirido</th><th>Ações</th></tr></thead><tbody></tbody></table>
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">Número</th>
+                            <th scope="col">Bandeira</th>
+                            <th scope="col">Banco</th>
+                            <th scope="col">Nível</th>
+                            <th scope="col">Preço</th>
+                            <th scope="col">Adquirido</th>
+                            <th scope="col">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
-        </section>
-        <section id="levelsSection" class="bg-gray-800 p-6 rounded-lg mb-6 hidden">
-            <h2 class="text-xl font-semibold text-green-500 mb-4"><i class="fas fa-tags mr-2"></i>Gerenciar Preços por Nível</h2>
-            <div id="levelList" class="overflow-x-auto">
-                <table role="grid"><thead><tr><th>Nível</th><th>Preço</th><th>Ações</th></tr></thead><tbody></tbody></table>
-            </div>
-        </section>
+        </div>
     </main>
-    <div id="adminAuthModal" class="modal" role="dialog" aria-labelledby="adminAuthModalTitle">
-        <div class="bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="adminAuthModalTitle" class="text-xl font-semibold mb-4"><i class="fas fa-lock mr-2"></i>Autenticação Necessária</h2>
-            <div class="space-y-4">
-                <div>
-                    <label for="modalAdminPassword" class="block text-sm font-medium">Senha de Admin</label>
-                    <input type="password" id="modalAdminPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" aria-describedby="modalAdminAuthError">
-                    <p id="modalAdminAuthError" class="text-red-500 text-sm hidden mt-1"></p>
-                </div>
-                <div class="flex justify-end space-x-2">
-                    <button id="cancelAdminAuthButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700" aria-label="Fechar"><i class="fas fa-times mr-2"></i>Fechar</button>
-                    <button id="modalVerifyAdminButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center" aria-busy="false">
-                        <span>Verificar</span>
-                        <svg id="modalVerifyAdminSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" class="opacity-75"/></svg>
-                    </button>
-                </div>
+    <div id="adminAuthModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="adminAuthTitle">
+        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h2 id="adminAuthTitle" class="text-xl font-semibold mb-4"><i class="fas fa-lock mr-2"></i>Autenticação de Administrador</h2>
+            <div class="mb-4">
+                <label for="modalAdminPassword" class="block text-sm font-medium">Senha Admin</label>
+                <input type="password" id="modalAdminPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required aria-describedby="modalAdminAuthError">
+            </div>
+            <p id="modalAdminAuthError" class="text-red-500 text-sm hidden" role="alert"></p>
+            <div class="flex justify-end">
+                <button type="button" id="modalVerifyAdminButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
+                    <span>Verificar</span>
+                    <svg id="modalVerifySpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                </button>
             </div>
         </div>
     </div>
-    <div id="addUserModal" class="modal" role="dialog" aria-labelledby="addUserModalTitle">
-        <div class="bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="addUserModalTitle" class="text-xl font-semibold mb-4"><i class="fas fa-user-plus mr-2"></i>Adicionar Usuário</h2>
+    <div id="addUserModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="addUserTitle">
+        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h2 id="addUserTitle" class="text-xl font-semibold mb-4"><i class="fas fa-user-plus mr-2"></i>Adicionar Usuário</h2>
             <div class="space-y-4">
                 <div>
                     <label for="newUsername" class="block text-sm font-medium">Usuário</label>
-                    <input id="newUsername" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="ex.: teste123" pattern="[a-zA-Z0-9]{3,}" aria-describedby="newUsernameError">
-                    <p id="newUsernameError" class="text-red-500 text-sm hidden mt-1"></p>
+                    <input type="text" id="newUsername" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Nome do usuário" required pattern="[a-zA-Z0-9]{3,}" aria-describedby="addUserError">
                 </div>
                 <div>
                     <label for="newPassword" class="block text-sm font-medium">Senha</label>
-                    <input type="password" id="newPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Mín. 4 caracteres" minlength="4" aria-describedby="newPasswordError">
-                    <p id="newPasswordError" class="text-red-500 text-sm hidden mt-1"></p>
+                    <input type="password" id="newPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Nova senha" required minlength="4" aria-describedby="addUserError">
                 </div>
                 <div>
                     <label for="newBalance" class="block text-sm font-medium">Saldo Inicial</label>
-                    <input type="number" id="newBalance" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" value="0.00" step="0.01" min="0" aria-describedby="newBalanceError">
-                    <p id="newBalanceError" class="text-red-500 text-sm hidden mt-1"></p>
+                    <input type="number" id="newBalance" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Ex: 0.00" step="0.01" min="0" required aria-describedby="addUserError">
                 </div>
                 <div>
-                    <label for="newIsAdmin" class="block text-sm font-medium">Administrador</label>
+                    <label for="newIsAdmin" class="block text-sm font-medium">Admin</label>
                     <select id="newIsAdmin" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500">
                         <option value="false">Não</option>
                         <option value="true">Sim</option>
                     </select>
                 </div>
-                <p id="addUserError" class="text-red-500 text-sm hidden mt-2"></p>
-                <div class="flex justify-end space-x-2">
-                    <button id="cancelAddUserButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700" aria-label="Fechar"><i class="fas fa-times mr-2"></i>Fechar</button>
-                    <button id="addUserConfirmButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center" aria-busy="false">
-                        <span>Adicionar</span>
-                        <svg id="addUserSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" class="opacity-75"/></svg>
-                    </button>
-                </div>
+            </div>
+            <p id="addUserError" class="text-red-500 text-sm hidden" role="alert"></p>
+            <div class="flex justify-end space-x-2 mt-4">
+                <button type="button" id="cancelAddUserButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
+                <button type="button" id="addUserConfirmButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
+                    <span>Adicionar</span>
+                    <svg id="addUserSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                </button>
             </div>
         </div>
     </div>
-    <div id="editUserModal" class="modal" role="dialog" aria-labelledby="editUserModalTitle">
-        <div class="bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="editUserModalTitle" class="text-xl font-semibold mb-4"><i class="fas fa-user-edit mr-2"></i>Editar Usuário</h2>
+    <div id="editUserModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editUserTitle">
+        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h2 id="editUserTitle" class="text-xl font-semibold mb-4"><i class="fas fa-user-edit mr-2"></i>Editar Usuário</h2>
             <div class="space-y-4">
                 <div>
-                    <label for="editUserId" class="block text-sm font-medium">ID</label>
-                    <input id="editUserId" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" readonly>
-                </div>
-                <div>
                     <label for="editUsername" class="block text-sm font-medium">Usuário</label>
-                    <input id="editUsername" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" readonly>
+                    <input type="text" id="editUsername" readonly class="mt-1 w-full p-2 bg-gray-600 rounded">
                 </div>
                 <div>
                     <label for="editPassword" class="block text-sm font-medium">Nova Senha (opcional)</label>
-                    <input type="password" id="editPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Mín. 4 caracteres" aria-describedby="editPasswordError">
-                    <p id="editPasswordError" class="text-red-500 text-sm hidden mt-1"></p>
+                    <input type="password" id="editPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Deixe em branco para manter" minlength="4" aria-describedby="editUserError">
                 </div>
                 <div>
                     <label for="editBalance" class="block text-sm font-medium">Saldo</label>
-                    <input type="number" id="editBalance" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" step="0.01" min="0" aria-describedby="editBalanceError">
-                    <p id="editBalanceError" class="text-red-500 text-sm hidden mt-1"></p>
+                    <input type="number" id="editBalance" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" step="0.01" min="0" required aria-describedby="editUserError">
                 </div>
                 <div>
-                    <label for="editIsAdmin" class="block text-sm font-medium">Administrador</label>
+                    <label for="editIsAdmin" class="block text-sm font-medium">Admin</label>
                     <select id="editIsAdmin" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500">
                         <option value="false">Não</option>
                         <option value="true">Sim</option>
                     </select>
                 </div>
-                <p id="editUserError" class="text-red-500 text-sm hidden mt-2"></p>
-                <div class="flex justify-end space-x-2">
-                    <button id="cancelEditUserButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700" aria-label="Fechar"><i class="fas fa-times mr-2"></i>Fechar</button>
-                    <button id="saveUserButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center" aria-busy="false">
-                        <span>Salvar</span>
-                        <svg id="saveUserSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" class="opacity-75"/></svg>
-                    </button>
-                </div>
+            </div>
+            <p id="editUserError" class="text-red-500 text-sm hidden" role="alert"></p>
+            <div class="flex justify-end space-x-2 mt-4">
+                <button type="button" id="cancelUserButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
+                <button type="button" id="saveUserButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
+                    <span>Salvar</span>
+                    <svg id="saveUserSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                </button>
             </div>
         </div>
     </div>
-    <div id="addCardModal" class="modal" role="dialog" aria-labelledby="addCardModalTitle">
-        <div class="bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="addCardModalTitle" class="text-xl font-semibold mb-4"><i class="fas fa-credit-card mr-2"></i>Adicionar Cartão</h2>
+    <div id="addCardModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="addCardTitle">
+        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h2 id="addCardTitle" class="text-xl font-semibold mb-4"><i class="fas fa-plus mr-2"></i>Adicionar Cartão</h2>
             <div class="space-y-4">
                 <div>
                     <label for="cardNumber" class="block text-sm font-medium">Número</label>
-                    <input id="cardNumber" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="1234 5678 9012 3456" aria-describedby="cardNumberError">
-                    <p id="cardNumberError" class="text-red-500 text-sm hidden mt-1"></p>
+                    <input type="text" id="cardNumber" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required pattern="\d{16}" inputmode="numeric" aria-describedby="addCardError">
                 </div>
                 <div>
                     <label for="cardCvv" class="block text-sm font-medium">CVV</label>
-                    <input id="cardCvv" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="123" aria-describedby="cardCvvError">
-                    <p id="cardCvvError" class="text-red-500 text-sm hidden mt-1"></p>
+                    <input type="text" id="cardCvv" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required pattern="\d{3}" inputmode="numeric" aria-describedby="addCardError">
                 </div>
                 <div>
                     <label for="cardExpiry" class="block text-sm font-medium">Validade</label>
-                    <input id="cardExpiry" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="MM/AA" aria-describedby="cardExpiryError">
-                    <p id="cardExpiryError" class="text-red-500 text-sm hidden mt-1"></p>
+                    <input type="text" id="cardExpiry" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Ex: MM/AA" required pattern="\d{2}/\d{2}" aria-describedby="addCardError">
                 </div>
                 <div>
                     <label for="cardName" class="block text-sm font-medium">Nome</label>
-                    <input id="cardName" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Nome no cartão" aria-describedby="cardNameError">
-                    <p id="cardNameError" class="text-red-500 text-sm hidden mt-1"></p>
+                    <input type="text" id="cardName" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required aria-describedby="addCardError">
                 </div>
                 <div>
                     <label for="cardCpf" class="block text-sm font-medium">CPF</label>
-                    <input id="cardCpf" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="123.456.789-01" aria-describedby="cardCpfError">
-                    <p id="cardCpfError" class="text-red-500 text-sm hidden mt-1"></p>
+                    <input type="text" id="cardCpf" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required pattern="\d{11}" inputmode="numeric" aria-describedby="addCardError">
                 </div>
                 <div>
                     <label for="cardBandeira" class="block text-sm font-medium">Bandeira</label>
-                    <select id="cardBandeira" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500">
+                    <select id="cardBandeira" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required>
                         <option value="Visa">Visa</option>
                         <option value="Mastercard">Mastercard</option>
                         <option value="Amex">Amex</option>
@@ -207,7 +304,7 @@
                 </div>
                 <div>
                     <label for="cardBanco" class="block text-sm font-medium">Banco</label>
-                    <select id="cardBanco" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500">
+                    <select id="cardBanco" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required>
                         <option value="Nubank">Nubank</option>
                         <option value="Itaú">Itaú</option>
                         <option value="Bradesco">Bradesco</option>
@@ -220,56 +317,58 @@
                 </div>
                 <div>
                     <label for="cardNivel" class="block text-sm font-medium">Nível</label>
-                    <select id="cardNivel" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500">
+                    <select id="cardNivel" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required>
                         <option value="Classic">Classic</option>
                         <option value="Gold">Gold</option>
                         <option value="Platinum">Platinum</option>
                         <option value="Black">Black</option>
                     </select>
                 </div>
-                <p id="addCardError" class="text-red-500 text-sm hidden mt-2"></p>
-                <div class="flex justify-end space-x-2">
-                    <button id="cancelAddCardButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700" aria-label="Fechar"><i class="fas fa-times mr-2"></i>Fechar</button>
-                    <button id="addCardConfirmButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center" aria-busy="false">
-                        <span>Adicionar</span>
-                        <svg id="addCardSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" class="opacity-75"/></svg>
-                    </button>
+                <div>
+                    <label for="cardPrice" class="block text-sm font-medium">Preço</label>
+                    <input type="number" id="cardPrice" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Ex: 10.00" step="0.01" min="0.01" required aria-describedby="addCardError">
                 </div>
+            </div>
+            <p id="addCardError" class="text-red-500 text-sm hidden" role="alert"></p>
+            <div class="flex justify-end space-x-2 mt-4">
+                <button type="button" id="cancelAddCardButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
+                <button type="button" id="addCardConfirmButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
+                    <span>Adicionar</span>
+                    <svg id="addCardSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                </button>
             </div>
         </div>
     </div>
-    <div id="editCardModal" class="modal" role="dialog" aria-labelledby="editCardModalTitle">
-        <div class="bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="editCardModalTitle" class="text-xl font-semibold mb-4"><i class="fas fa-credit-card mr-2"></i>Editar Cartão</h2>
+    <div id="editCardModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editCardTitle">
+        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h2 id="editCardTitle" class="text-xl font-semibold mb-4"><i class="fas fa-credit-card mr-2"></i>Editar Cartão</h2>
             <div class="space-y-4">
                 <div>
                     <label for="editCardNumber" class="block text-sm font-medium">Número</label>
-                    <input id="editCardNumber" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" aria-describedby="editCardNumberError">
-                    <p id="editCardNumberError" class="text-red-500 text-sm hidden mt-1"></p>
+                    <input type="text" id="editCardNumber" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required pattern="\d{16}" inputmode="numeric" aria-describedby="editCardError">
                 </div>
                 <div>
                     <label for="editCardCvv" class="block text-sm font-medium">CVV</label>
-                    <input id="editCardCvv" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" aria-describedby="editCardCvvError">
-                    <p id="editCardCvvError" class="text-red-500 text-sm hidden mt-1"></p>
+                    <input type="text" id="editCardCvv" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required pattern="\d{3}" inputmode="numeric" aria-describedby="editCardError">
                 </div>
                 <div>
                     <label for="editCardExpiry" class="block text-sm font-medium">Validade</label>
-                    <input id="editCardExpiry" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" aria-describedby="editCardExpiryError">
-                    <p id="editCardExpiryError" class="text-red-500 text-sm hidden mt-1"></p>
+                    <input type="text" id="editCardExpiry" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Ex: MM/AA" required pattern="\d{2}/\d{2}" aria-describedby="editCardError">
                 </div>
                 <div>
                     <label for="editCardName" class="block text-sm font-medium">Nome</label>
-                    <input id="editCardName" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" aria-describedby="editCardNameError">
-                    <p id="editCardNameError" class="text-red-500 text-sm hidden mt-1"></p>
+                    <input type="text" id="editCardName" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required aria-describedby="editCardError">
                 </div>
                 <div>
                     <label for="editCardCpf" class="block text-sm font-medium">CPF</label>
-                    <input id="editCardCpf" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" aria-describedby="editCardCpfError">
-                    <p id="editCardCpfError" class="text-red-500 text-sm hidden mt-1"></p>
+                    <input type="text" id="editCardCpf" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required pattern="\d{11}" inputmode="numeric" aria-describedby="editCardError">
                 </div>
                 <div>
                     <label for="editCardBandeira" class="block text-sm font-medium">Bandeira</label>
-                    <select id="editCardBandeira" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500">
+                    <select id="editCardBandeira" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required>
                         <option value="Visa">Visa</option>
                         <option value="Mastercard">Mastercard</option>
                         <option value="Amex">Amex</option>
@@ -280,7 +379,7 @@
                 </div>
                 <div>
                     <label for="editCardBanco" class="block text-sm font-medium">Banco</label>
-                    <select id="editCardBanco" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500">
+                    <select id="editCardBanco" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required>
                         <option value="Nubank">Nubank</option>
                         <option value="Itaú">Itaú</option>
                         <option value="Bradesco">Bradesco</option>
@@ -293,712 +392,566 @@
                 </div>
                 <div>
                     <label for="editCardNivel" class="block text-sm font-medium">Nível</label>
-                    <select id="editCardNivel" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500">
+                    <select id="editCardNivel" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required>
                         <option value="Classic">Classic</option>
                         <option value="Gold">Gold</option>
                         <option value="Platinum">Platinum</option>
                         <option value="Black">Black</option>
                     </select>
                 </div>
-                <p id="editCardError" class="text-red-500 text-sm hidden mt-2"></p>
-                <div class="flex justify-end space-x-2">
-                    <button id="cancelEditCardButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700" aria-label="Fechar"><i class="fas fa-times mr-2"></i>Fechar</button>
-                    <button id="saveCardButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center" aria-busy="false">
-                        <span>Salvar</span>
-                        <svg id="saveCardSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" class="opacity-75"/></svg>
-                    </button>
+                <div>
+                    <label for="editCardPrice" class="block text-sm font-medium">Preço</label>
+                    <input type="number" id="editCardPrice" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Ex: 10.00" step="0.01" min="0.01" required aria-describedby="editCardError">
                 </div>
             </div>
-        </div>
-    </div>
-    <div id="editLevelModal" class="modal" role="dialog" aria-labelledby="editLevelModalTitle">
-        <div class="bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="editLevelModalTitle" class="text-xl font-semibold mb-4"><i class="fas fa-tags mr-2"></i>Editar Preço do Nível</h2>
-            <div class="space-y-4">
-                <div>
-                    <label for="editLevelName" class="block text-sm font-medium">Nível</label>
-                    <input id="editLevelName" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" readonly>
-                </div>
-                <div>
-                    <label for="editLevelPrice" class="block text-sm font-medium">Preço</label>
-                    <input type="number" id="editLevelPrice" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" step="0.01" min="0" aria-describedby="editLevelPriceError">
-                    <p id="editLevelPriceError" class="text-red-500 text-sm hidden mt-1"></p>
-                </div>
-                <p id="editLevelError" class="text-red-500 text-sm hidden mt-2"></p>
-                <div class="flex justify-end space-x-2">
-                    <button id="cancelEditLevelButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700" aria-label="Fechar"><i class="fas fa-times mr-2"></i>Fechar</button>
-                    <button id="saveLevelButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center" aria-busy="false">
-                        <span>Salvar</span>
-                        <svg id="saveLevelSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" class="opacity-75"/></svg>
-                    </button>
-                </div>
+            <p id="editCardError" class="text-red-500 text-sm hidden" role="alert"></p>
+            <div class="flex justify-end space-x-2 mt-4">
+                <button type="button" id="cancelEditCardButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
+                <button type="button" id="saveCardButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
+                    <span>Salvar</span>
+                    <svg id="saveCardSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                </button>
             </div>
         </div>
     </div>
     <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40"></div>
     <script src="debug.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.9/purify.min.js" async></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/inputmask/5.0.7/inputmask.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.9/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/inputmask/5.0.8/inputmask.min.js"></script>
     <script>
-        const sanitizeInput = input => DOMPurify.sanitize(input, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
-        const formatCurrency = value => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-        const formatCardNumber = num => num.replace(/(\d{4})(\d{4})(\d{4})(\d{4})/, '$1 $2 $3 $4');
-        const formatCpf = cpf => cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-        const showNotification = (msg, isError = false) => {
-            const n = document.createElement('div');
-            n.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
-            n.innerHTML = `${sanitizeInput(msg)}<button class="ml-2 text-white hover:text-gray-300"><i class="fas fa-times"></i></button>`;
-            document.getElementById('notifications').appendChild(n);
-            n.querySelector('button').onclick = () => n.remove();
-            setTimeout(() => n.remove(), 3000);
-        };
-        const toggleLoader = show => document.getElementById('globalLoader').style.visibility = show ? 'visible' : 'hidden';
-        const applyInputMasks = () => {
-            ['cardNumber', 'editCardNumber'].forEach(id => Inputmask({ mask: "9999 9999 9999 9999" }).mask(document.getElementById(id)));
-            ['cardCvv', 'editCardCvv'].forEach(id => Inputmask({ mask: "999" }).mask(document.getElementById(id)));
-            ['cardExpiry', 'editCardExpiry'].forEach(id => Inputmask({ mask: "99/99", placeholder: "MM/AA" }).mask(document.getElementById(id)));
-            ['cardCpf', 'editCardCpf'].forEach(id => Inputmask({ mask: "999.999.999-99" }).mask(document.getElementById(id)));
-        };
-        const validateInput = (input, errorDiv, pattern, errorMsg) => {
-            const value = input.value.trim().replace(/[\s.-]/g, '');
-            if (!value.match(pattern)) {
-                errorDiv.textContent = errorMsg;
-                errorDiv.classList.remove('hidden');
-                return false;
+        console.log('dashboard.html carregado');
+
+        function sanitizeInput(input) {
+            if (typeof DOMPurify !== 'undefined' && DOMPurify.sanitize) {
+                return DOMPurify.sanitize(input);
             }
-            errorDiv.classList.add('hidden');
-            return true;
-        };
-        let usersCache = [];
-        let cardsCache = [];
-        let levelsCache = [];
-        document.addEventListener('DOMContentLoaded', async () => {
+            console.warn('DOMPurify não disponível. Usando sanitização preventiva.');
+            return input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                        .replace(/[<>]/g, '');
+        }
+
+        function showNotification(message, isError = false) {
+            const notificationsDiv = document.getElementById('notifications');
+            const notification = document.createElement('div');
+            notification.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
+            notification.textContent = sanitizeInput(message);
+            const closeButton = document.createElement('button');
+            closeButton.innerHTML = '<i class="fas fa-times"></i>';
+            closeButton.className = 'ml-2 text-white hover:text-gray-300';
+            closeButton.addEventListener('click', () => notification.remove());
+            notification.appendChild(closeButton);
+            notificationsDiv.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM carregado');
             const userId = localStorage.getItem('userId');
-            const token = localStorage.getItem('token');
-            if (!userId || !token) {
+            const username = localStorage.getItem('username');
+            const usersSection = document.getElementById('usersSection');
+            const cardsSection = document.getElementById('cardsSection');
+            const addUserButton = document.getElementById('addUserButton');
+            const addCardButton = document.getElementById('addCardButton');
+            const logoutButton = document.getElementById('logoutButton');
+            const shopButton = document.getElementById('shopButton');
+            const adminAuthModal = document.getElementById('adminAuthModal');
+            const modalVerifyAdminButton = document.getElementById('modalVerifyAdminButton');
+            const modalAdminPassword = document.getElementById('modalAdminPassword');
+            const modalAdminAuthError = document.getElementById('modalAdminAuthError');
+            const modalVerifySpinner = document.getElementById('modalVerifySpinner');
+            const addUserModal = document.getElementById('addUserModal');
+            const addUserConfirmButton = document.getElementById('addUserConfirmButton');
+            const cancelAddUserButton = document.getElementById('cancelAddUserButton');
+            const addUserSpinner = document.getElementById('addUserSpinner');
+            const addUserError = document.getElementById('addUserError');
+            const editUserModal = document.getElementById('editUserModal');
+            const saveUserButton = document.getElementById('saveUserButton');
+            const cancelUserButton = document.getElementById('cancelUserButton');
+            const saveUserSpinner = document.getElementById('saveUserSpinner');
+            const editUserError = document.getElementById('editUserError');
+            const addCardModal = document.getElementById('addCardModal');
+            const addCardConfirmButton = document.getElementById('addCardConfirmButton');
+            const cancelAddCardButton = document.getElementById('cancelAddCardButton');
+            const addCardSpinner = document.getElementById('addCardSpinner');
+            const addCardError = document.getElementById('addCardError');
+            const editCardModal = document.getElementById('editCardModal');
+            const saveCardButton = document.getElementById('saveCardButton');
+            const cancelEditCardButton = document.getElementById('cancelEditCardButton');
+            const saveCardSpinner = document.getElementById('saveCardSpinner');
+            const editCardError = document.getElementById('editCardError');
+
+            Inputmask({ mask: "9999999999999999" }).mask(document.getElementById('cardNumber'));
+            Inputmask({ mask: "9999999999999999" }).mask(document.getElementById('editCardNumber'));
+            Inputmask({ mask: "999" }).mask(document.getElementById('cardCvv'));
+            Inputmask({ mask: "999" }).mask(document.getElementById('editCardCvv'));
+            Inputmask({ mask: "99/99" }).mask(document.getElementById('cardExpiry'));
+            Inputmask({ mask: "99/99" }).mask(document.getElementById('editCardExpiry'));
+            Inputmask({ mask: "99999999999" }).mask(document.getElementById('cardCpf'));
+            Inputmask({ mask: "99999999999" }).mask(document.getElementById('editCardCpf'));
+
+            if (!userId) {
                 window.location.href = 'index.html';
                 return;
             }
-            toggleLoader(true);
-            try {
-                const res = await fetch(`/api/users?userId=${userId}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+
+            document.getElementById('globalLoader').style.visibility = 'visible';
+            fetch(`/api/users?userId=${userId}`, { method: 'GET' })
+                .then(res => {
+                    if (res.status !== 200) {
+                        throw new Error('Sessão inválida');
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    if (!data.isAdmin) {
+                        throw new Error('Acesso não autorizado');
+                    }
+                    usersSection.classList.remove('hidden');
+                    cardsSection.classList.remove('hidden');
+                    loadUsers();
+                    loadCards();
+                })
+                .catch(error => {
+                    console.error('Erro ao verificar admin:', error.message);
+                    showNotification('Erro: ' + error.message, true);
+                    setTimeout(() => window.location.href = 'index.html', 1000);
+                })
+                .finally(() => {
+                    document.getElementById('globalLoader').style.visibility = 'hidden';
                 });
-                const user = await res.json();
-                if (res.status !== 200) throw new Error(user.error);
-                if (!user.is_admin) {
-                    showNotification('Acesso negado. Apenas admins.', true);
-                    setTimeout(() => window.location.href = 'shop.html', 1000);
+
+            function loadUsers() {
+                fetch('/api/users', { method: 'GET' })
+                    .then(res => res.json())
+                    .then(data => {
+                        const tbody = document.querySelector('#userList tbody');
+                        tbody.innerHTML = '';
+                        data.forEach(user => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>${sanitizeInput(user.username)}</td>
+                                <td>R$ ${user.balance.toFixed(2)}</td>
+                                <td>${user.isAdmin ? 'Sim' : 'Não'}</td>
+                                <td>
+                                    <button class="action-button edit-user" data-id="${user.id}"><i class="fas fa-edit"></i></button>
+                                    <button class="delete-button delete-user" data-id="${user.id}"><i class="fas fa-trash"></i></button>
+                                </td>
+                            `;
+                            tbody.appendChild(tr);
+                        });
+
+                        document.querySelectorAll('.edit-user').forEach(button => {
+                            button.addEventListener('click', () => {
+                                const userId = button.dataset.id;
+                                fetch(`/api/users?userId=${userId}`, { method: 'GET' })
+                                    .then(res => res.json())
+                                    .then(user => {
+                                        document.getElementById('editUsername').value = sanitizeInput(user.username);
+                                        document.getElementById('editBalance').value = user.balance;
+                                        document.getElementById('editIsAdmin').value = user.isAdmin.toString();
+                                        editUserModal.classList.add('show');
+                                        saveUserButton.onclick = () => saveUser(userId);
+                                    })
+                                    .catch(error => {
+                                        console.error('Erro ao carregar usuário:', error.message);
+                                        showNotification('Erro ao carregar usuário', true);
+                                    });
+                            });
+                        });
+
+                        document.querySelectorAll('.delete-user').forEach(button => {
+                            button.addEventListener('click', () => {
+                                if (confirm('Tem certeza que deseja excluir este usuário?')) {
+                                    fetch(`/api/users/${button.dataset.id}`, { method: 'DELETE' })
+                                        .then(res => {
+                                            if (res.status === 200) {
+                                                showNotification('Usuário excluído com sucesso!');
+                                                loadUsers();
+                                            } else {
+                                                throw new Error('Erro ao excluir usuário');
+                                            }
+                                        })
+                                        .catch(error => {
+                                            console.error('Erro ao excluir usuário:', error.message);
+                                            showNotification('Erro: ' + error.message, true);
+                                        });
+                                }
+                            });
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Erro ao carregar usuários:', error.message);
+                        showNotification('Erro ao carregar usuários', true);
+                    });
+            }
+
+            function saveUser(userId) {
+                saveUserButton.disabled = true;
+                saveUserSpinner.classList.remove('hidden');
+                editUserError.classList.add('hidden');
+
+                const balance = parseFloat(document.getElementById('editBalance').value);
+                const isAdmin = document.getElementById('editIsAdmin').value === 'true';
+                const password = sanitizeInput(document.getElementById('editPassword').value);
+
+                if (isNaN(balance) || balance < 0) {
+                    editUserError.textContent = 'Saldo inválido';
+                    editUserError.classList.remove('hidden');
+                    saveUserButton.disabled = false;
+                    saveUserSpinner.classList.add('hidden');
                     return;
                 }
-                document.getElementById('adminAuthSection').classList.remove('hidden');
-            } catch (err) {
-                showNotification('Erro ao carregar dashboard.', true);
-                localStorage.clear();
-                setTimeout(() => window.location.href = 'index.html', 1000);
-            } finally {
-                toggleLoader(false);
+
+                const body = { balance, isAdmin };
+                if (password) body.password = password;
+
+                fetch(`/api/users/${userId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                })
+                    .then(res => {
+                        if (res.status === 200) {
+                            showNotification('Usuário atualizado com sucesso!');
+                            editUserModal.classList.remove('show');
+                            loadUsers();
+                        } else {
+                            throw new Error('Erro ao atualizar usuário');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro ao atualizar usuário:', error.message);
+                        editUserError.textContent = error.message;
+                        editUserError.classList.remove('hidden');
+                    })
+                    .finally(() => {
+                        saveUserButton.disabled = false;
+                        saveUserSpinner.classList.add('hidden');
+                    });
             }
-            applyInputMasks();
-            document.getElementById('newUsername').addEventListener('input', () => validateInput(document.getElementById('newUsername'), document.getElementById('newUsernameError'), /^[a-zA-Z0-9]{3,}$/, 'Usuário deve ter 3+ caracteres alfanuméricos.'));
-            document.getElementById('newPassword').addEventListener('input', () => validateInput(document.getElementById('newPassword'), document.getElementById('newPasswordError'), /^.{4,}$/, 'Senha deve ter 4+ caracteres.'));
-            document.getElementById('newBalance').addEventListener('input', () => validateInput(document.getElementById('newBalance'), document.getElementById('newBalanceError'), /^\d+(\.\d{1,2})?$/, 'Saldo inválido.'));
-            document.getElementById('editPassword').addEventListener('input', () => {
-                const pwd = document.getElementById('editPassword').value;
-                if (pwd && !pwd.match(/^.{4,}$/)) {
-                    document.getElementById('editPasswordError').textContent = 'Senha deve ter 4+ caracteres.';
-                    document.getElementById('editPasswordError').classList.remove('hidden');
-                } else {
-                    document.getElementById('editPasswordError').classList.add('hidden');
+
+            function loadCards() {
+                fetch('/api/cards', { method: 'GET' })
+                    .then(res => res.json())
+                    .then(data => {
+                        const tbody = document.querySelector('#adminCardList tbody');
+                        tbody.innerHTML = '';
+                        data.forEach(card => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>${sanitizeInput(card.number.slice(-4).padStart(16, '*'))}</td>
+                                <td>${sanitizeInput(card.bandeira)}</td>
+                                <td>${sanitizeInput(card.banco)}</td>
+                                <td>${sanitizeInput(card.nivel)}</td>
+                                <td>R$ ${card.price.toFixed(2)}</td>
+                                <td>${card.acquired ? 'Sim' : 'Não'}</td>
+                                <td>
+                                    <button class="action-button edit-card" data-id="${card.id}"><i class="fas fa-edit"></i></button>
+                                    <button class="delete-button delete-card" data-id="${card.id}"><i class="fas fa-trash"></i></button>
+                                </td>
+                            `;
+                            tbody.appendChild(tr);
+                        });
+
+                        document.querySelectorAll('.edit-card').forEach(button => {
+                            button.addEventListener('click', () => {
+                                const cardId = button.dataset.id;
+                                fetch(`/api/cards/${cardId}`, { method: 'GET' })
+                                    .then(res => res.json())
+                                    .then(card => {
+                                        document.getElementById('editCardNumber').value = card.number;
+                                        document.getElementById('editCardCvv').value = card.cvv;
+                                        document.getElementById('editCardExpiry').value = card.expiry;
+                                        document.getElementById('editCardName').value = sanitizeInput(card.name);
+                                        document.getElementById('editCardCpf').value = card.cpf;
+                                        document.getElementById('editCardBandeira').value = card.bandeira;
+                                        document.getElementById('editCardBanco').value = card.banco;
+                                        document.getElementById('editCardNivel').value = card.nivel;
+                                        document.getElementById('editCardPrice').value = card.price;
+                                        editCardModal.classList.add('show');
+                                        saveCardButton.onclick = () => saveCard(cardId);
+                                    })
+                                    .catch(error => {
+                                        console.error('Erro ao carregar cartão:', error.message);
+                                        showNotification('Erro ao carregar cartão', true);
+                                    });
+                            });
+                        });
+
+                        document.querySelectorAll('.delete-card').forEach(button => {
+                            button.addEventListener('click', () => {
+                                if (confirm('Tem certeza que deseja excluir este cartão?')) {
+                                    fetch(`/api/cards/${button.dataset.id}`, { method: 'DELETE' })
+                                        .then(res => {
+                                            if (res.status === 200) {
+                                                showNotification('Cartão excluído com sucesso!');
+                                                loadCards();
+                                            } else {
+                                                throw new Error('Erro ao excluir cartão');
+                                            }
+                                        })
+                                        .catch(error => {
+                                            console.error('Erro ao excluir cartão:', error.message);
+                                            showNotification('Erro: ' + error.message, true);
+                                        });
+                                }
+                            });
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Erro ao carregar cartões:', error.message);
+                        showNotification('Erro ao carregar cartões', true);
+                    });
+            }
+
+            function saveCard(cardId) {
+                saveCardButton.disabled = true;
+                saveCardSpinner.classList.remove('hidden');
+                editCardError.classList.add('hidden');
+
+                const card = {
+                    number: document.getElementById('editCardNumber').value,
+                    cvv: document.getElementById('editCardCvv').value,
+                    expiry: document.getElementById('editCardExpiry').value,
+                    name: sanitizeInput(document.getElementById('editCardName').value),
+                    cpf: document.getElementById('editCardCpf').value,
+                    bandeira: document.getElementById('editCardBandeira').value,
+                    banco: document.getElementById('editCardBanco').value,
+                    nivel: document.getElementById('editCardNivel').value,
+                    price: parseFloat(document.getElementById('editCardPrice').value)
+                };
+
+                if (!card.number.match(/^\d{16}$/) || !card.cvv.match(/^\d{3}$/) || !card.expiry.match(/^\d{2}\/\d{2}$/) ||
+                    !card.cpf.match(/^\d{11}$/) || isNaN(card.price) || card.price <= 0) {
+                    editCardError.textContent = 'Dados inválidos';
+                    editCardError.classList.remove('hidden');
+                    saveCardButton.disabled = false;
+                    saveCardSpinner.classList.add('hidden');
+                    return;
+                }
+
+                fetch(`/api/cards/${cardId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(card)
+                })
+                    .then(res => {
+                        if (res.status === 200) {
+                            showNotification('Cartão atualizado com sucesso!');
+                            editCardModal.classList.remove('show');
+                            loadCards();
+                        } else {
+                            throw new Error('Erro ao atualizar cartão');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro ao atualizar cartão:', error.message);
+                        editCardError.textContent = error.message;
+                        editCardError.classList.remove('hidden');
+                    })
+                    .finally(() => {
+                        saveCardButton.disabled = false;
+                        saveCardSpinner.classList.add('hidden');
+                    });
+            }
+
+            modalVerifyAdminButton.addEventListener('click', () => {
+                modalVerifyAdminButton.disabled = true;
+                modalVerifySpinner.classList.remove('hidden');
+                modalAdminAuthError.classList.add('hidden');
+
+                const password = sanitizeInput(modalAdminPassword.value);
+                if (password.length < 4) {
+                    modalAdminAuthError.textContent = 'Senha inválida';
+                    modalAdminAuthError.classList.remove('hidden');
+                    modalVerifyAdminButton.disabled = false;
+                    modalVerifySpinner.classList.add('hidden');
+                    return;
+                }
+
+                fetch('/api/admin/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, password })
+                })
+                    .then(res => {
+                        if (res.status === 200) {
+                            adminAuthModal.classList.remove('show');
+                            usersSection.classList.remove('hidden');
+                            cardsSection.classList.remove('hidden');
+                            loadUsers();
+                            loadCards();
+                        } else {
+                            throw new Error('Senha de admin inválida');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro ao verificar admin:', error.message);
+                        modalAdminAuthError.textContent = error.message;
+                        modalAdminAuthError.classList.remove('hidden');
+                    })
+                    .finally(() => {
+                        modalVerifyAdminButton.disabled = false;
+                        modalVerifySpinner.classList.add('hidden');
+                    });
+            });
+
+            addUserButton.addEventListener('click', () => {
+                document.getElementById('newUsername').value = '';
+                document.getElementById('newPassword').value = '';
+                document.getElementById('newBalance').value = '0.00';
+                document.getElementById('newIsAdmin').value = 'false';
+                addUserError.classList.add('hidden');
+                addUserModal.classList.add('show');
+            });
+
+            addUserConfirmButton.addEventListener('click', () => {
+                addUserConfirmButton.disabled = true;
+                addUserSpinner.classList.remove('hidden');
+                addUserError.classList.add('hidden');
+
+                const username = sanitizeInput(document.getElementById('newUsername').value.trim());
+                const password = sanitizeInput(document.getElementById('newPassword').value);
+                const balance = parseFloat(document.getElementById('newBalance').value);
+                const isAdmin = document.getElementById('newIsAdmin').value === 'true';
+
+                if (!username.match(/^[a-zA-Z0-9]{3,}$/) || password.length < 4 || isNaN(balance) || balance < 0) {
+                    addUserError.textContent = 'Dados inválidos';
+                    addUserError.classList.remove('hidden');
+                    addUserConfirmButton.disabled = false;
+                    addUserSpinner.classList.add('hidden');
+                    return;
+                }
+
+                fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, balance, isAdmin })
+                })
+                    .then(res => {
+                        if (res.status === 200) {
+                            showNotification('Usuário adicionado com sucesso!');
+                            addUserModal.classList.remove('show');
+                            loadUsers();
+                        } else {
+                            throw new Error('Erro ao adicionar usuário');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro ao adicionar usuário:', error.message);
+                        addUserError.textContent = error.message;
+                        addUserError.classList.remove('hidden');
+                    })
+                    .finally(() => {
+                        addUserConfirmButton.disabled = false;
+                        addUserSpinner.classList.add('hidden');
+                    });
+            });
+
+            cancelAddUserButton.addEventListener('click', () => {
+                addUserModal.classList.remove('show');
+            });
+
+            cancelUserButton.addEventListener('click', () => {
+                editUserModal.classList.remove('show');
+            });
+
+            addCardButton.addEventListener('click', () => {
+                document.getElementById('cardNumber').value = '';
+                document.getElementById('cardCvv').value = '';
+                document.getElementById('cardExpiry').value = '';
+                document.getElementById('cardName').value = '';
+                document.getElementById('cardCpf').value = '';
+                document.getElementById('cardBandeira').value = 'Visa';
+                document.getElementById('cardBanco').value = 'Nubank';
+                document.getElementById('cardNivel').value = 'Classic';
+                document.getElementById('cardPrice').value = '';
+                addCardError.classList.add('hidden');
+                addCardModal.classList.add('show');
+            });
+
+            addCardConfirmButton.addEventListener('click', () => {
+                addCardConfirmButton.disabled = true;
+                addCardSpinner.classList.remove('hidden');
+                addCardError.classList.add('hidden');
+
+                const card = {
+                    number: document.getElementById('cardNumber').value,
+                    cvv: document.getElementById('cardCvv').value,
+                    expiry: document.getElementById('cardExpiry').value,
+                    name: sanitizeInput(document.getElementById('cardName').value),
+                    cpf: document.getElementById('cardCpf').value,
+                    bandeira: document.getElementById('cardBandeira').value,
+                    banco: document.getElementById('cardBanco').value,
+                    nivel: document.getElementById('cardNivel').value,
+                    price: parseFloat(document.getElementById('cardPrice').value)
+                };
+
+                if (!card.number.match(/^\d{16}$/) || !card.cvv.match(/^\d{3}$/) || !card.expiry.match(/^\d{2}\/\d{2}$/) ||
+                    !card.cpf.match(/^\d{11}$/) || isNaN(card.price) || card.price <= 0) {
+                    addCardError.textContent = 'Dados inválidos';
+                    addCardError.classList.remove('hidden');
+                    addCardConfirmButton.disabled = false;
+                    addCardSpinner.classList.add('hidden');
+                    return;
+                }
+
+                fetch('/api/cards', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(card)
+                })
+                    .then(res => {
+                        if (res.status === 200) {
+                            showNotification('Cartão adicionado com sucesso!');
+                            addCardModal.classList.remove('show');
+                            loadCards();
+                        } else {
+                            throw new Error('Erro ao adicionar cartão');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro ao adicionar cartão:', error.message);
+                        addCardError.textContent = error.message;
+                        addCardError.classList.remove('hidden');
+                    })
+                    .finally(() => {
+                        addCardConfirmButton.disabled = false;
+                        addCardSpinner.classList.add('hidden');
+                    });
+            });
+
+            cancelAddCardButton.addEventListener('click', () => {
+                addCardModal.classList.remove('show');
+            });
+
+            cancelEditCardButton.addEventListener('click', () => {
+                editCardModal.classList.remove('show');
+            });
+
+            logoutButton.addEventListener('click', () => {
+                localStorage.removeItem('userId');
+                localStorage.removeItem('username');
+                window.location.href = 'index.html';
+            });
+
+            shopButton.addEventListener('click', () => {
+                window.location.href = 'shop.html';
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    adminAuthModal.classList.remove('show');
+                    addUserModal.classList.remove('show');
+                    editUserModal.classList.remove('show');
+                    addCardModal.classList.remove('show');
+                    editCardModal.classList.remove('show');
                 }
             });
-            document.getElementById('editBalance').addEventListener('input', () => validateInput(document.getElementById('editBalance'), document.getElementById('editBalanceError'), /^\d+(\.\d{1,2})?$/, 'Saldo inválido.'));
-            ['cardNumber', 'editCardNumber'].forEach(id => document.getElementById(id).addEventListener('input', () => validateInput(document.getElementById(id), document.getElementById(`${id}Error`), /^\d{16}$/, 'Número do cartão inválido.')));
-            ['cardCvv', 'editCardCvv'].forEach(id => document.getElementById(id).addEventListener('input', () => validateInput(document.getElementById(id), document.getElementById(`${id}Error`), /^\d{3}$/, 'CVV inválido.')));
-            ['cardExpiry', 'editCardExpiry'].forEach(id => document.getElementById(id).addEventListener('input', () => validateInput(document.getElementById(id), document.getElementById(`${id}Error`), /^\d{2}\/\d{2}$/, 'Validade inválida.')));
-            ['cardCpf', 'editCardCpf'].forEach(id => document.getElementById(id).addEventListener('input', () => validateInput(document.getElementById(id), document.getElementById(`${id}Error`), /^\d{11}$/, 'CPF inválido.')));
-            document.getElementById('editLevelPrice').addEventListener('input', () => validateInput(document.getElementById('editLevelPrice'), document.getElementById('editLevelPriceError'), /^\d+(\.\d{1,2})?$/, 'Preço inválido.'));
-            document.getElementById('logoutButton').onclick = () => {
-                localStorage.clear();
-                window.location.href = 'index.html';
-            };
-            document.getElementById('shopButton').onclick = () => window.location.href = 'shop.html';
-            ['verifyAdminButton', 'modalVerifyAdminButton'].forEach(id => document.getElementById(id).onclick = verifyAdmin);
-            document.getElementById('cancelAdminAuthButton').onclick = () => document.getElementById('adminAuthModal').classList.remove('show');
-            document.getElementById('addUserButton').onclick = () => {
-                document.getElementById('addUserModal').classList.add('show');
-                document.getElementById('newUsername').focus();
-            };
-            document.getElementById('cancelAddUserButton').onclick = () => document.getElementById('addUserModal').classList.remove('show');
-            document.getElementById('addUserConfirmButton').onclick = addUser;
-            document.getElementById('cancelEditUserButton').onclick = () => document.getElementById('editUserModal').classList.remove('show');
-            document.getElementById('saveUserButton').onclick = saveUser;
-            document.getElementById('addCardButton').onclick = () => {
-                document.getElementById('addCardModal').classList.add('show');
-                document.getElementById('cardNumber').focus();
-            };
-            document.getElementById('cancelAddCardButton').onclick = () => document.getElementById('addCardModal').classList.remove('show');
-            document.getElementById('addCardConfirmButton').onclick = addCard;
-            document.getElementById('cancelEditCardButton').onclick = () => document.getElementById('editCardModal').classList.remove('show');
-            document.getElementById('saveCardButton').onclick = saveCard;
-            document.getElementById('importCardsButton').onclick = () => document.getElementById('importCardsInput').click();
-            document.getElementById('importCardsInput').onchange = importCards;
-            document.getElementById('searchUser').oninput = searchUsers;
-            document.getElementById('cancelEditLevelButton').onclick = () => document.getElementById('editLevelModal').classList.remove('show');
-            document.getElementById('saveLevelButton').onclick = saveLevel;
-            document.onkeydown = e => e.key === 'Escape' && document.querySelectorAll('.modal.show').forEach(m => m.classList.remove('show'));
         });
-        async function verifyAdmin() {
-            const btn = this;
-            const spinner = btn.querySelector('svg');
-            const isModal = btn.id === 'modalVerifyAdminButton';
-            const errDiv = document.getElementById(isModal ? 'modalAdminAuthError' : 'adminAuthError');
-            const pwdInput = document.getElementById(isModal ? 'modalAdminPassword' : 'adminPassword');
-            btn.disabled = true;
-            btn.setAttribute('aria-busy', 'true');
-            spinner.classList.remove('hidden');
-            toggleLoader(true);
-            errDiv.classList.add('hidden');
-            try {
-                const token = localStorage.getItem('token');
-                const res = await fetch('/api/verify-admin', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ userId: localStorage.getItem('userId'), adminPassword: sanitizeInput(pwdInput.value) })
-                });
-                const data = await res.json();
-                if (res.status !== 200) throw new Error(data.error);
-                showNotification('Autenticação bem-sucedida!');
-                document.getElementById('adminAuthSection').classList.add('hidden');
-                document.getElementById('adminAuthModal').classList.remove('show');
-                ['usersSection', 'cardsSection', 'levelsSection'].forEach(id => document.getElementById(id).classList.remove('hidden'));
-                await Promise.all([loadUsers(), loadCards(), loadLevels()]);
-            } catch (err) {
-                errDiv.textContent = err.message;
-                errDiv.classList.remove('hidden');
-                showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                btn.disabled = false;
-                btn.setAttribute('aria-busy', 'false');
-                spinner.classList.add('hidden');
-                toggleLoader(false);
-            }
-        }
-        async function loadLevels() {
-            toggleLoader(true);
-            try {
-                const token = localStorage.getItem('token');
-                const res = await fetch('/api/levels', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                levelsCache = await res.json();
-                renderLevels(levelsCache);
-            } catch (err) {
-                showNotification('Erro ao carregar níveis.', true);
-            } finally {
-                toggleLoader(false);
-            }
-        }
-        function renderLevels(levels) {
-            const tbody = document.querySelector('#levelList tbody');
-            tbody.innerHTML = levels.map(l => `
-                <tr>
-                    <td>${sanitizeInput(l.level)}</td>
-                    <td>${formatCurrency(l.price)}</td>
-                    <td><button class="action-button edit-level-button" data-level="${l.level}" aria-label="Editar nível"><i class="fas fa-edit"></i></button></td>
-                </tr>
-            `).join('');
-            document.querySelectorAll('.edit-level-button').forEach(btn => {
-                btn.onclick = () => {
-                    const level = levelsCache.find(l => l.level === btn.dataset.level);
-                    document.getElementById('editLevelName').value = level.level;
-                    document.getElementById('editLevelPrice').value = level.price;
-                    document.getElementById('editLevelModal').classList.add('show');
-                    document.getElementById('editLevelPrice').focus();
-                };
-            });
-        }
-        async function loadUsers() {
-            toggleLoader(true);
-            try {
-                const token = localStorage.getItem('token');
-                const res = await fetch('/api/admin/users', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                usersCache = await res.json();
-                renderUsers(usersCache);
-            } catch (err) {
-                showNotification('Erro ao carregar usuários.', true);
-            } finally {
-                toggleLoader(false);
-            }
-        }
-        function renderUsers(users) {
-            const tbody = document.querySelector('#userList tbody');
-            tbody.innerHTML = users.map(u => `
-                <tr>
-                    <td>${sanitizeInput(u._id)}</td>
-                    <td>${sanitizeInput(u.username)}</td>
-                    <td>${formatCurrency(u.balance)}</td>
-                    <td>${u.is_admin ? 'Sim' : 'Não'}</td>
-                    <td>
-                        <button class="action-button edit-user-button" data-user-id="${u._id}" aria-label="Editar usuário"><i class="fas fa-edit"></i></button>
-                        <button class="delete-button delete-user-button" data-user-id="${u._id}" aria-label="Excluir usuário"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>
-            `).join('');
-            document.querySelectorAll('.edit-user-button').forEach(btn => {
-                btn.onclick = () => {
-                    const user = usersCache.find(u => u._id === btn.dataset.userId);
-                    document.getElementById('editUserId').value = user._id;
-                    document.getElementById('editUsername').value = user.username;
-                    document.getElementById('editBalance').value = user.balance;
-                    document.getElementById('editIsAdmin').value = user.is_admin.toString();
-                    document.getElementById('editUserModal').classList.add('show');
-                    document.getElementById('editBalance').focus();
-                };
-            });
-            document.querySelectorAll('.delete-user-button').forEach(btn => {
-                btn.onclick = async () => {
-                    if (!confirm('Confirma a exclusão deste usuário?')) return;
-                    toggleLoader(true);
-                    try {
-                        const token = localStorage.getItem('token');
-                        const res = await fetch('/api/admin/users', {
-                            method: 'DELETE',
-                            headers: { 
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                            },
-                            body: JSON.stringify({ userId: btn.dataset.userId })
-                        });
-                        const data = await res.json();
-                        if (res.status !== 200) throw new Error(data.error);
-                        showNotification('Usuário excluído!');
-                        await loadUsers();
-                    } catch (err) {
-                        showNotification(`Erro: ${err.message}`, true);
-                    } finally {
-                        toggleLoader(false);
-                    }
-                };
-            });
-        }
-        function searchUsers() {
-            const query = sanitizeInput(document.getElementById('searchUser').value).toLowerCase();
-            const filtered = usersCache.filter(u => u.username.toLowerCase().includes(query) || u._id.includes(query));
-            renderUsers(filtered);
-        }
-        async function addUser() {
-            const btn = document.getElementById('addUserConfirmButton');
-            const spinner = document.getElementById('addUserSpinner');
-            const errDiv = document.getElementById('addUserError');
-            const usernameInput = document.getElementById('newUsername');
-            const passwordInput = document.getElementById('newPassword');
-            const balanceInput = document.getElementById('newBalance');
-            const isAdminInput = document.getElementById('newIsAdmin');
-            if (!validateInput(usernameInput, document.getElementById('newUsernameError'), /^[a-zA-Z0-9]{3,}$/, 'Usuário inválido.') ||
-                !validateInput(passwordInput, document.getElementById('newPasswordError'), /^.{4,}$/, 'Senha deve ter 4+ caracteres.') ||
-                !validateInput(balanceInput, document.getElementById('newBalanceError'), /^\d+(\.\d{1,2})?$/, 'Saldo inválido.')) {
-                return;
-            }
-            btn.disabled = true;
-            btn.setAttribute('aria-busy', 'true');
-            spinner.classList.remove('hidden');
-            toggleLoader(true);
-            errDiv.classList.add('hidden');
-            try {
-                const token = localStorage.getItem('token');
-                const res = await fetch('/api/admin/users', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        username: sanitizeInput(usernameInput.value.trim()),
-                        password: sanitizeInput(passwordInput.value),
-                        balance: parseFloat(balanceInput.value),
-                        is_admin: isAdminInput.value === 'true'
-                    })
-                });
-                const data = await res.json();
-                if (res.status !== 200) throw new Error(data.error);
-                showNotification('Usuário adicionado!');
-                document.getElementById('addUserModal').classList.remove('show');
-                await loadUsers();
-                usernameInput.value = '';
-                passwordInput.value = '';
-                balanceInput.value = '0.00';
-                isAdminInput.value = 'false';
-            } catch (err) {
-                errDiv.textContent = err.message;
-                errDiv.classList.remove('hidden');
-                showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                btn.disabled = false;
-                btn.setAttribute('aria-busy', 'false');
-                spinner.classList.add('hidden');
-                toggleLoader(false);
-            }
-        }
-        async function saveUser() {
-            const btn = document.getElementById('saveUserButton');
-            const spinner = document.getElementById('saveUserSpinner');
-            const errDiv = document.getElementById('editUserError');
-            const userId = document.getElementById('editUserId').value;
-            const password = document.getElementById('editPassword').value;
-            const balanceInput = document.getElementById('editBalance');
-            const isAdminInput = document.getElementById('editIsAdmin');
-            if (!validateInput(balanceInput, document.getElementById('editBalanceError'), /^\d+(\.\d{1,2})?$/, 'Saldo inválido.') ||
-                (password && !password.match(/^.{4,}$/))) {
-                document.getElementById('editPasswordError').textContent = 'Senha deve ter 4+ caracteres.';
-                document.getElementById('editPasswordError').classList.remove('hidden');
-                return;
-            }
-            btn.disabled = true;
-            btn.setAttribute('aria-busy', 'true');
-            spinner.classList.remove('hidden');
-            toggleLoader(true);
-            errDiv.classList.add('hidden');
-            try {
-                const token = localStorage.getItem('token');
-                const body = {
-                    userId,
-                    balance: parseFloat(balanceInput.value),
-                    is_admin: isAdminInput.value === 'true'
-                };
-                if (password) body.password = sanitizeInput(password);
-                const res = await fetch('/api/admin/users', {
-                    method: 'PUT',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify(body)
-                });
-                const data = await res.json();
-                if (res.status !== 200) throw new Error(data.error);
-                showNotification('Usuário atualizado!');
-                document.getElementById('editUserModal').classList.remove('show');
-                await loadUsers();
-            } catch (err) {
-                errDiv.textContent = err.message;
-                errDiv.classList.remove('hidden');
-                showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                btn.disabled = false;
-                btn.setAttribute('aria-busy', 'false');
-                spinner.classList.add('hidden');
-                toggleLoader(false);
-            }
-        }
-        async function loadCards() {
-            toggleLoader(true);
-            try {
-                const token = localStorage.getItem('token');
-                const res = await fetch('/api/admin/cards', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                cardsCache = await res.json();
-                renderCards(cardsCache);
-            } catch (err) {
-                showNotification('Erro ao carregar cartões.', true);
-            } finally {
-                toggleLoader(false);
-            }
-        }
-        function renderCards(cards) {
-            const tbody = document.querySelector('#adminCardList tbody');
-            tbody.innerHTML = cards.map(c => `
-                <tr>
-                    <td>${sanitizeInput(formatCardNumber(c.numero))}</td>
-                    <td>${sanitizeInput(c.bandeira)}</td>
-                    <td>${sanitizeInput(c.banco)}</td>
-                    <td>${sanitizeInput(c.nivel)}</td>
-                    <td>${formatCurrency(c.price)}</td>
-                    <td>${c.acquiredBy ? 'Sim' : 'Não'}</td>
-                    <td>
-                        <button class="action-button edit-card-button" data-card-id="${c._id}" aria-label="Editar cartão"><i class="fas fa-edit"></i></button>
-                        <button class="delete-button delete-card-button" data-card-id="${c._id}" aria-label="Excluir cartão"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>
-            `).join('');
-            document.querySelectorAll('.edit-card-button').forEach(btn => {
-                btn.onclick = () => {
-                    const card = cardsCache.find(c => c._id === btn.dataset.cardId);
-                    document.getElementById('editCardNumber').value = formatCardNumber(card.numero);
-                    document.getElementById('editCardCvv').value = card.cvv;
-                    document.getElementById('editCardExpiry').value = card.expiry;
-                    document.getElementById('editCardName').value = card.name;
-                    document.getElementById('editCardCpf').value = formatCpf(card.cpf);
-                    document.getElementById('editCardBandeira').value = card.bandeira;
-                    document.getElementById('editCardBanco').value = card.banco;
-                    document.getElementById('editCardNivel').value = card.nivel;
-                    document.getElementById('editCardModal').dataset.cardId = card._id;
-                    document.getElementById('editCardModal').classList.add('show');
-                    document.getElementById('editCardNumber').focus();
-                };
-            });
-            document.querySelectorAll('.delete-card-button').forEach(btn => {
-                btn.onclick = async () => {
-                    if (!confirm('Confirma a exclusão deste cartão?')) return;
-                    toggleLoader(true);
-                    try {
-                        const token = localStorage.getItem('token');
-                        const res = await fetch('/api/admin/cards', {
-                            method: 'DELETE',
-                            headers: { 
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                            },
-                            body: JSON.stringify({ cardId: btn.dataset.cardId })
-                        });
-                        const data = await res.json();
-                        if (res.status !== 200) throw new Error(data.error);
-                        showNotification('Cartão excluído!');
-                        await loadCards();
-                    } catch (err) {
-                        showNotification(`Erro: ${err.message}`, true);
-                    } finally {
-                        toggleLoader(false);
-                    }
-                };
-            });
-        }
-        async function addCard() {
-            const btn = document.getElementById('addCardConfirmButton');
-            const spinner = document.getElementById('addCardSpinner');
-            const errDiv = document.getElementById('addCardError');
-            const inputs = {
-                number: document.getElementById('cardNumber'),
-                cvv: document.getElementById('cardCvv'),
-                expiry: document.getElementById('cardExpiry'),
-                name: document.getElementById('cardName'),
-                cpf: document.getElementById('cardCpf'),
-                bandeira: document.getElementById('cardBandeira'),
-                banco: document.getElementById('cardBanco'),
-                nivel: document.getElementById('cardNivel')
-            };
-            if (!validateInput(inputs.number, document.getElementById('cardNumberError'), /^\d{16}$/, 'Número do cartão inválido.') ||
-                !validateInput(inputs.cvv, document.getElementById('cardCvvError'), /^\d{3}$/, 'CVV inválido.') ||
-                !validateInput(inputs.expiry, document.getElementById('cardExpiryError'), /^\d{2}\/\d{2}$/, 'Validade inválida.') ||
-                !validateInput(inputs.cpf, document.getElementById('cardCpfError'), /^\d{11}$/, 'CPF inválido.') ||
-                !inputs.name.value.trim()) {
-                document.getElementById('cardNameError').textContent = 'Nome é obrigatório.';
-                document.getElementById('cardNameError').classList.remove('hidden');
-                return;
-            }
-            btn.disabled = true;
-            btn.setAttribute('aria-busy', 'true');
-            spinner.classList.remove('hidden');
-            toggleLoader(true);
-            errDiv.classList.add('hidden');
-            try {
-                const token = localStorage.getItem('token');
-                const level = levelsCache.find(l => l.level === inputs.nivel.value);
-                const price = level ? level.price : 0;
-                const res = await fetch('/api/admin/cards', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        numero: inputs.number.value.replace(/\s/g, ''),
-                        cvv: inputs.cvv.value,
-                        expiry: inputs.expiry.value,
-                        name: sanitizeInput(inputs.name.value.trim()),
-                        cpf: inputs.cpf.value.replace(/[\s.-]/g, ''),
-                        bandeira: inputs.bandeira.value,
-                        banco: inputs.banco.value,
-                        nivel: inputs.nivel.value,
-                        price
-                    })
-                });
-                const data = await res.json();
-                if (res.status !== 200) throw new Error(data.error);
-                showNotification('Cartão adicionado!');
-                document.getElementById('addCardModal').classList.remove('show');
-                await loadCards();
-                Object.values(inputs).forEach(input => input.value = input.tagName === 'SELECT' ? input.options[0].value : '');
-            } catch (err) {
-                errDiv.textContent = err.message;
-                errDiv.classList.remove('hidden');
-                showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                btn.disabled = false;
-                btn.setAttribute('aria-busy', 'false');
-                spinner.classList.add('hidden');
-                toggleLoader(false);
-            }
-        }
-        async function saveCard() {
-            const btn = document.getElementById('saveCardButton');
-            const spinner = document.getElementById('saveCardSpinner');
-            const errDiv = document.getElementById('editCardError');
-            const cardId = document.getElementById('editCardModal').dataset.cardId;
-            const inputs = {
-                number: document.getElementById('editCardNumber'),
-                cvv: document.getElementById('editCardCvv'),
-                expiry: document.getElementById('editCardExpiry'),
-                name: document.getElementById('editCardName'),
-                cpf: document.getElementById('editCardCpf'),
-                bandeira: document.getElementById('editCardBandeira'),
-                banco: document.getElementById('editCardBanco'),
-                nivel: document.getElementById('editCardNivel')
-            };
-            if (!validateInput(inputs.number, document.getElementById('editCardNumberError'), /^\d{16}$/, 'Número do cartão inválido.') ||
-                !validateInput(inputs.cvv, document.getElementById('editCardCvvError'), /^\d{3}$/, 'CVV inválido.') ||
-                !validateInput(inputs.expiry, document.getElementById('editCardExpiryError'), /^\d{2}\/\d{2}$/, 'Validade inválida.') ||
-                !validateInput(inputs.cpf, document.getElementById('editCardCpfError'), /^\d{11}$/, 'CPF inválido.') ||
-                !inputs.name.value.trim()) {
-                document.getElementById('editCardNameError').textContent = 'Nome é obrigatório.';
-                document.getElementById('editCardNameError').classList.remove('hidden');
-                return;
-            }
-            btn.disabled = true;
-            btn.setAttribute('aria-busy', 'true');
-            spinner.classList.remove('hidden');
-            toggleLoader(true);
-            errDiv.classList.add('hidden');
-            try {
-                const token = localStorage.getItem('token');
-                const level = levelsCache.find(l => l.level === inputs.nivel.value);
-                const price = level ? level.price : 0;
-                const res = await fetch('/api/admin/cards', {
-                    method: 'PUT',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        _id: cardId,
-                        numero: inputs.number.value.replace(/\s/g, ''),
-                        cvv: inputs.cvv.value,
-                        expiry: inputs.expiry.value,
-                        name: sanitizeInput(inputs.name.value.trim()),
-                        cpf: inputs.cpf.value.replace(/[\s.-]/g, ''),
-                        bandeira: inputs.bandeira.value,
-                        banco: inputs.banco.value,
-                        nivel: inputs.nivel.value,
-                        price
-                    })
-                });
-                const data = await res.json();
-                if (res.status !== 200) throw new Error(data.error);
-                showNotification('Cartão atualizado!');
-                document.getElementById('editCardModal').classList.remove('show');
-                await loadCards();
-            } catch (err) {
-                errDiv.textContent = err.message;
-                errDiv.classList.remove('hidden');
-                showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                btn.disabled = false;
-                btn.setAttribute('aria-busy', 'false');
-                spinner.classList.add('hidden');
-                toggleLoader(false);
-            }
-        }
-        async function importCards(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            toggleLoader(true);
-            try {
-                const reader = new FileReader();
-                reader.onload = async (event) => {
-                    const workbook = XLSX.read(event.target.result, { type: 'array' });
-                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const data = XLSX.utils.sheet_to_json(sheet);
-                    const validCards = data.map(row => ({
-                        numero: row.numero?.toString().replace(/\D/g, ''),
-                        cvv: row.cvv?.toString(),
-                        expiry: row.expiry?.toString(),
-                        name: row.name?.toString(),
-                        cpf: row.cpf?.toString().replace(/\D/g, ''),
-                        bandeira: row.bandeira?.toString(),
-                        banco: row.banco?.toString(),
-                        nivel: row.nivel?.toString(),
-                        price: levelsCache.find(l => l.level === row.nivel)?.price || 0
-                    })).filter(card => (
-                        card.numero?.match(/^\d{16}$/) &&
-                        card.cvv?.match(/^\d{3}$/) &&
-                        card.expiry?.match(/^\d{2}\/\d{2}$/) &&
-                        card.cpf?.match(/^\d{11}$/) &&
-                        card.name?.trim() &&
-                        ['Visa', 'Mastercard', 'Amex', 'Elo', 'Hipercard', 'Diners Club'].includes(card.bandeira) &&
-                        ['Nubank', 'Itaú', 'Bradesco', 'Santander', 'Banco do Brasil', 'Caixa Econômica Federal', 'Sicredi', 'Sicoob'].includes(card.banco) &&
-                        ['Classic', 'Gold', 'Platinum', 'Black'].includes(card.nivel)
-                    ));
-                    if (!validCards.length) throw new Error('Nenhum cartão válido encontrado.');
-                    const token = localStorage.getItem('token');
-                    const res = await fetch('/api/admin/cards/import', {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${token}` },
-                        body: JSON.stringify(validCards)
-                    });
-                    const data = await res.json();
-                    if (res.status !== 200) throw new Error(data.error);
-                    showNotification(`${validCards.length} cartões importados!`);
-                    await loadCards();
-                    e.target.value = '';
-                };
-                reader.readAsArrayBuffer(file);
-            } catch (err) {
-                showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                toggleLoader(false);
-            }
-        }
-        async function saveLevel() {
-            const btn = document.getElementById('saveLevelButton');
-            const spinner = document.getElementById('saveLevelSpinner');
-            const errDiv = document.getElementById('editLevelError');
-            const level = document.getElementById('editLevelName').value;
-            const priceInput = document.getElementById('editLevelPrice');
-            if (!validateInput(priceInput, document.getElementById('editLevelPriceError'), /^\d+(\.\d{1,2})?$/, 'Preço inválido.')) {
-                return;
-            }
-            btn.disabled = true;
-            btn.setAttribute('aria-busy', 'true');
-            spinner.classList.remove('hidden');
-            toggleLoader(true);
-            errDiv.classList.add('hidden');
-            try {
-                const token = localStorage.getItem('token');
-                const res = await fetch('/api/levels', {
-                    method: 'PUT',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        level: sanitizeInput(level),
-                        price: parseFloat(priceInput.value)
-                    })
-                });
-                const data = await res.json();
-                if (res.status !== 200) throw new Error(data.error);
-                showNotification('Preço do nível atualizado!');
-                document.getElementById('editLevelModal').classList.remove('show');
-                await loadLevels();
-                await loadCards();
-            } catch (err) {
-                errDiv.textContent = err.message;
-                errDiv.classList.remove('hidden');
-                showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                btn.disabled = false;
-                btn.setAttribute('aria-busy', 'false');
-                spinner.classList.add('hidden');
-                toggleLoader(false);
-            }
-        }
     </script>
 </body>
 </html>

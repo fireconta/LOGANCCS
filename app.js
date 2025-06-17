@@ -1,4 +1,3 @@
-javascript
 const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
@@ -141,6 +140,15 @@ app.get('/api/users', authenticate, async (req, res) => {
 app.get('/api/cards', authenticate, async (req, res) => {
   try {
     const cards = await Card.find({ acquiredBy: null }).select('-cvv -name -cpf -acquiredBy');
+    res.json(cards);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar cartões.' });
+  }
+});
+
+app.get('/api/admin/cards', authenticate, isAdmin, async (req, res) => {
+  try {
+    const cards = await Card.find().select('numero bandeira banco nivel price acquiredBy');
     res.json(cards);
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar cartões.' });
@@ -306,4 +314,3 @@ app.put('/api/levels', authenticate, isAdmin, async (req, res) => {
 
 // Inicialização
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
-```

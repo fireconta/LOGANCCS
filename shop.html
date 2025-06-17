@@ -53,17 +53,30 @@
             notificationsDiv.appendChild(notification);
             setTimeout(() => notification.remove(), 3000);
         }
+        async function loadUserData() {
+            const userId = localStorage.getItem('userId');
+            try {
+                const res = await fetch('/api/user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Erro ao carregar dados do usuário');
+                document.getElementById('usernameDisplay').textContent = data.username;
+                document.getElementById('balanceDisplay').textContent = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.balance);
+                if (data.is_admin) document.getElementById('adminButton').classList.remove('hidden');
+            } catch (err) {
+                showNotification(`Erro: ${err.message}`, true);
+                localStorage.removeItem('userId');
+                window.location.href = 'index.html';
+            }
+        }
         async function loadShop() {
             const shopSection = document.getElementById('shopSection');
             const productList = document.getElementById('productList');
             const userId = localStorage.getItem('userId');
-            const username = localStorage.getItem('username');
-            const balance = localStorage.getItem('balance');
-            const isAdmin = localStorage.getItem('is_admin') === 'true';
             shopSection.classList.remove('hidden');
-            document.getElementById('usernameDisplay').textContent = username;
-            document.getElementById('balanceDisplay').textContent = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(balance));
-            if (isAdmin) document.getElementById('adminButton').classList.remove('hidden');
             try {
                 const res = await fetch('/api/cards', {
                     method: 'POST',
@@ -100,7 +113,6 @@
                             });
                             const data = await res.json();
                             if (!res.ok) throw new Error(data.error || 'Erro na compra');
-                            localStorage.setItem('balance', data.newBalance);
                             showNotification('Compra realizada com sucesso!');
                             document.getElementById('balanceDisplay').textContent = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.newBalance);
                             await loadShop();
@@ -116,18 +128,16 @@
                 showNotification(`Erro ao carregar loja: ${err.message}`, true);
             }
         }
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             const userId = localStorage.getItem('userId');
             if (!userId) {
                 window.location.href = 'index.html';
                 return;
             }
-            loadShop();
+            await loadUserData();
+            await loadShop();
             document.getElementById('logoutButton').addEventListener('click', () => {
                 localStorage.removeItem('userId');
-                localStorage.removeItem('username');
-                localStorage.removeItem('is_admin');
-                localStorage.removeItem('balance');
                 window.location.href = 'index.html';
             });
             document.getElementById('adminButton').addEventListener('click', () => {

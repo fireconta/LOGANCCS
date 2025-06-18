@@ -1,12 +1,15 @@
 [build]
   publish = "."
-  functions = "."
-
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/app/:splat"
-  status = 200
-  force = true
 
 [functions]
   node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/app.js/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/:splat"
+  status = 200

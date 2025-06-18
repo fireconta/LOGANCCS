@@ -49,7 +49,7 @@ const Card = mongoose.model('Card', CardSchema);
 
 const UserSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
-  password: { type: String, required: true }, // Deve ser hash em produção
+  password: { type: String, required: true },
   balance: { type: Number, default: 0 },
   is_admin: { type: Boolean, default: false },
   created_at: { type: Date, default: Date.now },
@@ -73,6 +73,35 @@ const isValidObjectId = (id) => {
 };
 
 // Endpoints
+app.post('/api/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      debug('Dados de login ausentes:', { username });
+      return res.status(400).json({ error: 'Username e senha são obrigatórios' });
+    }
+    const user = await User.findOne({ username }).lean();
+    if (!user) {
+      debug('Usuário não encontrado:', username);
+      return res.status(401).json({ error: 'Credenciais inválidas' });
+    }
+    // Em produção, use bcrypt para comparar hash
+    if (user.password !== password) {
+      debug('Senha incorreta para:', username);
+      return res.status(401).json({ error: 'Credenciais inválidas' });
+    }
+    debug('Login bem-sucedido:', username);
+    res.status(200).json({
+      userId: user._id,
+      username: user.username,
+      is_admin: user.is_admin
+    });
+  } catch (err) {
+    debug('Erro no login:', err.message);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
 app.get('/api/cards', async (req, res) => {
   try {
     const userId = req.query.userId;
@@ -182,12 +211,12 @@ app.post('/api/logout', (req, res) => {
   }
 });
 
-// Rota para servir index.html como padrão
+// Rota padrão
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Manipulador de erros para garantir JSON
+// Manipulador de erros
 app.use((err, req, res, next) => {
   debug('Erro não tratado:', err.message);
   res.status(500).json({ error: 'Erro interno do servidor' });

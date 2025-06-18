@@ -90,43 +90,44 @@
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen">
-    <div id="globalLoader">
+    <div id="globalLoader" aria-hidden="true">
         <div class="spinner"></div>
     </div>
-    <div id="notifications" class="space-y-2"></div>
+    <div id="notifications" class="space-y-2" aria-live="polite"></div>
     <header class="bg-gray-800 p-4 flex justify-between items-center sticky top-0 z-10 shadow-lg">
         <h1 class="text-2xl font-bold text-green-500 flex items-center">
-            <i class="fas fa-tachometer-alt mr-2"></i> LOGAN CC's - Dashboard
+            <i class="fas fa-tachometer-alt mr-2" aria-hidden="true"></i> LOGAN CC's - Dashboard
         </h1>
         <div class="flex items-center space-x-4">
-            <span id="userBalance" class="text-gray-300 flex items-center">
-                <i class="fas fa-wallet mr-1"></i> Saldo: Carregando...
+            <span id="userBalance" class="text-gray-300 flex items-center" aria-label="Saldo do usuário">
+                <i class="fas fa-wallet mr-1" aria-hidden="true"></i> Saldo: Carregando...
             </span>
-            <button type="button" id="shopButton" class="text-gray-300 hover:text-green-500 flex items-center">
-                <i class="fas fa-store mr-2"></i> Loja
+            <button type="button" id="shopButton" class="text-gray-300 hover:text-green-500 flex items-center" aria-label="Ir para a loja">
+                <i class="fas fa-store mr-2" aria-hidden="true"></i> Loja
             </button>
-            <button type="button" id="logoutButton" class="text-gray-300 hover:text-red-500 flex items-center">
-                <i class="fas fa-sign-out-alt mr-2"></i> Sair
+            <button type="button" id="logoutButton" class="text-gray-300 hover:text-red-500 flex items-center" aria-label="Sair">
+                <i class="fas fa-sign-out-alt mr-2" aria-hidden="true"></i> Sair
             </button>
         </div>
     </header>
     <main class="container mx-auto p-6">
         <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
             <h2 class="text-xl font-semibold text-green-500 mb-4 flex items-center">
-                <i class="fas fa-users mr-2"></i> Usuários
+                <i class="fas fa-users mr-2" aria-hidden="true"></i> Usuários
             </h2>
-            <div id="usersLoader" class="text-gray-500 text-center p-4 hidden">
+            <div id="usersLoader" class="text-gray-500 text-center p-4 hidden" aria-hidden="true">
                 <i class="fas fa-spinner fa-2x animate-spin mr-2"></i> Carregando usuários...
             </div>
             <div id="usersError" class="text-red-600 text-sm mt-2 hidden" role="alert"></div>
             <div class="table-container">
-                <table id="usersTable">
+                <table id="usersTable" aria-describedby="usersTableDescription">
+                    <caption id="usersTableDescription" class="sr-only">Tabela de usuários registrados</caption>
                     <thead>
                         <tr>
-                            <th>Usuário</th>
-                            <th>Saldo</th>
-                            <th>Admin</th>
-                            <th>Criado em</th>
+                            <th scope="col">Usuário</th>
+                            <th scope="col">Saldo</th>
+                            <th scope="col">Admin</th>
+                            <th scope="col">Criado em</th>
                         </tr>
                     </thead>
                     <tbody id="usersTableBody"></tbody>
@@ -135,21 +136,22 @@
         </div>
         <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
             <h2 class="text-xl font-semibold text-green-500 mb-4 flex items-center">
-                <i class="fas fa-credit-card mr-2"></i> Cartões Disponíveis
+                <i class="fas fa-credit-card mr-2" aria-hidden="true"></i> Cartões Disponíveis
             </h2>
-            <div id="cardsLoader" class="text-gray-500 text-center p-4 hidden">
+            <div id="cardsLoader" class="text-gray-500 text-center p-4 hidden" aria-hidden="true">
                 <i class="fas fa-spinner fa-2x animate-spin mr-2"></i> Carregando cartões...
             </div>
             <div id="cardsError" class="text-red-600 text-sm mt-2 hidden" role="alert"></div>
             <div class="table-container">
-                <table id="cardsTable">
+                <table id="cardsTable" aria-describedby="cardsTableDescription">
+                    <caption id="cardsTableDescription" class="sr-only">Tabela de cartões disponíveis</caption>
                     <thead>
                         <tr>
-                            <th>Número</th>
-                            <th>Bandeira</th>
-                            <th>Banco</th>
-                            <th>Nível</th>
-                            <th>Preço</th>
+                            <th scope="col">Número</th>
+                            <th scope="col">Bandeira</th>
+                            <th scope="col">Banco</th>
+                            <th scope="col">Nível</th>
+                            <th scope="col">Preço</th>
                         </tr>
                     </thead>
                     <tbody id="cardsTableBody"></tbody>
@@ -157,42 +159,10 @@
             </div>
         </div>
     </main>
-    <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40 hidden"></div>
+    <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40 hidden" aria-live="assertive"></div>
     <script src="debug.js"></script>
+    <script src="utils.js"></script>
     <script>
-        function formatCurrency(value) {
-            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-        }
-
-        function formatDate(dateStr) {
-            return new Date(dateStr).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        }
-
-        function showNotification(message, isError = false) {
-            Debug.log(`Notificação: ${message}`, { isError });
-            const notificationsDiv = document.getElementById('notifications');
-            const notification = document.createElement('div');
-            notification.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
-            notification.textContent = DOMPurify.sanitize(message);
-            const closeButton = document.createElement('button');
-            closeButton.innerHTML = '<i class="fas fa-times"></i>';
-            closeButton.className = 'ml-2 text-white hover:text-gray-300';
-            closeButton.addEventListener('click', () => notification.remove());
-            notification.appendChild(closeButton);
-            notificationsDiv.appendChild(notification);
-            setTimeout(() => notification.remove(), 5000);
-        }
-
-        async function fetchWithTimeout(url, options, timeout = 5000) {
-            Debug.log(`Iniciando requisição para: ${url}`, options);
-            return Promise.race([
-                fetch(url, options),
-                new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Requisição expirou')), timeout)
-                )
-            ]);
-        }
-
         async function loadUsers() {
             Debug.log('Carregando usuários');
             const usersTableBody = document.getElementById('usersTableBody');
@@ -207,7 +177,7 @@
                 if (!userId || !isAdmin) {
                     throw new Error('Acesso restrito a administradores.');
                 }
-                const res = await fetchWithTimeout(`/api/users?userId=${userId}&isAdmin=true`, {
+                const res = await fetchWithTimeout(`/api/users?userId=${userId}`, {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -216,9 +186,9 @@
                 if (!res.ok) {
                     try {
                         const json = JSON.parse(text);
-                        throw new Error(json.error || `Erro ${res.status}`);
+                        throw new Error(json.error || 'Erro ao carregar usuários');
                     } catch {
-                        throw new Error(`Erro ${res.status}: Resposta inválida do servidor`);
+                        throw new Error('Resposta inválida do servidor');
                     }
                 }
                 const users = JSON.parse(text);
@@ -231,7 +201,7 @@
                         row.innerHTML = `
                             <td>${DOMPurify.sanitize(user.username)}</td>
                             <td>${formatCurrency(user.balance)}</td>
-                            <td>${user.is_admin ? '<i class="fas fa-check text-green-500"></i>' : '<i class="fas fa-times text-red-500"></i>'}</td>
+                            <td>${user.is_admin ? '<i class="fas fa-check text-green-500" aria-label="Administrador"></i>' : '<i class="fas fa-times text-red-500" aria-label="Não administrador"></i>'}</td>
                             <td>${formatDate(user.created_at)}</td>
                         `;
                         usersTableBody.appendChild(row);
@@ -270,9 +240,9 @@
                 if (!res.ok) {
                     try {
                         const json = JSON.parse(text);
-                        throw new Error(json.error || `Erro ${res.status}`);
+                        throw new Error(json.error || 'Erro ao carregar cartões');
                     } catch {
-                        throw new Error(`Erro ${res.status}: Resposta inválida do servidor`);
+                        throw new Error('Resposta inválida do servidor');
                     }
                 }
                 const cards = JSON.parse(text);
@@ -324,42 +294,18 @@
                 if (!res.ok) {
                     try {
                         const json = JSON.parse(text);
-                        throw new Error(json.error || `Erro ${res.status}`);
+                        throw new Error(json.error || 'Erro ao carregar dados do usuário');
                     } catch {
-                        throw new Error(`Erro ${res.status}: Resposta inválida do servidor`);
+                        throw new Error('Resposta inválida do servidor');
                     }
                 }
                 const user = JSON.parse(text);
-                document.getElementById('userBalance').innerHTML = `<i class="fas fa-wallet mr-1"></i> Saldo: ${formatCurrency(user.balance)}`;
+                document.getElementById('userBalance').innerHTML = `<i class="fas fa-wallet mr-1" aria-hidden="true"></i> Saldo: ${formatCurrency(user.balance)}`;
             } catch (err) {
                 Debug.error('Erro ao carregar dados do usuário', { error: err.message });
                 showNotification(err.message, true);
                 localStorage.clear();
                 setTimeout(() => window.location.replace('index.html'), 1000);
-            }
-        }
-
-        async function logout() {
-            Debug.log('Iniciando logout');
-            try {
-                const userId = localStorage.getItem('userId');
-                localStorage.clear();
-                Debug.log('localStorage limpo');
-                if (userId) {
-                    const res = await fetchWithTimeout('/api/logout', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userId })
-                    });
-                    const text = await res.text();
-                    Debug.log(`Resposta /api/logout: Status ${res.status}`, { response: text });
-                }
-                showNotification('Logout realizado com sucesso!');
-                window.location.replace('index.html');
-            } catch (err) {
-                Debug.error('Erro no logout', { error: err.message });
-                showNotification('Erro ao sair.', true);
-                window.location.replace('index.html');
             }
         }
 

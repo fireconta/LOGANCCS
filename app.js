@@ -33,7 +33,8 @@ const connectMongoDB = async () => {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000
+      socketTimeoutMS: 45000,
+      authSource: 'admin' // Garantir autenticação no banco admin
     });
     debug('Conectado ao MongoDB Atlas');
   } catch (err) {
@@ -127,7 +128,7 @@ app.post('/api/register', registerValidation, async (req, res) => {
     });
   } catch (error) {
     debug('Erro no registro: %s - Stack: %s', error.message, error.stack);
-    res.status(500).json({ error: `Erro ao registrar usuário: ${error.message.includes('MongoServerError') ? 'Falha na autenticação do banco. Verifique as credenciais.' : error.message}` });
+    res.status(500).json({ error: `Erro ao registrar usuário: ${error.message.includes('MongoServerError') ? 'Falha na autenticação do banco. Verifique permissões ou configuração.' : error.message}` });
   }
 });
 
@@ -159,7 +160,7 @@ app.post('/api/login', loginValidation, async (req, res) => {
     });
   } catch (error) {
     debug('Erro no login: %s - Stack: %s', error.message, error.stack);
-    res.status(500).json({ error: `Erro ao realizar login: ${error.message.includes('MongoServerError') ? 'Falha na autenticação do banco. Verifique as credenciais.' : error.message}` });
+    res.status(500).json({ error: `Erro ao realizar login: ${error.message.includes('MongoServerError') ? 'Falha na autenticação do banco. Verifique permissões ou configuração.' : error.message}` });
   }
 });
 

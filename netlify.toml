@@ -1,7 +1,8 @@
 [build]
-  base = ""
-  publish = ""
-  functions = ""
+  base = "/"
+  publish = "/"
+  command = ""
+  functions = "."
 
 [[redirects]]
   from = "/api/*"

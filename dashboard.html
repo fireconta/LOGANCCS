@@ -6,8 +6,7 @@
     <title>LOGAN CC's - Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.9/purify.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/inputmask/5.0.8/inputmask.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.7/purify.min.js"></script>
     <style>
         #globalLoader {
             position: fixed;
@@ -15,7 +14,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.7);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -39,18 +38,19 @@
             top: 1rem;
             right: 1rem;
             z-index: 10000;
-            max-width: 300px;
+            max-width: 320px;
         }
         .notification {
             background: #1f2937;
             color: white;
             padding: 1rem;
-            border-radius: 0.375rem;
+            border-radius: 0.5rem;
             margin-bottom: 0.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            animation: slideIn 0.3s ease-out;
         }
         .notification-error {
             background: #ef4444;
@@ -58,49 +58,13 @@
         .notification-success {
             background: #10b981;
         }
-        #debug {
-            position: fixed;
-            bottom: 1rem;
-            left: 1rem;
-            background: #1a202c;
-            color: white;
-            padding: 1rem;
-            border-radius: 0.375rem;
-            max-width: 300px;
-            font-size: 0.75rem;
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .table-container {
+            max-height: 400px;
             overflow-y: auto;
-            max-height: 160px;
-            z-index: 1000;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        .modal.show {
-            display: flex;
-        }
-        .tabs {
-            display: flex;
-            border-bottom: 2px solid #4b5563;
-            margin-bottom: 1rem;
-        }
-        .tab {
-            padding: 0.75rem 1.5rem;
-            cursor: pointer;
-            color: #9ca3af;
-            font-weight: 500;
-        }
-        .tab.active {
-            color: #10b981;
-            border-bottom: 2px solid #10b981;
         }
         table {
             width: 100%;
@@ -109,30 +73,20 @@
         th, td {
             padding: 0.75rem;
             text-align: left;
-            border-bottom: 1px solid #4b5563;
+            border-bottom: 1px solid #374151;
         }
         th {
             background: #1f2937;
-            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
-        .action-button {
-            padding: 0.5rem;
-            border-radius: 0.25rem;
-            color: white;
-            margin-right: 0.5rem;
+        tbody tr:hover {
+            background: #374151;
         }
-        .edit-button {
-            background: #3b82f6;
-        }
-        .edit-button:hover {
-            background: #2563eb;
-        }
-        .delete-button {
-            background: #ef4444;
-        }
-        .delete-button:hover {
-            background: #dc2626;
-        }
+        .debug-info { color: #10b981; }
+        .debug-warn { color: #f59e0b; }
+        .debug-error { color: #ef4444; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen">
@@ -140,893 +94,304 @@
         <div class="spinner"></div>
     </div>
     <div id="notifications" class="space-y-2"></div>
-    <header class="bg-gray-800 p-4 flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-green-500">LOGAN CC's - Dashboard</h1>
+    <header class="bg-gray-800 p-4 flex justify-between items-center sticky top-0 z-10 shadow-lg">
+        <h1 class="text-2xl font-bold text-green-500 flex items-center">
+            <i class="fas fa-tachometer-alt mr-2"></i> LOGAN CC's - Dashboard
+        </h1>
         <div class="flex items-center space-x-4">
-            <button type="button" id="shopButton" class="text-gray-300 hover:text-green-500"><i class="fas fa-store mr-2"></i>Loja</button>
-            <button type="button" id="logoutButton" class="text-gray-300 hover:text-red-500"><i class="fas fa-sign-out-alt"></i>Sair</button>
+            <span id="userBalance" class="text-gray-300 flex items-center">
+                <i class="fas fa-wallet mr-1"></i> Saldo: Carregando...
+            </span>
+            <button type="button" id="shopButton" class="text-gray-300 hover:text-green-500 flex items-center">
+                <i class="fas fa-store mr-2"></i> Loja
+            </button>
+            <button type="button" id="logoutButton" class="text-gray-300 hover:text-red-500 flex items-center">
+                <i class="fas fa-sign-out-alt mr-2"></i> Sair
+            </button>
         </div>
     </header>
     <main class="container mx-auto p-6">
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
+            <h2 class="text-xl font-semibold text-green-500 mb-4 flex items-center">
+                <i class="fas fa-users mr-2"></i> Usuários
+            </h2>
+            <div id="usersLoader" class="text-gray-500 text-center p-4 hidden">
+                <i class="fas fa-spinner fa-2x animate-spin mr-2"></i> Carregando usuários...
+            </div>
+            <div id="usersError" class="text-red-600 text-sm mt-2 hidden" role="alert"></div>
+            <div class="table-container">
+                <table id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>Usuário</th>
+                            <th>Saldo</th>
+                            <th>Admin</th>
+                            <th>Criado em</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody"></tbody>
+                </table>
+            </div>
+        </div>
         <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-            <div class="tabs">
-                <div class="tab active" data-tab="users">Usuários</div>
-                <div class="tab" data-tab="cards">Cartões</div>
-                <div class="tab" data-tab="levels">Níveis</div>
-                <div class="tab" data-tab="transactions">Transações</div>
-                <div class="tab" data-tab="deposit">Depósito</div>
+            <h2 class="text-xl font-semibold text-green-500 mb-4 flex items-center">
+                <i class="fas fa-credit-card mr-2"></i> Cartões Disponíveis
+            </h2>
+            <div id="cardsLoader" class="text-gray-500 text-center p-4 hidden">
+                <i class="fas fa-spinner fa-2x animate-spin mr-2"></i> Carregando cartões...
             </div>
-            <div id="usersTab" class="tab-content">
-                <div class="flex justify-between mb-4">
-                    <div>
-                        <label for="userSearch" class="block text-sm font-medium">Buscar Usuário</label>
-                        <input type="text" id="userSearch" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500 w-64" placeholder="Digite o username">
-                    </div>
-                </div>
-                <div id="userList" class="overflow-x-auto">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th scope="col">Username</th>
-                                <th scope="col">Saldo</th>
-                                <th scope="col">Admin</th>
-                                <th scope="col">Criado Em</th>
-                                <th scope="col">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-            <div id="cardsTab" class="tab-content hidden">
-                <div class="flex justify-between mb-4">
-                    <div>
-                        <label for="cardSearch" class="block text-sm font-medium">Buscar Cartão</label>
-                        <input type="text" id="cardSearch" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500 w-64" placeholder="Digite o número do cartão">
-                    </div>
-                    <button type="button" id="addCardButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-plus mr-2"></i>Adicionar Cartão</button>
-                </div>
-                <div id="cardList" class="overflow-x-auto">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th scope="col">Número</th>
-                                <th scope="col">Bandeira</th>
-                                <th scope="col">Banco</th>
-                                <th scope="col">Nível</th>
-                                <th scope="col">Preço</th>
-                                <th scope="col">Adquirido</th>
-                                <th scope="col">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-            <div id="levelsTab" class="tab-content hidden">
-                <div id="levelList" class="overflow-x-auto">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th scope="col">Nível</th>
-                                <th scope="col">Preço</th>
-                                <th scope="col">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-            <div id="transactionsTab" class="tab-content hidden">
-                <div class="flex justify-between mb-4">
-                    <div>
-                        <label for="transactionUserSearch" class="block text-sm font-medium">Buscar por Usuário</label>
-                        <input type="text" id="transactionUserSearch" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500 w-64" placeholder="Digite o username">
-                    </div>
-                </div>
-                <div id="transactionList" class="overflow-x-auto">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th scope="col">Usuário</th>
-                                <th scope="col">Tipo</th>
-                                <th scope="col">Valor</th>
-                                <th scope="col">Descrição</th>
-                                <th scope="col">Data</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-            <div id="depositTab" class="tab-content hidden">
-                <div class="bg-gray-700 p-4 rounded-lg max-w-md">
-                    <h2 class="text-lg font-semibold mb-4"><i class="fas fa-money-bill-wave mr-2"></i>Adicionar Depósito</h2>
-                    <form id="depositForm" class="space-y-4">
-                        <div>
-                            <label for="depositUsername" class="block text-sm font-medium">Usuário</label>
-                            <input type="text" id="depositUsername" class="mt-1 w-full p-2 bg-gray-600 border border-gray-500 rounded focus:ring-green-500 focus:border-green-500" placeholder="Digite o username" required>
-                        </div>
-                        <div>
-                            <label for="depositAmount" class="block text-sm font-medium">Valor</label>
-                            <input type="number" id="depositAmount" step="0.01" min="0.01" class="mt-1 w-full p-2 bg-gray-600 border border-gray-500 rounded focus:ring-green-500 focus:border-green-500" placeholder="Digite o valor" required>
-                        </div>
-                        <p id="depositError" class="text-red-500 text-sm hidden" role="alert"></p>
-                        <button type="submit" id="depositButton" class="w-full py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center justify-center">
-                            <span>Adicionar Depósito</span>
-                            <svg id="depositSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                            </svg>
-                        </button>
-                    </form>
-                </div>
+            <div id="cardsError" class="text-red-600 text-sm mt-2 hidden" role="alert"></div>
+            <div class="table-container">
+                <table id="cardsTable">
+                    <thead>
+                        <tr>
+                            <th>Número</th>
+                            <th>Bandeira</th>
+                            <th>Banco</th>
+                            <th>Nível</th>
+                            <th>Preço</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cardsTableBody"></tbody>
+                </table>
             </div>
         </div>
     </main>
-    <div id="adminAuthModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="adminAuthTitle">
-        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="adminAuthTitle" class="text-xl font-semibold mb-4"><i class="fas fa-lock mr-2"></i>Autenticação de Admin</h2>
-            <form id="adminAuthForm" class="space-y-4">
-                <div>
-                    <label for="adminPassword" class="block text-sm font-medium">Senha de Admin</label>
-                    <input type="password" id="adminPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Digite a senha de admin" required>
-                </div>
-                <p id="adminAuthError" class="text-red-500 text-sm hidden" role="alert"></p>
-                <div class="flex justify-end space-x-2">
-                    <button type="button" id="cancelAdminAuthButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
-                    <button type="submit" id="adminAuthButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
-                        <span>Autenticar</span>
-                        <svg id="adminAuthSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                        </svg>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-    <div id="editUserModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editUserTitle">
-        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="editUserTitle" class="text-xl font-semibold mb-4"><i class="fas fa-user-edit mr-2"></i>Editar Usuário</h2>
-            <form id="editUserForm" class="space-y-4">
-                <input type="hidden" id="editUserId">
-                <div>
-                    <label for="editUsername" class="block text-sm font-medium">Username</label>
-                    <input type="text" id="editUsername" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" readonly>
-                </div>
-                <div>
-                    <label for="editBalance" class="block text-sm font-medium">Saldo</label>
-                    <input type="number" id="editBalance" step="0.01" min="0" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required>
-                </div>
-                <div>
-                    <label for="editIsAdmin" class="block text-sm font-medium">Admin</label>
-                    <input type="checkbox" id="editIsAdmin" class="mt-1 h-4 w-4 text-green-500 focus:ring-green-500 border-gray-600 rounded">
-                </div>
-                <div>
-                    <label for="editPassword" class="block text-sm font-medium">Nova Senha (opcional)</label>
-                    <input type="password" id="editPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Deixe em branco para não alterar">
-                </div>
-                <p id="editUserError" class="text-red-500 text-sm hidden" role="alert"></p>
-                <div class="flex justify-end space-x-2">
-                    <button type="button" id="cancelEditUserButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
-                    <button type="submit" id="saveUserButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
-                        <span>Salvar</span>
-                        <svg id="saveUserSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                        </svg>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-    <div id="editCardModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editCardTitle">
-        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="editCardTitle" class="text-xl font-semibold mb-4"><i class="fas fa-credit-card mr-2"></option>
-                <option value="Hipercard">Hipercard</option>
-                <option value="Diners Club">Diners Club</option>
-            </select>
-        </div>
-        <div>
-            <label for="editCardBank" class="block text-sm font-medium">Banco</label>
-            <select id="editCardBank" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required>
-                <option value="Nubank">Nubank</option>
-                <option value="Itaú">Itaú</option>
-                <option value="Bradesco">Bradesco</option>
-                <option value="Santander">Santander</option>
-                <option value="Banco do Brasil">Banco do Brasil</option>
-                <option value="Caixa Econômica Federal">Caixa Econômica Federal</option>
-                <option value="Sicredi">Sicredi</option>
-                <option value="Sicoob">Sicoob</option>
-            </select>
-        </div>
-        <div>
-            <label for="editCardLevel" class="block text-sm font-medium">Nível</label>
-            <select id="editCardLevel" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required>
-                <option value="Classic">Classic</option>
-                <option value="Gold">Gold</option>
-                <option value="Platinum">Platinum</option>
-                <option value="Black">Black</option>
-            </select>
-        </div>
-        <p id="editCardError" class="text-red-500 text-sm hidden" role="alert"></p>
-        <div class="flex justify-end space-x-2">
-            <button type="button" id="cancelEditCardButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
-            <button type="submit" id="saveCardButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
-                <span>Salvar</span>
-                <svg id="saveCardSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                </svg>
-            </button>
-        </div>
-    </form>
-</div>
-</div>
-<div id="editLevelModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editLevelTitle">
-    <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
-        <h2 id="editLevelTitle" class="text-xl font-semibold mb-4"><i class="fas fa-tags mr-2"></i>Editar Nível</h2>
-        <form id="editLevelForm" class="space-y-4">
-            <input type="hidden" id="editLevelName">
-            <div>
-                <label for="editLevelPrice" class="block text-sm font-medium">Preço</label>
-                <input type="number" id="editLevelPrice" step="0.01" min="0.01" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required>
-            </div>
-            <p id="editLevelError" class="text-red-500 text-sm hidden" role="alert"></p>
-            <div class="flex justify-end space-x-2">
-                <button type="button" id="cancelEditLevelButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
-                <button type="submit" id="saveLevelButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
-                    <span>Salvar</span>
-                    <svg id="saveLevelSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                    </svg>
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-<div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40"></div>
-<script src="debug.js"></script>
-<script>
-    console.log('dashboard.html carregado');
-
-    function formatCurrency(value) {
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-    }
-
-    function formatDate(dateStr) {
-        const date = new Date(dateStr);
-        return date.toLocaleString('pt-BR');
-    }
-
-    function showNotification(message, isError = false) {
-        const notificationsDiv = document.getElementById('notifications');
-        const notification = document.createElement('div');
-        notification.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
-        notification.textContent = DOMPurify.sanitize(message);
-        const closeButton = document.createElement('button');
-        closeButton.innerHTML = '<i class="fas fa-times"></i>';
-        closeButton.className = 'ml-2 text-white hover:text-gray-300';
-        closeButton.addEventListener('click', () => notification.remove());
-        notification.appendChild(closeButton);
-        notificationsDiv.appendChild(notification);
-        setTimeout(() => notification.remove(), 3000);
-    }
-
-    async function verifyAdmin() {
-        const userId = localStorage.getItem('userId');
-        if (!userId) {
-            throw new Error('Usuário não autenticado.');
+    <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40 hidden"></div>
+    <script src="debug.js"></script>
+    <script>
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
         }
-        return new Promise((resolve, reject) => {
-            const modal = document.getElementById('adminAuthModal');
-            const form = document.getElementById('adminAuthForm');
-            const button = document.getElementById('adminAuthButton');
-            const spinner = document.getElementById('adminAuthSpinner');
-            const errorDiv = document.getElementById('adminAuthError');
-            const cancelButton = document.getElementById('cancelAdminAuthButton');
 
-            modal.classList.add('show');
-            errorDiv.classList.add('hidden');
-
-            const submitHandler = async (e) => {
-                e.preventDefault();
-                button.disabled = true;
-                spinner.classList.remove('hidden');
-                document.getElementById('globalLoader').style.visibility = 'visible';
-                errorDiv.classList.add('hidden');
-
-                try {
-                    const adminPassword = DOMPurify.sanitize(document.getElementById('adminPassword').value);
-                    const res = await fetch('/api/verify-admin', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userId, adminPassword })
-                    });
-                    const data = await res.json();
-                    if (res.status !== 200) {
-                        throw new Error(data.error || 'Falha na autenticação de admin');
-                    }
-                    modal.classList.remove('show');
-                    resolve();
-                } catch (err) {
-                    console.error('Erro na autenticação de admin:', err.message);
-                    errorDiv.textContent = err.message;
-                    errorDiv.classList.remove('hidden');
-                    showNotification('Erro: ' + err.message, true);
-                    reject(err);
-                } finally {
-                    button.disabled = false;
-                    spinner.classList.add('hidden');
-                    document.getElementById('globalLoader').style.visibility = 'hidden';
-                }
-            };
-
-            const cancelHandler = () => {
-                modal.classList.remove('show');
-                reject(new Error('Autenticação cancelada'));
-            };
-
-            form.addEventListener('submit', submitHandler, { once: true });
-            cancelButton.addEventListener('click', cancelHandler, { once: true });
-
-            document.getElementById('adminPassword').focus();
-        });
-    }
-
-    async function loadUsers(search = '') {
-        document.getElementById('globalLoader').style.visibility = 'visible';
-        try {
-            await verifyAdmin();
-            const res = await fetch('/api/admin/users');
-            const users = await res.json();
-            console.log('Usuários carregados:', users);
-            const userTableBody = document.querySelector('#userList table tbody');
-            userTableBody.innerHTML = '';
-            const filteredUsers = users.filter(user => user.username.toLowerCase().includes(search.toLowerCase()));
-            if (filteredUsers.length === 0) {
-                userTableBody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500">Nenhum usuário encontrado.</td></tr>';
-            } else {
-                filteredUsers.forEach(user => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${DOMPurify.sanitize(user.username)}</td>
-                        <td>${formatCurrency(user.balance)}</td>
-                        <td>${user.is_admin ? 'Sim' : 'Não'}</td>
-                        <td>${formatDate(user.created_at)}</td>
-                        <td>
-                            <button class="action-button edit-button edit-user-btn" data-user-id="${user._id}" data-username="${user.username}" data-balance="${user.balance}" data-is-admin="${user.is_admin}"><i class="fas fa-edit"></i></button>
-                            <button class="action-button delete-button delete-user-btn" data-user-id="${user._id}"><i class="fas fa-trash"></i></button>
-                        </td>
-                    `;
-                    userTableBody.appendChild(row);
-                });
-            }
-            showNotification('Usuários carregados com sucesso!');
-        } catch (err) {
-            console.error('Erro ao carregar usuários:', err.message);
-            showNotification('Erro ao carregar usuários.', true);
-        } finally {
-            document.getElementById('globalLoader').style.visibility = 'hidden';
+        function formatDate(dateStr) {
+            return new Date(dateStr).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
         }
-    }
 
-    async function loadCards(search = '') {
-        document.getElementById('globalLoader').style.visibility = 'visible';
-        try {
-            await verifyAdmin();
-            const res = await fetch('/api/admin/cards');
-            const cards = await res.json();
-            console.log('Cartões carregados:', cards);
-            const cardTableBody = document.querySelector('#cardList table tbody');
-            cardTableBody.innerHTML = '';
-            const filteredCards = cards.filter(card => card.numero.includes(search));
-            if (filteredCards.length === 0) {
-                cardTableBody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-500">Nenhum cartão encontrado.</td></tr>';
-            } else {
-                filteredCards.forEach(card => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${DOMPurify.sanitize(card.numero)}</td>
-                        <td>${DOMPurify.sanitize(card.bandeira)}</td>
-                        <td>${DOMPurify.sanitize(card.banco)}</td>
-                        <td>${DOMPurify.sanitize(card.nivel)}</td>
-                        <td>${formatCurrency(card.price)}</td>
-                        <td>${card.acquired ? 'Sim' : 'Não'}</td>
-                        <td>
-                            <button class="action-button edit-button edit-card-btn" data-card-id="${card._id}" data-numero="${card.numero}" data-cvv="${card.cvv}" data-expiry="${card.expiry}" data-name="${card.name}" data-cpf="${card.cpf}" data-bandeira="${card.bandeira}" data-banco="${card.banco}" data-nivel="${card.nivel}"><i class="fas fa-edit"></i></button>
-                            <button class="action-button delete-button delete-card-btn" data-card-id="${card._id}"><i class="fas fa-trash"></i></button>
-                        </td>
-                    `;
-                    cardTableBody.appendChild(row);
-                });
-            }
-            showNotification('Cartões carregados com sucesso!');
-        } catch (err) {
-            console.error('Erro ao carregar cartões:', err.message);
-            showNotification('Erro ao carregar cartões.', true);
-        } finally {
-            document.getElementById('globalLoader').style.visibility = 'hidden';
+        function showNotification(message, isError = false) {
+            Debug.log(`Notificação: ${message}`, { isError });
+            const notificationsDiv = document.getElementById('notifications');
+            const notification = document.createElement('div');
+            notification.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
+            notification.textContent = DOMPurify.sanitize(message);
+            const closeButton = document.createElement('button');
+            closeButton.innerHTML = '<i class="fas fa-times"></i>';
+            closeButton.className = 'ml-2 text-white hover:text-gray-300';
+            closeButton.addEventListener('click', () => notification.remove());
+            notification.appendChild(closeButton);
+            notificationsDiv.appendChild(notification);
+            setTimeout(() => notification.remove(), 5000);
         }
-    }
 
-    async function loadLevels() {
-        document.getElementById('globalLoader').style.visibility = 'visible';
-        try {
-            await verifyAdmin();
-            const res = await fetch('/api/levels');
-            const levels = await res.json();
-            console.log('Níveis carregados:', levels);
-            const levelTableBody = document.querySelector('#levelList table tbody');
-            levelTableBody.innerHTML = '';
-            if (levels.length === 0) {
-                levelTableBody.innerHTML = '<tr><td colspan="3" class="text-center text-gray-500">Nenhum nível encontrado.</td></tr>';
-            } else {
-                levels.forEach(level => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${DOMPurify.sanitize(level.level)}</td>
-                        <td>${formatCurrency(level.price)}</td>
-                        <td>
-                            <button class="action-button edit-button edit-level-btn" data-level="${level.level}" data-price="${level.price}"><i class="fas fa-edit"></i></button>
-                        </td>
-                    `;
-                    levelTableBody.appendChild(row);
-                });
-            }
-            showNotification('Níveis carregados com sucesso!');
-        } catch (err) {
-            console.error('Erro ao carregar níveis:', err.message);
-            showNotification('Erro ao carregar níveis.', true);
-        } finally {
-            document.getElementById('globalLoader').style.visibility = 'hidden';
+        async function fetchWithTimeout(url, options, timeout = 5000) {
+            Debug.log(`Iniciando requisição para: ${url}`, options);
+            return Promise.race([
+                fetch(url, options),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Requisição expirou')), timeout)
+                )
+            ]);
         }
-    }
 
-    async function loadTransactions(search = '') {
-        document.getElementById('globalLoader').style.visibility = 'visible';
-        try {
-            await verifyAdmin();
-            const usersRes = await fetch('/api/admin/users');
-            const users = await usersRes.json();
-            const userMap = users.reduce((map, user) => {
-                map[user._id] = user.username;
-                return map;
-            }, {});
-            const userId = users.find(user => user.username.toLowerCase() === search.toLowerCase())?._id;
-            const query = userId ? `/api/transactions?userId=${userId}` : '';
-            if (!query && search) {
-                showNotification('Usuário não encontrado.', true);
-                document.querySelector('#transactionList table tbody').innerHTML = '<tr><td colspan="5" class="text-center text-gray-500">Nenhum usuário encontrado.</td></tr>';
-                document.getElementById('globalLoader').style.visibility = 'hidden';
-                return;
-            }
-            if (!query) {
-                document.querySelector('#transactionList table tbody').innerHTML = '<tr><td colspan="5" class="text-center text-gray-500">Digite um usuário para buscar transações.</td></tr>';
-                document.getElementById('globalLoader').style.visibility = 'hidden';
-                return;
-            }
-            const res = await fetch(query);
-            const transactions = await res.json();
-            console.log('Transações carregadas:', transactions);
-            const transactionTableBody = document.querySelector('#transactionList table tbody');
-            transactionTableBody.innerHTML = '';
-            if (transactions.length === 0) {
-                transactionTableBody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500">Nenhuma transação encontrada.</td></tr>';
-            } else {
-                transactions.forEach(transaction => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${DOMPurify.sanitize(userMap[transaction.user_id] || 'Desconhecido')}</td>
-                        <td>${DOMPurify.sanitize(transaction.type)}</td>
-                        <td>${formatCurrency(transaction.amount)}</td>
-                        <td>${DOMPurify.sanitize(transaction.description)}</td>
-                        <td>${formatDate(transaction.timestamp)}</td>
-                    `;
-                    transactionTableBody.appendChild(row);
-                });
-            }
-            showNotification('Transações carregadas com sucesso!');
-        } catch (err) {
-            console.error('Erro ao carregar transações:', err.message);
-            showNotification('Erro ao carregar transações.', true);
-        } finally {
-            document.getElementById('globalLoader').style.visibility = 'hidden';
-        }
-    }
-
-    async function addDeposit(username, amount) {
-        const button = document.getElementById('depositButton');
-        const spinner = document.getElementById('depositSpinner');
-        const errorDiv = document.getElementById('depositError');
-        button.disabled = true;
-        spinner.classList.remove('hidden');
-        document.getElementById('globalLoader').style.visibility = 'visible';
-        errorDiv.classList.add('hidden');
-        try {
-            await verifyAdmin();
-            const usersRes = await fetch('/api/admin/users');
-            const users = await usersRes.json();
-            const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
-            if (!user) {
-                throw new Error('Usuário não encontrado.');
-            }
-            const res = await fetch('/api/admin/users', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: user._id, balance: user.balance + amount })
-            });
-            const data = await res.json();
-            if (res.status !== 200) {
-                throw new Error(data.error || 'Erro ao adicionar depósito');
-            }
-            const transactionRes = await fetch('/api/transactions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: user._id,
-                    type: 'deposit',
-                    amount,
-                    description: `Depósito de ${formatCurrency(amount)}`
-                })
-            });
-            if (transactionRes.status !== 200) {
-                throw new Error('Erro ao registrar transação de depósito');
-            }
-            showNotification('Depósito adicionado com sucesso!');
-            document.getElementById('depositForm').reset();
-        } catch (err) {
-            console.error('Erro ao adicionar depósito:', err.message);
-            errorDiv.textContent = err.message;
-            errorDiv.classList.remove('hidden');
-            showNotification('Erro: ' + err.message, true);
-        } finally {
-            button.disabled = false;
-            spinner.classList.add('hidden');
-            document.getElementById('globalLoader').style.visibility = 'hidden';
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', async () => {
-        console.log('DOM carregado');
-        const userId = localStorage.getItem('userId');
-        const isAdmin = localStorage.getItem('is_admin') === 'true';
-        if (!userId || !isAdmin) {
-            showNotification('Acesso restrito a administradores.', true);
-            setTimeout(() => window.location.href = 'index.html', 1000);
-            return;
-        }
-        document.getElementById('globalLoader').style.visibility = 'visible';
-        try {
-            const res = await fetch(`/api/users?userId=${userId}`);
-            if (res.status !== 200) {
-                throw new Error('Sessão inválida. Faça login novamente.');
-            }
-            await loadUsers();
-            setupEventListeners();
-            Inputmask({ mask: '9999 9999 9999 9999' }).mask(document.getElementById('editCardNumber'));
-            Inputmask({ mask: '999' }).mask(document.getElementById('editCardCVV'));
-            Inputmask({ mask: '99/99' }).mask(document.getElementById('editCardExpiry'));
-            Inputmask({ mask: '999.999.999-99' }).mask(document.getElementById('editCardCPF'));
-        } catch (err) {
-            console.error('Erro ao validar usuário:', err.message);
-            showNotification(err.message, true);
-            localStorage.removeItem('userId');
-            localStorage.removeItem('username');
-            localStorage.removeItem('is_admin');
-            setTimeout(() => window.location.href = 'index.html', 1000);
-        } finally {
-            document.getElementById('globalLoader').style.visibility = 'hidden';
-        }
-    });
-
-    function setupEventListeners() {
-        document.getElementById('logoutButton').addEventListener('click', () => {
-            console.log('Saindo...');
-            localStorage.removeItem('userId');
-            localStorage.removeItem('username');
-            localStorage.removeItem('is_admin');
-            window.location.href = 'index.html';
-        });
-        document.getElementById('shopButton').addEventListener('click', () => {
-            window.location.href = 'shop.html';
-        });
-        document.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-                tab.classList.add('active');
-                document.getElementById(`${tab.dataset.tab}Tab`).classList.remove('hidden');
-                if (tab.dataset.tab === 'users') loadUsers(document.getElementById('userSearch').value);
-                else if (tab.dataset.tab === 'cards') loadCards(document.getElementById('cardSearch').value);
-                else if (tab.dataset.tab === 'levels') loadLevels();
-                else if (tab.dataset.tab === 'transactions') loadTransactions(document.getElementById('transactionUserSearch').value);
-            });
-        });
-        document.getElementById('userSearch').addEventListener('input', () => loadUsers(document.getElementById('userSearch').value));
-        document.getElementById('cardSearch').addEventListener('input', () => loadCards(document.getElementById('cardSearch').value));
-        document.getElementById('transactionUserSearch').addEventListener('input', () => loadTransactions(document.getElementById('transactionUserSearch').value));
-        document.getElementById('addCardButton').addEventListener('click', () => {
-            document.getElementById('editCardTitle').textContent = 'Adicionar Cartão';
-            document.getElementById('editCardId').value = '';
-            document.getElementById('editCardForm').reset();
-            document.getElementById('editCardError').classList.add('hidden');
-            document.getElementById('editCardModal').classList.add('show');
-        });
-        document.getElementById('userList').addEventListener('click', async (e) => {
-            if (e.target.closest('.edit-user-btn')) {
-                const btn = e.target.closest('.edit-user-btn');
-                document.getElementById('editUserId').value = btn.dataset.userId;
-                document.getElementById('editUsername').value = btn.dataset.username;
-                document.getElementById('editBalance').value = btn.dataset.balance;
-                document.getElementById('editIsAdmin').checked = btn.dataset.isAdmin === 'true';
-                document.getElementById('editPassword').value = '';
-                document.getElementById('editUserError').classList.add('hidden');
-                document.getElementById('editUserModal').classList.add('show');
-            } else if (e.target.closest('.delete-user-btn')) {
-                const btn = e.target.closest('.delete-user-btn');
-                if (confirm('Tem certeza que deseja excluir este usuário?')) {
-                    document.getElementById('globalLoader').style.visibility = 'visible';
-                    try {
-                        await verifyAdmin();
-                        const res = await fetch('/api/admin/users', {
-                            method: 'DELETE',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ userId: btn.dataset.userId })
-                        });
-                        const data = await res.json();
-                        if (res.status !== 200) {
-                            throw new Error(data.error || 'Erro ao excluir usuário');
-                        }
-                        showNotification('Usuário excluído com sucesso!');
-                        await loadUsers(document.getElementById('userSearch').value);
-                    } catch (err) {
-                        console.error('Erro ao excluir usuário:', err.message);
-                        showNotification('Erro: ' + err.message, true);
-                    } finally {
-                        document.getElementById('globalLoader').style.visibility = 'hidden';
-                    }
-                }
-            }
-        });
-        document.getElementById('editUserForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const button = document.getElementById('saveUserButton');
-            const spinner = document.getElementById('saveUserSpinner');
-            const errorDiv = document.getElementById('editUserError');
-            button.disabled = true;
-            spinner.classList.remove('hidden');
-            document.getElementById('globalLoader').style.visibility = 'visible';
-            errorDiv.classList.add('hidden');
+        async function loadUsers() {
+            Debug.log('Carregando usuários');
+            const usersTableBody = document.getElementById('usersTableBody');
+            const usersLoader = document.getElementById('usersLoader');
+            const usersError = document.getElementById('usersError');
+            usersLoader.classList.remove('hidden');
+            usersError.classList.add('hidden');
+            usersTableBody.innerHTML = '';
             try {
-                await verifyAdmin();
-                const userId = document.getElementById('editUserId').value;
-                const balance = parseFloat(document.getElementById('editBalance').value);
-                const isAdmin = document.getElementById('editIsAdmin').checked;
-                const password = document.getElementById('editPassword').value;
-                if (isNaN(balance) || balance < 0) {
-                    throw new Error('Saldo inválido.');
+                const userId = localStorage.getItem('userId');
+                const isAdmin = localStorage.getItem('is_admin') === 'true';
+                if (!userId || !isAdmin) {
+                    throw new Error('Acesso restrito a administradores.');
                 }
-                if (password && password.length < 4) {
-                    throw new Error('A senha deve ter pelo menos 4 caracteres.');
-                }
-                const updateBody = { userId, balance, is_admin: isAdmin };
-                if (password) updateBody.password = password;
-                const res = await fetch('/api/admin/users', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(updateBody)
+                const res = await fetchWithTimeout(`/api/users?userId=${userId}&isAdmin=true`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
                 });
-                const data = await res.json();
-                if (res.status !== 200) {
-                    throw new Error(data.error || 'Erro ao atualizar usuário');
-                }
-                document.getElementById('editUserModal').classList.remove('show');
-                showNotification('Usuário atualizado com sucesso!');
-                await loadUsers(document.getElementById('userSearch').value);
-            } catch (err) {
-                console.error('Erro ao atualizar usuário:', err.message);
-                errorDiv.textContent = err.message;
-                errorDiv.classList.remove('hidden');
-                showNotification('Erro: ' + err.message, true);
-            } finally {
-                button.disabled = false;
-                spinner.classList.add('hidden');
-                document.getElementById('globalLoader').style.visibility = 'hidden';
-            }
-        });
-        document.getElementById('cancelEditUserButton').addEventListener('click', () => {
-            document.getElementById('editUserModal').classList.remove('show');
-        });
-        document.getElementById('cardList').addEventListener('click', async (e) => {
-            if (e.target.closest('.edit-card-btn')) {
-                const btn = e.target.closest('.edit-card-btn');
-                document.getElementById('editCardTitle').textContent = 'Editar Cartão';
-                document.getElementById('editCardId').value = btn.dataset.cardId;
-                document.getElementById('editCardNumber').value = btn.dataset.numero;
-                document.getElementById('editCardCVV').value = btn.dataset.cvv;
-                document.getElementById('editCardExpiry').value = btn.dataset.expiry;
-                document.getElementById('editCardName').value = btn.dataset.name;
-                document.getElementById('editCardCPF').value = btn.dataset.cpf;
-                document.getElementById('editCardBandeira').value = btn.dataset.bandeira;
-                document.getElementById('editCardBanco').value = btn.dataset.banco;
-                document.getElementById('editCardNivel').value = btn.dataset.nivel;
-                document.getElementById('editCardError').classList.add('hidden');
-                document.getElementById('editCardModal').classList.add('show');
-            } else if (e.target.closest('.delete-card-btn')) {
-                const btn = e.target.closest('.delete-card-btn');
-                if (confirm('Tem certeza que deseja excluir este cartão?')) {
-                    document.getElementById('globalLoader').style.visibility = 'visible';
+                const text = await res.text();
+                Debug.log(`Resposta /api/users: Status ${res.status}`, { response: text });
+                if (!res.ok) {
                     try {
-                        await verifyAdmin();
-                        const res = await fetch('/api/admin/cards', {
-                            method: 'DELETE',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ cardId: btn.dataset.cardId })
-                        });
-                        const data = await res.json();
-                        if (res.status !== 200) {
-                            throw new Error(data.error || 'Erro ao excluir cartão');
-                        }
-                        showNotification('Cartão excluído com sucesso!');
-                        await loadCards(document.getElementById('cardSearch').value);
-                    } catch (err) {
-                        console.error('Erro ao excluir cartão:', err.message);
-                        showNotification('Erro: ' + err.message, true);
-                    } finally {
-                        document.getElementById('globalLoader').style.visibility = 'hidden';
+                        const json = JSON.parse(text);
+                        throw new Error(json.error || `Erro ${res.status}`);
+                    } catch {
+                        throw new Error(`Erro ${res.status}: Resposta inválida do servidor`);
                     }
                 }
-            }
-        });
-        document.getElementById('editCardForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const button = document.getElementById('saveCardButton');
-            const spinner = document.getElementById('saveCardSpinner');
-            const errorDiv = document.getElementById('editCardError');
-            button.disabled = true;
-            spinner.classList.remove('hidden');
-            document.getElementById('globalLoader').style.visibility = 'visible';
-            errorDiv.classList.add('hidden');
-            try {
-                await verifyAdmin();
-                const cardId = document.getElementById('editCardId').value;
-                const numero = document.getElementById('editCardNumber').value.replace(/\s/g, '');
-                const cvv = document.getElementById('editCardCVV').value;
-                const expiry = document.getElementById('editCardExpiry').value;
-                const name = document.getElementById('editCardName').value.trim();
-                const cpf = document.getElementById('editCardCPF').value.replace(/[\.-]/g, '');
-                const bandeira = document.getElementById('editCardBandeira').value;
-                const banco = document.getElementById('editCardBanco').value;
-                const nivel = document.getElementById('editCardNivel').value;
-                if (!numero.match(/^\d{16}$/)) {
-                    throw new Error('Número do cartão inválido.');
-                }
-                if (!cvv.match(/^\d{3}$/)) {
-                    throw new Error('CVV inválido.');
-                }
-                if (!expiry.match(/^\d{2}\/\d{2}$/)) {
-                    throw new Error('Validade inválida.');
-                }
-                if (!name) {
-                    throw new Error('Nome é obrigatório.');
-                }
-                if (!cpf.match(/^\d{11}$/)) {
-                    throw new Error('CPF inválido.');
-                }
-                const cardData = { numero, cvv, expiry, name, cpf, bandeira, banco, nivel };
-                if (cardId) {
-                    cardData.cardId = cardId;
-                    const res = await fetch('/api/admin/cards', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(cardData)
-                    });
-                    const data = await res.json();
-                    if (res.status !== 200) {
-                        throw new Error(data.error || 'Erro ao atualizar cartão');
-                    }
+                const users = JSON.parse(text);
+                Debug.log('Usuários recebidos', { count: users.length });
+                if (users.length === 0) {
+                    usersTableBody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500 py-4">Nenhum usuário encontrado.</td></tr>';
                 } else {
-                    const res = await fetch('/api/admin/cards', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(cardData)
+                    users.forEach(user => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${DOMPurify.sanitize(user.username)}</td>
+                            <td>${formatCurrency(user.balance)}</td>
+                            <td>${user.is_admin ? '<i class="fas fa-check text-green-500"></i>' : '<i class="fas fa-times text-red-500"></i>'}</td>
+                            <td>${formatDate(user.created_at)}</td>
+                        `;
+                        usersTableBody.appendChild(row);
                     });
-                    const data = await res.json();
-                    if (res.status !== 200) {
-                        throw new Error(data.error || 'Erro ao adicionar cartão');
+                }
+                showNotification('Usuários carregados com sucesso!');
+            } catch (err) {
+                Debug.error('Erro ao carregar usuários', { error: err.message });
+                usersError.textContent = err.message;
+                usersError.classList.remove('hidden');
+                showNotification(`Erro: ${err.message}`, true);
+            } finally {
+                usersLoader.classList.add('hidden');
+            }
+        }
+
+        async function loadCards() {
+            Debug.log('Carregando cartões');
+            const cardsTableBody = document.getElementById('cardsTableBody');
+            const cardsLoader = document.getElementById('cardsLoader');
+            const cardsError = document.getElementById('cardsError');
+            cardsLoader.classList.remove('hidden');
+            cardsError.classList.add('hidden');
+            cardsTableBody.innerHTML = '';
+            try {
+                const userId = localStorage.getItem('userId');
+                if (!userId) {
+                    throw new Error('Usuário não autenticado.');
+                }
+                const res = await fetchWithTimeout(`/api/cards?userId=${userId}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const text = await res.text();
+                Debug.log(`Resposta /api/cards: Status ${res.status}`, { response: text });
+                if (!res.ok) {
+                    try {
+                        const json = JSON.parse(text);
+                        throw new Error(json.error || `Erro ${res.status}`);
+                    } catch {
+                        throw new Error(`Erro ${res.status}: Resposta inválida do servidor`);
                     }
                 }
-                document.getElementById('editCardModal').classList.remove('show');
-                showNotification('Cartão salvo com sucesso!');
-                await loadCards(document.getElementById('cardSearch').value);
+                const cards = JSON.parse(text);
+                Debug.log('Cartões recebidos', { count: cards.length });
+                if (cards.length === 0) {
+                    cardsTableBody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500 py-4">Nenhum cartão disponível.</td></tr>';
+                } else {
+                    cards.forEach(card => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>**** **** **** ${DOMPurify.sanitize(card.numero.slice(-4))}</td>
+                            <td>${DOMPurify.sanitize(card.bandeira)}</td>
+                            <td>${DOMPurify.sanitize(card.banco)}</td>
+                            <td>${DOMPurify.sanitize(card.nivel)}</td>
+                            <td>${formatCurrency(card.price)}</td>
+                        `;
+                        cardsTableBody.appendChild(row);
+                    });
+                }
+                showNotification('Cartões carregados com sucesso!');
             } catch (err) {
-                console.error('Erro ao salvar cartão:', err.message);
-                errorDiv.textContent = err.message;
-                errorDiv.classList.remove('hidden');
-                showNotification('Erro: ' + err.message, true);
+                Debug.error('Erro ao carregar cartões', { error: err.message });
+                cardsError.textContent = err.message;
+                cardsError.classList.remove('hidden');
+                showNotification(`Erro: ${err.message}`, true);
             } finally {
-                button.disabled = false;
-                spinner.classList.add('hidden');
-                document.getElementById('globalLoader').style.visibility = 'hidden';
+                cardsLoader.classList.add('hidden');
             }
-        });
-        document.getElementById('cancelEditCardButton').addEventListener('click', () => {
-            document.getElementById('editCardModal').classList.remove('show');
-        });
-        document.getElementById('levelList').addEventListener('click', async (e) => {
-            if (e.target.closest('.edit-level-btn')) {
-                const btn = e.target.closest('.edit-level-btn');
-                document.getElementById('editLevelName').value = btn.dataset.level;
-                document.getElementById('editLevelPrice').value = btn.dataset.price;
-                document.getElementById('editLevelError').classList.add('hidden');
-                document.getElementById('editLevelModal').classList.add('show');
+        }
+
+        async function loadUserData() {
+            Debug.log('Carregando dados do usuário');
+            const userId = localStorage.getItem('userId');
+            const username = localStorage.getItem('username');
+            const isAdmin = localStorage.getItem('is_admin') === 'true';
+            if (!userId || !username || !isAdmin) {
+                showNotification('Acesso restrito a administradores.', true);
+                localStorage.clear();
+                setTimeout(() => window.location.replace('index.html'), 1000);
+                return;
             }
-        });
-        document.getElementById('editLevelForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const button = document.getElementById('saveLevelButton');
-            const spinner = document.getElementById('saveLevelSpinner');
-            const errorDiv = document.getElementById('editLevelError');
-            button.disabled = true;
-            spinner.classList.remove('hidden');
-            document.getElementById('globalLoader').style.visibility = 'visible';
-            errorDiv.classList.add('hidden');
             try {
-                await verifyAdmin();
-                const level = document.getElementById('editLevelName').value;
-                const price = parseFloat(document.getElementById('editLevelPrice').value);
-                if (isNaN(price) || price <= 0) {
-                    throw new Error('Preço deve ser maior que 0.');
-                }
-                const res = await fetch('/api/levels', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ level, price })
+                const res = await fetchWithTimeout(`/api/user?userId=${userId}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
                 });
-                const data = await res.json();
-                if (res.status !== 200) {
-                    throw new Error(data.error || 'Erro ao atualizar nível');
+                const text = await res.text();
+                Debug.log(`Resposta /api/user: Status ${res.status}`, { response: text });
+                if (!res.ok) {
+                    try {
+                        const json = JSON.parse(text);
+                        throw new Error(json.error || `Erro ${res.status}`);
+                    } catch {
+                        throw new Error(`Erro ${res.status}: Resposta inválida do servidor`);
+                    }
                 }
-                document.getElementById('editLevelModal').classList.remove('show');
-                showNotification('Nível atualizado com sucesso!');
-                await loadLevels();
+                const user = JSON.parse(text);
+                document.getElementById('userBalance').innerHTML = `<i class="fas fa-wallet mr-1"></i> Saldo: ${formatCurrency(user.balance)}`;
             } catch (err) {
-                console.error('Erro ao atualizar nível:', err.message);
-                errorDiv.textContent = err.message;
-                errorDiv.classList.remove('hidden');
-                showNotification('Erro: ' + err.message, true);
+                Debug.error('Erro ao carregar dados do usuário', { error: err.message });
+                showNotification(err.message, true);
+                localStorage.clear();
+                setTimeout(() => window.location.replace('index.html'), 1000);
+            }
+        }
+
+        async function logout() {
+            Debug.log('Iniciando logout');
+            try {
+                const userId = localStorage.getItem('userId');
+                localStorage.clear();
+                Debug.log('localStorage limpo');
+                if (userId) {
+                    const res = await fetchWithTimeout('/api/logout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId })
+                    });
+                    const text = await res.text();
+                    Debug.log(`Resposta /api/logout: Status ${res.status}`, { response: text });
+                }
+                showNotification('Logout realizado com sucesso!');
+                window.location.replace('index.html');
+            } catch (err) {
+                Debug.error('Erro no logout', { error: err.message });
+                showNotification('Erro ao sair.', true);
+                window.location.replace('index.html');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            Debug.log('DOM carregado');
+            document.getElementById('globalLoader').style.visibility = 'visible';
+            try {
+                const userId = localStorage.getItem('userId');
+                const isAdmin = localStorage.getItem('is_admin') === 'true';
+                if (!userId || !isAdmin) {
+                    showNotification('Acesso restrito a administradores.', true);
+                    setTimeout(() => window.location.replace('index.html'), 1000);
+                    return;
+                }
+                await loadUserData();
+                await loadUsers();
+                await loadCards();
+                document.getElementById('shopButton').addEventListener('click', () => {
+                    Debug.log('Botão loja clicado');
+                    window.location.href = 'shop.html';
+                });
+                document.getElementById('logoutButton').addEventListener('click', () => {
+                    Debug.log('Botão logout clicado');
+                    logout();
+                });
+            } catch (err) {
+                Debug.error('Erro na inicialização', { error: err.message });
+                showNotification('Erro ao inicializar o dashboard.', true);
             } finally {
-                button.disabled = false;
-                spinner.classList.add('hidden');
                 document.getElementById('globalLoader').style.visibility = 'hidden';
             }
         });
-        document.getElementById('cancelEditLevelButton').addEventListener('click', () => {
-            document.getElementById('editLevelModal').classList.remove('show');
-        });
-        document.getElementById('depositForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = DOMPurify.sanitize(document.getElementById('depositUsername').value.trim());
-            const amount = parseFloat(document.getElementById('depositAmount').value);
-            if (!username) {
-                showNotification('Usuário é obrigatório.', true);
-                return;
-            }
-            if (isNaN(amount) || amount <= 0) {
-                showNotification('Valor deve ser maior que 0.', true);
-                return;
-            }
-            await addDeposit(username, amount);
-        });
-        document.addEventListener('keydown', e => {
-            if (e.key === 'Escape') {
-                document.querySelectorAll('.modal').forEach(modal => modal.classList.remove('show'));
-            }
-        });
-    }
-</script>
+    </script>
 </body>
 </html>

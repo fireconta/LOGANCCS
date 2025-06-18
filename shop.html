@@ -410,6 +410,11 @@
                 localStorage.removeItem('username');
                 localStorage.removeItem('is_admin');
                 console.log('localStorage limpo');
+                fetch('/api/logout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: localStorage.getItem('userId') })
+                }).catch(err => console.error('Erro no logout do backend:', err.message));
                 window.location.replace('index.html');
             } catch (err) {
                 console.error('Erro no logout:', err.message);
@@ -421,6 +426,12 @@
             console.log('DOM carregado');
             document.getElementById('globalLoader').style.visibility = 'visible';
             try {
+                const userId = localStorage.getItem('userId');
+                if (!userId) {
+                    showNotification('Faça login para acessar a loja.', true);
+                    setTimeout(() => window.location.replace('index.html'), 1000);
+                    return;
+                }
                 await loadUserData();
                 await loadCards();
                 setupEventListeners();

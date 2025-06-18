@@ -12,10 +12,14 @@ app.use(express.urlencoded({ extended: true }));
 app.use((req, res, next) => {
   debug(`Requisição recebida: ${req.method} ${req.url}`);
   res.setHeader('Content-Type', 'application/json');
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
   next();
 });
 
-// Servir arquivos estáticos do mesmo diretório
+// Servir arquivos estáticos
 app.use(express.static(__dirname));
 
 // Conexão com MongoDB
@@ -77,6 +81,12 @@ const isValidObjectId = (id) => {
   return mongoose.Types.ObjectId.isValid(id);
 };
 
+// Rota de teste
+app.get('/api/test', (req, res) => {
+  debug('Rota de teste acessada');
+  res.json({ message: 'API funcionando' });
+});
+
 // Endpoints
 app.post('/api/register', async (req, res) => {
   try {
@@ -122,7 +132,6 @@ app.post('/api/login', async (req, res) => {
       debug('Usuário não encontrado:', username);
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
-    // Em produção, use bcrypt
     if (user.password !== password) {
       debug('Senha incorreta para:', username);
       return res.status(401).json({ error: 'Credenciais inválidas' });
@@ -291,6 +300,5 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Erro interno do servidor' });
 });
 
-// Exportar para Netlify
 module.exports = app;
 module.exports.handler = serverless(app);

@@ -5,110 +5,253 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LOGAN CC's - Loja</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <script src="https://cdn.tailwindcss.com/"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.9/purify.min.js"></script>
     <style>
-        body { background-color: #1a202c; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 1rem; }
-        #shopSection { background-color: #2d3748; padding: 2rem; border-radius: 0.5rem; width: 100%; max-width: 600px; }
-        #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; visibility: hidden; }
-        .spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid #10b981; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #notifications { position: fixed; top: 1rem; right: 1rem; z-index: 10000; max-width: 300px; }
-        .notification { background: #1f2937; color: white; padding: 1rem; border-radius: 0.375rem; margin-bottom: 0.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: center; }
-        .notification-error { background: #ef4444; }
-        .notification-success { background: #10b981; }
-        .product-card { background: #2d3748; padding: 1rem; border-radius: 0.25rem; margin-bottom: 1rem; }
-        #debugPanel { position: fixed; bottom: 1rem; right: 1rem; width: 400px; max-height: 300px; background: #1f2937; border: 1px solid #4b5563; border-radius: 0.375rem; z-index: 10001; overflow-y: auto; font-size: 0.75rem; }
-        #debugPanelHeader { background: #111827; padding: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
-        .debug-message { padding: 0.25rem 0.5rem; border-bottom: 1px solid #4b5563; }
-        .debug-log { color: #e2e8f0; }
-        .debug-error { color: #ef4444; }
-        .debug-warn { color: #f59e0b; }
-        .debug-info { color: #10b981; }
+        #globalLoader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            visibility: hidden;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #10b981;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #notifications {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 10000;
+            max-width: 300px;
+        }
+        .notification {
+            background: #1f2937;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .notification-error {
+            background: #ef4444;
+        }
+        .notification-success {
+            background: #10b981;
+        }
+        #debug {
+            position: fixed;
+            bottom: 1rem;
+            left: 1rem;
+            background: #1a202c;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            max-width: 300px;
+            font-size: 0.75rem;
+            overflow-y: auto;
+            max-height: 160px;
+            z-index: 1000;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal.show {
+            display: flex;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #4b5563;
+        }
+        th {
+            background: #1f2937;
+            font-weight: 600;
+        }
+        .action-button {
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            background: #3b82f6;
+            color: white;
+        }
+        .action-button:hover {
+            background: #2563eb;
+        }
     </style>
 </head>
-<body>
-    <div id="globalLoader"><div class="spinner"></div></div>
-    <div id="notifications" class="space-y-2"></div>
-    <div id="debugPanel" class="hidden">
-        <div id="debugPanelHeader">
-            <span class="text-white font-semibold">Debug Console</span>
-            <button id="clearDebugButton" class="text-gray-400 hover:text-white"><i class="fas fa-trash"></i></button>
-        </div>
-        <div id="debugMessages"></div>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    <div id="globalLoader">
+        <div class="spinner"></div>
     </div>
-    <header class="w-full bg-gray-800 p-4 flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-green-500">LOGAN CC's</h1>
-        <div id="userInfo" class="flex items-center space-x-4">
-            <span id="usernameDisplay" class="text-gray-300"></span>
-            <span id="balanceDisplay" class="text-green-500"></span>
-            <button id="adminButton" class="hidden py-1 px-3 bg-blue-500 text-white rounded hover:bg-blue-600"><i class="fas fa-tachometer-alt mr-2"></i>Dashboard</button>
-            <button id="logoutButton" class="text-red-500 hover:text-red-600"><i class="fas fa-sign-out-alt"></i></button>
+    <div id="notifications" class="space-y-2"></div>
+    <header class="bg-gray-800 p-4 flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-green-500">LOGAN CC's - Loja</h1>
+        <div class="flex items-center space-x-4">
+            <span id="userBalance" class="text-gray-300"></span>
+            <button type="button" id="dashboardButton" class="text-gray-300 hover:text-green-500 hidden"><i class="fas fa-tachometer-alt mr-2"></i>Dashboard</button>
+            <button type="button" id="logoutButton" class="text-gray-300 hover:text-red-500"><i class="fas fa-sign-out-alt"></i>Sair</button>
         </div>
     </header>
-    <section id="shopSection" class="mx-4">
-        <h2 class="text-xl font-semibold text-green-600 mb-4 text-center">Loja</h2>
-        <div id="productList" class="space-y-4"></div>
-    </section>
+    <main class="container mx-auto p-6">
+        <div class="bg-gray-800 p-4 rounded-lg mb-6">
+            <h2 class="text-xl font-semibold mb-4"><i class="fas fa-credit-card mr-2"></i>Cartões Disponíveis</h2>
+            <div class="flex flex-wrap gap-4 mb-4">
+                <div>
+                    <label for="filterBandeira" class="block text-sm font-medium">Bandeira</label>
+                    <select id="filterBandeira" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500">
+                        <option value="">Todas</option>
+                        <option value="Visa">Visa</option>
+                        <option value="Mastercard">Mastercard</option>
+                        <option value="Amex">Amex</option>
+                        <option value="Elo">Elo</option>
+                        <option value="Hipercard">Hipercard</option>
+                        <option value="Diners Club">Diners Club</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filterBanco" class="block text-sm font-medium">Banco</label>
+                    <select id="filterBanco" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500">
+                        <option value="">Todos</option>
+                        <option value="Nubank">Nubank</option>
+                        <option value="Itaú">Itaú</option>
+                        <option value="Bradesco">Bradesco</option>
+                        <option value="Santander">Santander</option>
+                        <option value="Banco do Brasil">Banco do Brasil</option>
+                        <option value="Caixa Econômica Federal">Caixa Econômica Federal</option>
+                        <option value="Sicredi">Sicredi</option>
+                        <option value="Sicoob">Sicoob</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filterNivel" class="block text-sm font-medium">Nível</label>
+                    <select id="filterNivel" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500">
+                        <option value="">Todos</option>
+                        <option value="Classic">Classic</option>
+                        <option value="Gold">Gold</option>
+                        <option value="Platinum">Platinum</option>
+                        <option value="Black">Black</option>
+                    </select>
+                </div>
+            </div>
+            <div id="cardList" class="overflow-x-auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">Número</th>
+                            <th scope="col">Bandeira</th>
+                            <th scope="col">Banco</th>
+                            <th scope="col">Nível</th>
+                            <th scope="col">Preço</th>
+                            <th scope="col">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+    <div id="buyCardModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="buyCardTitle">
+        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h2 id="buyCardTitle" class="text-xl font-semibold mb-4"><i class="fas fa-shopping-cart mr-2"></i>Comprar Cartão</h2>
+            <div class="space-y-4">
+                <p id="cardDetails" class="text-sm"></p>
+                <p id="balanceInfo" class="text-sm"></p>
+            </div>
+            <p id="buyCardError" class="text-red-500 text-sm hidden" role="alert"></p>
+            <div class="flex justify-end space-x-2 mt-4">
+                <button type="button" id="cancelBuyButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
+                <button type="button" id="confirmBuyButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
+                    <span>Comprar</span>
+                    <svg id="buySpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40"></div>
+    <script src="debug.js"></script>
     <script>
-        // Inicializar painel de debug
-        const debugPanel = document.getElementById('debugPanel');
-        const debugMessages = document.getElementById('debugMessages');
-        const clearDebugButton = document.getElementById('clearDebugButton');
-        const maxMessages = 50;
-        debugPanel.classList.remove('hidden');
+        console.log('shop.html carregado');
+        let currentCardId = null;
+        let userBalance = 0;
 
-        function addDebugMessage(message, type = 'log') {
-            const div = document.createElement('div');
-            div.className = `debug-message debug-${type}`;
-            const timestamp = new Date().toLocaleTimeString('pt-BR');
-            div.textContent = `[${timestamp}] ${message}`;
-            debugMessages.appendChild(div);
-            while (debugMessages.children.length > maxMessages) {
-                debugMessages.removeChild(debugMessages.firstChild);
-            }
-            debugMessages.scrollTop = debugMessages.scrollHeight;
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
         }
 
-        // Sobrescrever funções de console
-        const originalConsole = {
-            log: console.log,
-            error: console.error,
-            warn: console.warn,
-            info: console.info
-        };
-        console.log = (...args) => {
-            addDebugMessage(args.join(' '), 'log');
-            originalConsole.log(...args);
-        };
-        console.error = (...args) => {
-            addDebugMessage(args.join(' '), 'error');
-            originalConsole.error(...args);
-        };
-        console.warn = (...args) => {
-            addDebugMessage(args.join(' '), 'warn');
-            originalConsole.warn(...args);
-        };
-        console.info = (...args) => {
-            addDebugMessage(args.join(' '), 'info');
-            originalConsole.info(...args);
-        };
-
-        clearDebugButton.addEventListener('click', () => {
-            debugMessages.innerHTML = '';
-            console.log('Debug panel cleared');
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('DOM carregado');
+            const userId = localStorage.getItem('userId');
+            const isAdmin = localStorage.getItem('is_admin') === 'true';
+            if (!userId) {
+                showNotification('Faça login para acessar a loja.', true);
+                setTimeout(() => window.location.href = 'index.html', 1000);
+                return;
+            }
+            document.getElementById('globalLoader').style.visibility = 'visible';
+            try {
+                const res = await fetch(`/api/users?userId=${userId}`);
+                if (res.status !== 200) {
+                    throw new Error('Sessão inválida. Faça login novamente.');
+                }
+                const user = await res.json();
+                userBalance = user.balance;
+                document.getElementById('userBalance').textContent = `Saldo: ${formatCurrency(userBalance)}`;
+                if (isAdmin) {
+                    document.getElementById('dashboardButton').classList.remove('hidden');
+                }
+                await loadCards();
+                setupEventListeners();
+            } catch (err) {
+                console.error('Erro ao validar usuário:', err.message);
+                showNotification(err.message, true);
+                localStorage.removeItem('userId');
+                localStorage.removeItem('username');
+                localStorage.removeItem('is_admin');
+                setTimeout(() => window.location.href = 'index.html', 1000);
+            } finally {
+                document.getElementById('globalLoader').style.visibility = 'hidden';
+            }
         });
 
-        // Funções existentes
-        function sanitizeInput(input) {
-            return typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(input) : input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '').replace(/[<>]/g, '');
-        }
         function showNotification(message, isError = false) {
-            console.log(`Notification: ${message}, Error: ${isError}`);
             const notificationsDiv = document.getElementById('notifications');
             const notification = document.createElement('div');
             notification.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
-            notification.textContent = sanitizeInput(message);
+            notification.textContent = DOMPurify.sanitize(message);
             const closeButton = document.createElement('button');
             closeButton.innerHTML = '<i class="fas fa-times"></i>';
             closeButton.className = 'ml-2 text-white hover:text-gray-300';
@@ -117,124 +260,126 @@
             notificationsDiv.appendChild(notification);
             setTimeout(() => notification.remove(), 3000);
         }
-        async function loadUserData() {
-            console.log('Carregando dados do usuário');
-            const userId = localStorage.getItem('userId');
+
+        async function loadCards() {
+            document.getElementById('globalLoader').style.visibility = 'visible';
             try {
-                console.log(`Enviando requisição para /api/user com userId: ${userId}`);
-                const res = await fetch('/api/user', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId })
-                });
-                console.log(`Resposta de /api/user: status=${res.status}`);
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Erro ao carregar dados do usuário');
-                document.getElementById('usernameDisplay').textContent = data.username;
-                document.getElementById('balanceDisplay').textContent = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.balance);
-                if (data.is_admin) {
-                    console.log('Usuário é admin, exibindo botão de dashboard');
-                    document.getElementById('adminButton').classList.remove('hidden');
-                }
-                console.info(`Dados do usuário carregados: username=${data.username}, balance=${data.balance}`);
-            } catch (err) {
-                console.error(`Erro ao carregar dados do usuário: ${err.message}`);
-                showNotification(`Erro: ${err.message}`, true);
-                localStorage.removeItem('userId');
-                window.location.href = 'index.html';
-            }
-        }
-        async function loadShop() {
-            console.log('Carregando loja');
-            const shopSection = document.getElementById('shopSection');
-            const productList = document.getElementById('productList');
-            const userId = localStorage.getItem('userId');
-            shopSection.classList.remove('hidden');
-            try {
-                console.log(`Enviando requisição para /api/cards com userId: ${userId}`);
-                const res = await fetch('/api/cards', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId })
-                });
-                console.log(`Resposta de /api/cards: status=${res.status}`);
+                const bandeira = document.getElementById('filterBandeira').value;
+                const banco = document.getElementById('filterBanco').value;
+                const nivel = document.getElementById('filterNivel').value;
+                let query = '/api/cards?';
+                if (bandeira) query += `bandeira=${encodeURIComponent(bandeira)}&`;
+                if (banco) query += `banco=${encodeURIComponent(banco)}&`;
+                if (nivel) query += `nivel=${encodeURIComponent(nivel)}&`;
+                const res = await fetch(query);
                 const cards = await res.json();
-                if (!res.ok) throw new Error(cards.error || 'Erro ao carregar cartões');
-                productList.innerHTML = cards.length === 0 ? '<p class="text-gray-500 text-center">Nenhum cartão disponível.</p>' : '';
-                console.info(`Cartões carregados: ${cards.length} itens`);
-                for (const card of cards) {
-                    console.log(`Carregando nível para cartão: ${card.nivel}`);
-                    const levelRes = await fetch('/api/levels');
-                    const levels = await levelRes.json();
-                    console.log(`Resposta de /api/levels: status=${levelRes.status}`);
-                    const price = levels.find(l => l.level === card.nivel)?.price || 0;
-                    const cardDiv = document.createElement('div');
-                    cardDiv.className = 'product-card';
-                    cardDiv.innerHTML = `
-                        <h3 class="text-lg font-medium">${sanitizeInput(card.nivel)}</h3>
-                        <p class="text-gray-400">${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price)}</p>
-                        <button class="mt-2 py-1 px-3 bg-green-500 text-white rounded hover:bg-green-600 buy-button" data-card-id="${card._id}">Comprar</button>
-                    `;
-                    productList.appendChild(cardDiv);
+                console.log('Cartões carregados:', cards);
+                const cardTableBody = document.querySelector('#cardList table tbody');
+                cardTableBody.innerHTML = '';
+                if (cards.length === 0) {
+                    cardTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500">Nenhum cartão disponível.</td></tr>';
+                } else {
+                    cards.forEach(card => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${DOMPurify.sanitize(card.numero)}</td>
+                            <td>${DOMPurify.sanitize(card.bandeira)}</td>
+                            <td>${DOMPurify.sanitize(card.banco)}</td>
+                            <td>${DOMPurify.sanitize(card.nivel)}</td>
+                            <td>${formatCurrency(card.price)}</td>
+                            <td>
+                                <button class="action-button buy-card-btn" data-card-id="${card._id}" data-price="${card.price}" data-numero="${card.numero}" data-bandeira="${card.bandeira}" data-banco="${card.banco}" data-nivel="${card.nivel}"><i class="fas fa-shopping-cart mr-1"></i>Comprar</button>
+                            </td>
+                        `;
+                        cardTableBody.appendChild(row);
+                    });
                 }
-                productList.addEventListener('click', async (e) => {
-                    if (e.target.classList.contains('buy-button')) {
-                        const cardId = e.target.dataset.cardId;
-                        console.log(`Iniciando compra do cartão: ${cardId}`);
-                        const btn = e.target;
-                        btn.disabled = true;
-                        document.getElementById('globalLoader').style.visibility = 'visible';
-                        try {
-                            console.log(`Enviando requisição para /api/purchase com userId: ${userId}, cardId: ${cardId}`);
-                            const res = await fetch('/api/purchase', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ userId, cardId })
-                            });
-                            console.log(`Resposta de /api/purchase: status=${res.status}`);
-                            const data = await res.json();
-                            if (!res.ok) throw new Error(data.error || 'Erro na compra');
-                            showNotification('Compra realizada com sucesso!');
-                            document.getElementById('balanceDisplay').textContent = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.newBalance);
-                            console.info(`Compra realizada, novo saldo: ${data.newBalance}`);
-                            await loadShop();
-                        } catch (err) {
-                            console.error(`Erro na compra: ${err.message}`);
-                            showNotification(`Erro: ${err.message}`, true);
-                        } finally {
-                            btn.disabled = false;
-                            document.getElementById('globalLoader').style.visibility = 'hidden';
-                            console.log('Finalizado processo de compra');
-                        }
-                    }
-                });
+                showNotification('Cartões carregados com sucesso!');
             } catch (err) {
-                console.error(`Erro ao carregar loja: ${err.message}`);
-                showNotification(`Erro ao buscar cartões: ${err.message}`, true);
+                console.error('Erro ao carregar cartões:', err.message);
+                showNotification('Erro ao carregar cartões.', true);
+            } finally {
+                document.getElementById('globalLoader').style.visibility = 'hidden';
             }
         }
-        document.addEventListener('DOMContentLoaded', async () => {
-            console.log('Página shop carregada');
-            const userId = localStorage.getItem('userId');
-            if (!userId) {
-                console.error('Nenhum userId encontrado no localStorage, redirecionando para index.html');
-                window.location.href = 'index.html';
-                return;
+
+        async function buyCard(cardId, price, numero, bandeira, banco, nivel) {
+            const btn = document.getElementById('confirmBuyButton');
+            const spinner = document.getElementById('buySpinner');
+            const errorDiv = document.getElementById('buyCardError');
+            btn.disabled = true;
+            spinner.classList.remove('hidden');
+            document.getElementById('globalLoader').style.visibility = 'visible';
+            errorDiv.classList.add('hidden');
+            try {
+                const res = await fetch('/api/transactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: localStorage.getItem('userId'), cardId })
+                });
+                const data = await res.json();
+                if (res.status !== 200) {
+                    throw new Error(data.error || 'Erro ao comprar cartão');
+                }
+                userBalance = data.newBalance;
+                document.getElementById('userBalance').textContent = `Saldo: ${formatCurrency(userBalance)}`;
+                document.getElementById('buyCardModal').classList.remove('show');
+                await loadCards();
+                showNotification('Cartão comprado com sucesso!');
+            } catch (err) {
+                console.error('Erro ao comprar cartão:', err.message);
+                errorDiv.textContent = err.message;
+                errorDiv.classList.remove('hidden');
+                showNotification('Erro: ' + err.message, true);
+            } finally {
+                btn.disabled = false;
+                spinner.classList.add('hidden');
+                document.getElementById('globalLoader').style.visibility = 'hidden';
             }
-            console.log(`Usuário logado com userId: ${userId}`);
-            await loadUserData();
-            await loadShop();
+        }
+
+        function setupEventListeners() {
             document.getElementById('logoutButton').addEventListener('click', () => {
-                console.log('Logout iniciado');
+                console.log('Saindo...');
                 localStorage.removeItem('userId');
+                localStorage.removeItem('username');
+                localStorage.removeItem('is_admin');
                 window.location.href = 'index.html';
-                console.log('Redirecionado para index.html após logout');
             });
-            document.getElementById('adminButton').addEventListener('click', () => {
-                console.log('Clicado em Dashboard, redirecionando para dashboard.html');
+            document.getElementById('dashboardButton').addEventListener('click', () => {
                 window.location.href = 'dashboard.html';
             });
-        });
+            document.getElementById('filterBandeira').addEventListener('change', loadCards);
+            document.getElementById('filterBanco').addEventListener('change', loadCards);
+            document.getElementById('filterNivel').addEventListener('change', loadCards);
+            document.getElementById('cardList').addEventListener('click', (e) => {
+                if (e.target.closest('.buy-card-btn')) {
+                    const btn = e.target.closest('.buy-card-btn');
+                    currentCardId = btn.dataset.cardId;
+                    const price = parseFloat(btn.dataset.price);
+                    const numero = btn.dataset.numero;
+                    const bandeira = btn.dataset.bandeira;
+                    const banco = btn.dataset.banco;
+                    const nivel = btn.dataset.nivel;
+                    document.getElementById('cardDetails').innerHTML = DOMPurify.sanitize(
+                        `Cartão: ${numero}<br>Bandeira: ${bandeira}<br>Banco: ${banco}<br>Nível: ${nivel}<br>Preço: ${formatCurrency(price)}`
+                    );
+                    document.getElementById('balanceInfo').innerHTML = DOMPurify.sanitize(
+                        `Seu saldo: ${formatCurrency(userBalance)}`
+                    );
+                    document.getElementById('buyCardModal').classList.add('show');
+                    document.getElementById('confirmBuyButton').onclick = () => buyCard(currentCardId, price, numero, bandeira, banco, nivel);
+                }
+            });
+            document.getElementById('cancelBuyButton').addEventListener('click', () => {
+                document.getElementById('buyCardModal').classList.remove('show');
+            });
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Escape') {
+                    document.getElementById('buyCardModal').classList.remove('show');
+                }
+            });
+        }
     </script>
 </body>
 </html>

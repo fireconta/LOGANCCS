@@ -3,117 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOGAN CC's - Login/Registro</title>
+    <title>LOGAN CC's - Login</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <script src="https://cdn.tailwindcss.com/"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #1a202c; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 1rem; }
-        #loginSection, #registerSection { background-color: #2d3748; padding: 2rem; border-radius: 0.5rem; width: 100%; max-width: 400px; }
-        #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; visibility: hidden; }
-        .spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid #10b981; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #notifications { position: fixed; top: 1rem; right: 1rem; z-index: 10000; max-width: 300px; }
-        .notification { background: #1f2937; color: white; padding: 1rem; border-radius: 0.375rem; margin-bottom: 0.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: center; }
-        .notification-error { background: #ef4444; }
-        .notification-success { background: #10b981; }
-        #debugPanel { position: fixed; bottom: 1rem; right: 1rem; width: 400px; max-height: 300px; background: #1f2937; border: 1px solid #4b5563; border-radius: 0.375rem; z-index: 10001; overflow-y: auto; font-size: 0.75rem; }
-        #debugPanelHeader { background: #111827; padding: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
-        .debug-message { padding: 0.25rem 0.5rem; border-bottom: 1px solid #4b5563; }
-        .debug-log { color: #e2e8f0; }
-        .debug-error { color: #ef4444; }
-        .debug-warn { color: #f59e0b; }
-        .debug-info { color: #10b981; }
+        #globalLoader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            visibility: hidden;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #10b981;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #notifications {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 10000;
+            max-width: 300px;
+        }
+        .notification {
+            background: #1f2937;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .notification-error {
+            background: #ef4444;
+        }
+        .notification-success {
+            background: #10b981;
+        }
+        #debug {
+            position: fixed;
+            bottom: 1rem;
+            left: 1rem;
+            background: #1a202c;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            max-width: 300px;
+            font-size: 0.75rem;
+            overflow-y: auto;
+            max-height: 160px;
+            z-index: 1000;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal.show {
+            display: flex;
+        }
     </style>
 </head>
-<body>
-    <div id="globalLoader"><div class="spinner"></div></div>
-    <div id="notifications" class="space-y-2"></div>
-    <div id="debugPanel" class="hidden">
-        <div id="debugPanelHeader">
-            <span class="text-white font-semibold">Debug Console</span>
-            <button id="clearDebugButton" class="text-gray-400 hover:text-white"><i class="fas fa-trash"></i></button>
-        </div>
-        <div id="debugMessages"></div>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center">
+    <div id="globalLoader">
+        <div class="spinner"></div>
     </div>
-    <header class="w-full bg-gray-800 p-4 flex justify-center items-center mb-6">
-        <h1 class="text-2xl font-bold text-green-500">LOGAN CC's</h1>
-    </header>
-    <section id="loginSection" class="mx-4">
-        <h2 class="text-xl font-semibold text-green-600 mb-4 text-center">Login</h2>
-        <div class="space-y-4">
-            <div><label for="loginUsername" class="block text-sm font-medium">Usuário</label><input type="text" id="loginUsername" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required aria-describedby="loginError"></div>
-            <div><label for="loginPassword" class="block text-sm font-medium">Senha</label><input type="password" id="loginPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required aria-describedby="loginError"></div>
+    <div id="notifications" class="space-y-2"></div>
+    <div class="bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
+        <h1 class="text-2xl font-bold text-green-500 mb-6 text-center">LOGAN CC's - Login</h1>
+        <form id="loginForm" class="space-y-4">
+            <div>
+                <label for="username" class="block text-sm font-medium">Usuário</label>
+                <input type="text" id="username" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Digite seu usuário" required pattern="[a-zA-Z0-9]{3,}" aria-describedby="loginError">
+            </div>
+            <div>
+                <label for="password" class="block text-sm font-medium">Senha</label>
+                <input type="password" id="password" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Digite sua senha" required minlength="4" aria-describedby="loginError">
+            </div>
             <p id="loginError" class="text-red-500 text-sm hidden" role="alert"></p>
-            <button type="submit" id="loginButton" class="w-full py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center justify-center"><span>Entrar</span><svg id="loginSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg></button>
-            <p class="text-center text-sm text-gray-400">Não tem uma conta? <a href="#" id="showRegisterLink" class="text-green-500 hover:underline">Registre-se</a></p>
+            <button type="submit" id="loginButton" class="w-full py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center justify-center">
+                <span>Entrar</span>
+                <svg id="loginSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+            </button>
+        </form>
+        <p class="mt-4 text-center">
+            Não tem uma conta? <a href="#" id="registerLink" class="text-green-500 hover:underline">Registre-se</a>
+        </p>
+    </div>
+    <div id="registerModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="registerTitle">
+        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h2 id="registerTitle" class="text-xl font-semibold mb-4"><i class="fas fa-user-plus mr-2"></i>Registrar Novo Usuário</h2>
+            <form id="registerForm" class="space-y-4">
+                <div>
+                    <label for="registerUsername" class="block text-sm font-medium">Usuário</label>
+                    <input type="text" id="registerUsername" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Digite seu usuário" required pattern="[a-zA-Z0-9]{3,}" aria-describedby="registerError">
+                </div>
+                <div>
+                    <label for="registerPassword" class="block text-sm font-medium">Senha</label>
+                    <input type="password" id="registerPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Digite sua senha" required minlength="4" aria-describedby="registerError">
+                </div>
+                <div>
+                    <label for="confirmPassword" class="block text-sm font-medium">Confirmar Senha</label>
+                    <input type="password" id="confirmPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Confirme sua senha" required minlength="4" aria-describedby="registerError">
+                </div>
+                <p id="registerError" class="text-red-500 text-sm hidden" role="alert"></p>
+                <div class="flex justify-end space-x-2">
+                    <button type="button" id="cancelRegisterButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
+                    <button type="submit" id="registerButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
+                        <span>Registrar</span>
+                        <svg id="registerSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </form>
         </div>
-    </section>
-    <section id="registerSection" class="mx-4 hidden">
-        <h2 class="text-xl font-semibold text-green-600 mb-4 text-center">Registro</h2>
-        <div class="space-y-4">
-            <div><label for="registerUsername" class="block text-sm font-medium">Usuário</label><input type="text" id="registerUsername" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required pattern="[a-zA-Z0-9_]{3,}" aria-describedby="registerError" title="Mínimo 3 caracteres, apenas letras, números ou _"></div>
-            <div><label for="registerPassword" class="block text-sm font-medium">Senha</label><input type="password" id="registerPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required minlength="6" aria-describedby="registerError" title="Mínimo 6 caracteres"></div>
-            <p id="registerError" class="text-red-500 text-sm hidden" role="alert"></p>
-            <button type="submit" id="registerButton" class="w-full py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center justify-center"><span>Registrar</span><svg id="registerSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg></button>
-            <p class="text-center text-sm text-gray-400">Já tem uma conta? <a href="#" id="showLoginLink" class="text-green-500 hover:underline">Faça login</a></p>
-        </div>
-    </section>
+    </div>
+    <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40"></div>
+    <script src="debug.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.9/purify.min.js"></script>
     <script>
-        // Inicializar painel de debug
-        const debugPanel = document.getElementById('debugPanel');
-        const debugMessages = document.getElementById('debugMessages');
-        const clearDebugButton = document.getElementById('clearDebugButton');
-        const maxMessages = 50;
-        debugPanel.classList.remove('hidden');
+        console.log('index.html carregado');
 
-        function addDebugMessage(message, type = 'log') {
-            const div = document.createElement('div');
-            div.className = `debug-message debug-${type}`;
-            const timestamp = new Date().toLocaleTimeString('pt-BR');
-            div.textContent = `[${timestamp}] ${message}`;
-            debugMessages.appendChild(div);
-            while (debugMessages.children.length > maxMessages) {
-                debugMessages.removeChild(debugMessages.firstChild);
-            }
-            debugMessages.scrollTop = debugMessages.scrollHeight;
-        }
-
-        // Sobrescrever funções de console
-        const originalConsole = {
-            log: console.log,
-            error: console.error,
-            warn: console.warn,
-            info: console.info
-        };
-        console.log = (...args) => {
-            addDebugMessage(args.join(' '), 'log');
-            originalConsole.log(...args);
-        };
-        console.error = (...args) => {
-            addDebugMessage(args.join(' '), 'error');
-            originalConsole.error(...args);
-        };
-        console.warn = (...args) => {
-            addDebugMessage(args.join(' '), 'warn');
-            originalConsole.warn(...args);
-        };
-        console.info = (...args) => {
-            addDebugMessage(args.join(' '), 'info');
-            originalConsole.info(...args);
-        };
-
-        clearDebugButton.addEventListener('click', () => {
-            debugMessages.innerHTML = '';
-            console.log('Debug panel cleared');
-        });
-
-        // Funções existentes
         function sanitizeInput(input) {
-            return typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(input) : input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '').replace(/[<>]/g, '');
+            if (typeof DOMPurify !== 'undefined' && DOMPurify.sanitize) {
+                return DOMPurify.sanitize(input);
+            }
+            console.warn('DOMPurify não está disponível. Usando sanitização básica.');
+            return input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                        .replace(/[<>]/g, '');
         }
+
         function showNotification(message, isError = false) {
-            console.log(`Notification: ${message}, Error: ${isError}`);
             const notificationsDiv = document.getElementById('notifications');
             const notification = document.createElement('div');
             notification.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
@@ -126,109 +174,162 @@
             notificationsDiv.appendChild(notification);
             setTimeout(() => notification.remove(), 3000);
         }
-        function toggleSections(showLogin) {
-            console.log(`Toggling sections: showLogin=${showLogin}`);
-            document.getElementById('loginSection').classList.toggle('hidden', !showLogin);
-            document.getElementById('registerSection').classList.toggle('hidden', showLogin);
-            document.getElementById('loginError').classList.add('hidden');
-            document.getElementById('registerError').classList.add('hidden');
-        }
-        async function handleLogin() {
-            console.log('Iniciando login');
-            const btn = document.getElementById('loginButton');
-            const spinner = document.getElementById('loginSpinner');
-            const errorDiv = document.getElementById('loginError');
-            btn.disabled = true;
-            spinner.classList.remove('hidden');
-            document.getElementById('globalLoader').style.visibility = 'visible';
-            errorDiv.classList.add('hidden');
-            try {
-                const username = sanitizeInput(document.getElementById('loginUsername').value.trim());
-                const password = sanitizeInput(document.getElementById('loginPassword').value);
-                console.log(`Tentando login com usuário: ${username}`);
-                if (!username || !password) throw new Error('Preencha usuário e senha.');
-                const res = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-                console.log(`Resposta do login: status=${res.status}`);
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || `Erro HTTP ${res.status}`);
-                localStorage.setItem('userId', data.userId);
-                console.log(`Login bem-sucedido, userId: ${data.userId}`);
-                showNotification('Login bem-sucedido!');
-                window.location.href = 'shop.html';
-            } catch (err) {
-                console.error(`Erro no login: ${err.message}`);
-                errorDiv.textContent = err.message;
-                errorDiv.classList.remove('hidden');
-                showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                btn.disabled = false;
-                spinner.classList.add('hidden');
-                document.getElementById('globalLoader').style.visibility = 'hidden';
-                console.log('Finalizado login');
-            }
-        }
-        async function handleRegister() {
-            console.log('Iniciando registro');
-            const btn = document.getElementById('registerButton');
-            const spinner = document.getElementById('registerSpinner');
-            const errorDiv = document.getElementById('registerError');
-            btn.disabled = true;
-            spinner.classList.remove('hidden');
-            document.getElementById('globalLoader').style.visibility = 'visible';
-            errorDiv.classList.add('hidden');
-            try {
-                const username = sanitizeInput(document.getElementById('registerUsername').value.trim());
-                const password = sanitizeInput(document.getElementById('registerPassword').value);
-                console.log(`Tentando registrar usuário: ${username}`);
-                if (!username.match(/^[a-zA-Z0-9_]{3,}$/)) throw new Error('Usuário inválido (mínimo 3 caracteres, apenas letras, números ou _).');
-                if (password.length < 6) throw new Error('Senha deve ter pelo menos 6 caracteres.');
-                const res = await fetch('/api/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-                console.log(`Resposta do registro: status=${res.status}`);
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || `Erro HTTP ${res.status}`);
-                localStorage.setItem('userId', data.userId);
-                console.log(`Registro bem-sucedido, userId: ${data.userId}`);
-                showNotification('Registro bem-sucedido! Redirecionando para a loja...');
-                window.location.href = 'shop.html';
-            } catch (err) {
-                console.error(`Erro no registro: ${err.message}`);
-                errorDiv.textContent = err.message;
-                errorDiv.classList.remove('hidden');
-                showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                btn.disabled = false;
-                spinner.classList.add('hidden');
-                document.getElementById('globalLoader').style.visibility = 'hidden';
-                console.log('Finalizado registro');
-            }
-        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('Página index carregada');
+            console.log('DOM carregado');
+            const loginForm = document.getElementById('loginForm');
+            const loginButton = document.getElementById('loginButton');
+            const loginSpinner = document.getElementById('loginSpinner');
+            const loginErrorDiv = document.getElementById('loginError');
+            const registerLink = document.getElementById('registerLink');
+            const registerForm = document.getElementById('registerForm');
+            const registerButton = document.getElementById('registerButton');
+            const registerSpinner = document.getElementById('registerSpinner');
+            const registerErrorDiv = document.getElementById('registerError');
+            const cancelRegisterButton = document.getElementById('cancelRegisterButton');
+
             const userId = localStorage.getItem('userId');
             if (userId) {
-                console.log(`Usuário já logado com userId: ${userId}, redirecionando para shop.html`);
-                window.location.href = 'shop.html';
-                return;
+                document.getElementById('globalLoader').style.visibility = 'visible';
+                fetch(`/api/users?userId=${userId}`)
+                    .then(res => {
+                        if (res.status === 200) {
+                            return res.json().then(data => {
+                                localStorage.setItem('is_admin', data.is_admin);
+                                window.location.href = 'shop.html';
+                            });
+                        } else {
+                            localStorage.removeItem('userId');
+                            localStorage.removeItem('username');
+                            localStorage.removeItem('is_admin');
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Erro ao verificar sessão:', err.message);
+                        localStorage.removeItem('userId');
+                        localStorage.removeItem('username');
+                        localStorage.removeItem('is_admin');
+                    })
+                    .finally(() => {
+                        document.getElementById('globalLoader').style.visibility = 'hidden';
+                    });
             }
-            document.getElementById('loginButton').addEventListener('click', handleLogin);
-            document.getElementById('registerButton').addEventListener('click', handleRegister);
-            document.getElementById('showRegisterLink').addEventListener('click', (e) => {
+
+            loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                console.log('Clicado em Registrar-se');
-                toggleSections(false);
+                loginButton.disabled = true;
+                loginSpinner.classList.remove('hidden');
+                document.getElementById('globalLoader').style.visibility = 'visible';
+                loginErrorDiv.classList.add('hidden');
+
+                try {
+                    const username = sanitizeInput(document.getElementById('username').value.trim());
+                    const password = sanitizeInput(document.getElementById('password').value);
+                    if (!username.match(/^[a-zA-Z0-9]{3,}$/)) {
+                        throw new Error('Usuário inválido. Use apenas letras e números, mínimo 3 caracteres.');
+                    }
+                    if (password.length < 4) {
+                        throw new Error('Senha deve ter pelo menos 4 caracteres.');
+                    }
+
+                    const res = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+                    const data = await res.json();
+                    if (res.status !== 200) {
+                        throw new Error(data.error || 'Credenciais inválidas');
+                    }
+
+                    localStorage.setItem('userId', data.userId);
+                    localStorage.setItem('username', data.username);
+                    localStorage.setItem('is_admin', data.is_admin);
+                    showNotification('Login bem-sucedido!');
+                    setTimeout(() => window.location.href = 'shop.html', 1000);
+                } catch (err) {
+                    console.error('Erro ao fazer login:', err.message);
+                    loginErrorDiv.textContent = err.message;
+                    loginErrorDiv.classList.remove('hidden');
+                    showNotification('Erro: ' + err.message, true);
+                } finally {
+                    loginButton.disabled = false;
+                    loginSpinner.classList.add('hidden');
+                    document.getElementById('globalLoader').style.visibility = 'hidden';
+                }
             });
-            document.getElementById('showLoginLink').addEventListener('click', (e) => {
+
+            registerLink.addEventListener('click', (e) => {
                 e.preventDefault();
-                console.log('Clicado em Fazer login');
-                toggleSections(true);
+                document.getElementById('registerModal').classList.add('show');
+                document.getElementById('registerUsername').focus();
+                document.getElementById('registerUsername').value = '';
+                document.getElementById('registerPassword').value = '';
+                document.getElementById('confirmPassword').value = '';
+                registerErrorDiv.classList.add('hidden');
+            });
+
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                registerButton.disabled = true;
+                registerSpinner.classList.remove('hidden');
+                document.getElementById('globalLoader').style.visibility = 'visible';
+                registerErrorDiv.classList.add('hidden');
+
+                try {
+                    const username = sanitizeInput(document.getElementById('registerUsername').value.trim());
+                    const password = sanitizeInput(document.getElementById('registerPassword').value);
+                    const confirmPassword = sanitizeInput(document.getElementById('confirmPassword').value);
+                    if (!username.match(/^[a-zA-Z0-9]{3,}$/)) {
+                        throw new Error('Usuário inválido. Use apenas letras e números, mínimo 3 caracteres.');
+                    }
+                    if (password.length < 4) {
+                        throw new Error('Senha deve ter pelo menos 4 caracteres.');
+                    }
+                    if (password !== confirmPassword) {
+                        throw new Error('As senhas não coincidem.');
+                    }
+
+                    const res = await fetch('/api/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+                    const data = await res.json();
+                    if (res.status !== 200) {
+                        throw new Error(data.error || 'Erro ao registrar usuário');
+                    }
+
+                    document.getElementById('registerModal').classList.remove('show');
+                    showNotification('Registro bem-sucedido! Faça login para continuar.');
+                } catch (err) {
+                    console.error('Erro ao registrar usuário:', err.message);
+                    registerErrorDiv.textContent = err.message;
+                    registerErrorDiv.classList.remove('hidden');
+                    showNotification('Erro: ' + err.message, true);
+                } finally {
+                    registerButton.disabled = false;
+                    registerSpinner.classList.add('hidden');
+                    document.getElementById('globalLoader').style.visibility = 'hidden';
+                }
+            });
+
+            cancelRegisterButton.addEventListener('click', () => {
+                document.getElementById('registerModal').classList.remove('show');
+            });
+
+            document.getElementById('password').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') loginForm.dispatchEvent(new Event('submit'));
+            });
+
+            document.getElementById('confirmPassword').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') registerForm.dispatchEvent(new Event('submit'));
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    document.getElementById('registerModal').classList.remove('show');
+                }
             });
         });
     </script>

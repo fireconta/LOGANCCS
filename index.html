@@ -62,6 +62,31 @@
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
+        #debug {
+            position: fixed;
+            bottom: 4rem;
+            left: 1rem;
+            background: #1f2937;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            max-width: 400px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            font-size: 0.75rem;
+        }
+        #toggleDebug {
+            position: fixed;
+            bottom: 1rem;
+            left: 1rem;
+            background: #10b981;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            z-index: 1001;
+            cursor: pointer;
+        }
         .debug-info { color: #10b981; }
         .debug-warn { color: #f59e0b; }
         .debug-error { color: #ef4444; }
@@ -131,7 +156,8 @@
             </div>
         </div>
     </div>
-    <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40 hidden" aria-live="assertive"></div>
+    <button id="toggleDebug" aria-label="Alternar visibilidade do debug">Esconder Debug</button>
+    <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40" aria-live="assertive"></div>
     <script src="debug.js"></script>
     <script src="utils.js"></script>
     <script>
@@ -141,7 +167,7 @@
         }
 
         async function login(username, password) {
-            Debug.log('Iniciando login', { username });
+            Debug.log('Iniciando login', { username: username.trim() });
             const button = document.getElementById('loginButton');
             const spinner = document.getElementById('loginSpinner');
             const errorDiv = document.getElementById('loginError');
@@ -153,27 +179,30 @@
                 const res = await fetchWithTimeout('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
+                    body: JSON.stringify({ username: username.trim(), password })
                 });
                 const text = await res.text();
                 Debug.log(`Resposta /api/login: Status ${res.status}`, { response: text });
                 let data;
                 try {
                     data = JSON.parse(text);
-                } catch {
+                } catch (e) {
+                    Debug.error('Erro ao parsear resposta', { error: e.message, response: text });
                     throw new Error(`Resposta inválida: formato não JSON (${text.slice(0, 100)}...)`);
                 }
                 if (!res.ok) {
+                    Debug.error('Erro na resposta do login', { status: res.status, error: data.error });
                     throw new Error(data.error || `Erro ao fazer login (Status: ${res.status})`);
                 }
                 localStorage.setItem('userId', data.userId);
                 localStorage.setItem('username', data.username);
                 localStorage.setItem('is_admin', data.is_admin);
+                Debug.log('Login bem-sucedido', { userId: data.userId });
                 showNotification('Login realizado com sucesso!');
                 setTimeout(() => window.location.href = data.is_admin ? 'dashboard.html' : 'shop.html', 1000);
             } catch (err) {
                 Debug.error('Erro ao fazer login', { error: err.message });
-                errorDiv.textContent = err.message;
+                errorDiv.textContent = err.message.includes('MongoServerError') ? 'Falha na conexão com o banco. Verifique as credenciais.' : err.message;
                 errorDiv.classList.remove('hidden');
                 showNotification(`Erro: ${err.message}`, true);
             } finally {
@@ -184,7 +213,7 @@
         }
 
         async function register(username, password, confirmPassword) {
-            Debug.log('Iniciando registro', { username });
+            Debug.log('Iniciando registro', { username: username.trim() });
             const button = document.getElementById('registerButton');
             const spinner = document.getElementById('registerSpinner');
             const errorDiv = document.getElementById('registerError');
@@ -194,30 +223,34 @@
             document.getElementById('globalLoader').style.visibility = 'visible';
             try {
                 if (password !== confirmPassword) {
+                    Debug.error('Senhas não coincidem', { password, confirmPassword });
                     throw new Error('As senhas não coincidem');
                 }
                 const res = await fetchWithTimeout('/api/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
+                    body: JSON.stringify({ username: username.trim(), password })
                 });
                 const text = await res.text();
                 Debug.log(`Resposta /api/register: Status ${res.status}`, { response: text });
                 let data;
                 try {
                     data = JSON.parse(text);
-                } catch {
+                } catch (e) {
+                    Debug.error('Erro ao parsear resposta', { error: e.message, response: text });
                     throw new Error(`Resposta inválida: formato não JSON (${text.slice(0, 100)}...)`);
                 }
                 if (!res.ok) {
+                    Debug.error('Erro na resposta do registro', { status: res.status, error: data.error });
                     throw new Error(data.error || `Erro ao registrar (Status: ${res.status})`);
                 }
+                Debug.log('Registro bem-sucedido', { username: data.username });
                 showNotification('Registro realizado com sucesso! Faça login.');
                 document.getElementById('registerForm').classList.add('hidden');
                 document.getElementById('loginForm').classList.remove('hidden');
             } catch (err) {
                 Debug.error('Erro ao registrar', { error: err.message });
-                errorDiv.textContent = err.message;
+                errorDiv.textContent = err.message.includes('MongoServerError') ? 'Falha na conexão com o banco. Verifique as credenciais.' : err.message;
                 errorDiv.classList.remove('hidden');
                 showNotification(`Erro: ${err.message}`, true);
             } finally {
@@ -231,14 +264,14 @@
             Debug.log('Configurando event listeners');
             document.getElementById('loginFormElement').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const username = document.getElementById('loginUsername').value.trim();
+                const username = document.getElementById('loginUsername').value;
                 const password = document.getElementById('loginPassword').value;
                 await login(username, password);
             });
 
             document.getElementById('registerFormElement').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const username = document.getElementById('registerUsername').value.trim();
+                const username = document.getElementById('registerUsername').value;
                 const password = document.getElementById('registerPassword').value;
                 const confirmPassword = document.getElementById('confirmPassword').value;
                 await register(username, password, confirmPassword);
@@ -255,11 +288,26 @@
                 document.getElementById('registerForm').classList.add('hidden');
                 document.getElementById('loginForm').classList.remove('hidden');
             });
+
+            document.getElementById('toggleDebug').addEventListener('click', () => {
+                const debugDiv = document.getElementById('debug');
+                const button = document.getElementById('toggleDebug');
+                if (debugDiv.style.display === 'none') {
+                    debugDiv.style.display = 'block';
+                    button.textContent = 'Esconder Debug';
+                    Debug.log('Debug ativado');
+                } else {
+                    debugDiv.style.display = 'none';
+                    button.textContent = 'Mostrar Debug';
+                    Debug.log('Debug desativado');
+                }
+            });
         }
 
         document.addEventListener('DOMContentLoaded', () => {
             Debug.log('DOM carregado');
             if (localStorage.getItem('userId')) {
+                Debug.log('Usuário já logado, redirecionando');
                 window.location.href = localStorage.getItem('is_admin') === 'true' ? 'dashboard.html' : 'shop.html';
             }
             setupEventListeners();

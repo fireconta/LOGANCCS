@@ -75,6 +75,9 @@
         .tab:hover:not(.active) {
             background: #374151;
         }
+        .debug-info { color: #10b981; }
+        .debug-warn { color: #f59e0b; }
+        .debug-error { color: #ef4444; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center">
@@ -135,10 +138,11 @@
             <p id="registerError" class="text-red-500 text-sm mt-2 hidden" role="alert"></p>
         </div>
     </div>
+    <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40 hidden"></div>
+    <script src="debug.js"></script>
     <script>
-        console.log('index.html carregado');
-
         function showNotification(message, isError = false) {
+            Debug.log(`Notificação: ${message}`, { isError });
             const notificationsDiv = document.getElementById('notifications');
             const notification = document.createElement('div');
             notification.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
@@ -153,6 +157,7 @@
         }
 
         async function fetchWithTimeout(url, options, timeout = 5000) {
+            Debug.log(`Iniciando requisição para: ${url}`, options);
             return Promise.race([
                 fetch(url, options),
                 new Promise((_, reject) =>
@@ -163,6 +168,7 @@
 
         async function login(event) {
             event.preventDefault();
+            Debug.log('Iniciando login');
             const button = document.getElementById('loginButton');
             const spinner = document.getElementById('loginSpinner');
             const errorDiv = document.getElementById('loginError');
@@ -181,8 +187,9 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
+                const text = await res.text();
+                Debug.log(`Resposta /api/login: Status ${res.status}`, { response: text });
                 if (!res.ok) {
-                    const text = await res.text();
                     try {
                         const json = JSON.parse(text);
                         throw new Error(json.error || `Erro ${res.status}`);
@@ -190,17 +197,17 @@
                         throw new Error(`Erro ${res.status}: Resposta inválida do servidor`);
                     }
                 }
-                const data = await res.json();
+                const data = JSON.parse(text);
                 localStorage.setItem('userId', data.userId);
                 localStorage.setItem('username', data.username);
                 localStorage.setItem('is_admin', data.is_admin);
-                console.log('Login bem-sucedido:', data.username);
+                Debug.log('Login bem-sucedido', { username: data.username });
                 showNotification('Login realizado com sucesso!');
                 setTimeout(() => {
                     window.location.href = data.is_admin ? 'dashboard.html' : 'shop.html';
                 }, 1000);
             } catch (err) {
-                console.error('Erro no login:', err.message);
+                Debug.error('Erro no login', { error: err.message });
                 errorDiv.textContent = err.message;
                 errorDiv.classList.remove('hidden');
                 showNotification(`Erro: ${err.message}`, true);
@@ -213,6 +220,7 @@
 
         async function register(event) {
             event.preventDefault();
+            Debug.log('Iniciando registro');
             const button = document.getElementById('registerButton');
             const spinner = document.getElementById('registerSpinner');
             const errorDiv = document.getElementById('registerError');
@@ -238,8 +246,9 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
+                const text = await res.text();
+                Debug.log(`Resposta /api/register: Status ${res.status}`, { response: text });
                 if (!res.ok) {
-                    const text = await res.text();
                     try {
                         const json = JSON.parse(text);
                         throw new Error(json.error || `Erro ${res.status}`);
@@ -247,17 +256,17 @@
                         throw new Error(`Erro ${res.status}: Resposta inválida do servidor`);
                     }
                 }
-                const data = await res.json();
+                const data = JSON.parse(text);
                 localStorage.setItem('userId', data.userId);
                 localStorage.setItem('username', data.username);
                 localStorage.setItem('is_admin', data.is_admin);
-                console.log('Registro bem-sucedido:', data.username);
+                Debug.log('Registro bem-sucedido', { username: data.username });
                 showNotification('Registro realizado com sucesso!');
                 setTimeout(() => {
                     window.location.href = 'shop.html';
                 }, 1000);
             } catch (err) {
-                console.error('Erro no registro:', err.message);
+                Debug.error('Erro no registro', { error: err.message });
                 errorDiv.textContent = err.message;
                 errorDiv.classList.remove('hidden');
                 showNotification(`Erro: ${err.message}`, true);
@@ -269,13 +278,14 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('DOM carregado');
+            Debug.log('DOM carregado');
             const loginTab = document.getElementById('loginTab');
             const registerTab = document.getElementById('registerTab');
             const loginFormContainer = document.getElementById('loginFormContainer');
             const registerFormContainer = document.getElementById('registerFormContainer');
 
             loginTab.addEventListener('click', () => {
+                Debug.log('Aba login selecionada');
                 loginTab.classList.add('active');
                 registerTab.classList.remove('active');
                 loginFormContainer.classList.remove('hidden');
@@ -283,6 +293,7 @@
             });
 
             registerTab.addEventListener('click', () => {
+                Debug.log('Aba registro selecionada');
                 registerTab.classList.add('active');
                 loginTab.classList.remove('active');
                 registerFormContainer.classList.remove('hidden');

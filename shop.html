@@ -406,15 +406,18 @@
         function logout() {
             console.log('Logout iniciado');
             try {
+                const userId = localStorage.getItem('userId');
                 localStorage.removeItem('userId');
                 localStorage.removeItem('username');
                 localStorage.removeItem('is_admin');
                 console.log('localStorage limpo');
-                fetch('/api/logout', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: localStorage.getItem('userId') })
-                }).catch(err => console.error('Erro no logout do backend:', err.message));
+                if (userId) {
+                    fetch('/api/logout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId })
+                    }).catch(err => console.error('Erro no logout do backend:', err.message));
+                }
                 window.location.replace('index.html');
             } catch (err) {
                 console.error('Erro no logout:', err.message);

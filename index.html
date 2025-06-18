@@ -202,7 +202,7 @@
                 setTimeout(() => window.location.href = data.is_admin ? 'dashboard.html' : 'shop.html', 1000);
             } catch (err) {
                 Debug.error('Erro ao fazer login', { error: err.message });
-                errorDiv.textContent = err.message.includes('MongoServerError') ? 'Falha na conexão com o banco. Verifique as credenciais.' : err.message;
+                errorDiv.textContent = err.message.includes('MongoServerError') ? 'Falha na conexão com o banco. Verifique as credenciais ou configuração do MongoDB.' : err.message;
                 errorDiv.classList.remove('hidden');
                 showNotification(`Erro: ${err.message}`, true);
             } finally {
@@ -250,7 +250,7 @@
                 document.getElementById('loginForm').classList.remove('hidden');
             } catch (err) {
                 Debug.error('Erro ao registrar', { error: err.message });
-                errorDiv.textContent = err.message.includes('MongoServerError') ? 'Falha na conexão com o banco. Verifique as credenciais.' : err.message;
+                errorDiv.textContent = err.message.includes('MongoServerError') ? 'Falha na conexão com o banco. Verifique as credenciais ou configuração do MongoDB.' : err.message;
                 errorDiv.classList.remove('hidden');
                 showNotification(`Erro: ${err.message}`, true);
             } finally {

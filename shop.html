@@ -267,7 +267,13 @@
                     throw new Error('Sessão inválida. Faça login novamente.');
                 }
                 if (!res.ok) {
-                    throw new Error(`Erro ${res.status}: ${await res.text()}`);
+                    const text = await res.text();
+                    try {
+                        const json = JSON.parse(text);
+                        throw new Error(json.error || `Erro ${res.status}`);
+                    } catch {
+                        throw new Error(`Erro ${res.status}: Resposta inválida do servidor`);
+                    }
                 }
                 const cards = await res.json();
                 console.log('Cartões recebidos:', cards);
@@ -332,7 +338,13 @@
                     headers: { 'Content-Type': 'application/json' }
                 });
                 if (!res.ok) {
-                    throw new Error(`Erro ${res.status}: ${await res.text()}`);
+                    const text = await res.text();
+                    try {
+                        const json = JSON.parse(text);
+                        throw new Error(json.error || `Erro ${res.status}`);
+                    } catch {
+                        throw new Error(`Erro ${res.status}: Resposta inválida do servidor`);
+                    }
                 }
                 const user = await res.json();
                 document.getElementById('userBalance').innerHTML = `<i class="fas fa-wallet mr-1"></i> Saldo: ${formatCurrency(user.balance)}`;
@@ -392,11 +404,17 @@
         }
 
         function logout() {
-            console.log('Logout realizado com sucesso');
-            localStorage.removeItem('userId');
-            localStorage.removeItem('username');
-            localStorage.removeItem('is_admin');
-            window.location.replace('index.html');
+            console.log('Logout iniciado');
+            try {
+                localStorage.removeItem('userId');
+                localStorage.removeItem('username');
+                localStorage.removeItem('is_admin');
+                console.log('localStorage limpo');
+                window.location.replace('index.html');
+            } catch (err) {
+                console.error('Erro no logout:', err.message);
+                showNotification('Erro ao sair.', true);
+            }
         }
 
         document.addEventListener('DOMContentLoaded', async () => {

@@ -6,102 +6,282 @@
     <title>LOGAN CC's - Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.9/purify.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/inputmask/5.0.8/inputmask.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; visibility: hidden; }
-        .spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid #10b981; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #notifications { position: fixed; top: 1rem; right: 1rem; z-index: 10000; max-width: 300px; }
-        .notification { background: #1f2937; color: white; padding: 1rem; border-radius: 0.375rem; margin-bottom: 0.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: center; }
-        .notification-error { background: #ef4444; }
-        .notification-success { background: #10b981; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
-        .modal.show { display: flex; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #4b5563; }
-        th { background: #1f2937; font-weight: 600; }
-        .action-button, .delete-button { padding: 0.5rem; border-radius: 0.25rem; margin-right: 0.5rem; }
-        .action-button { background: #3b82f6; color: white; }
-        .action-button:hover { background: #2563eb; }
-        .delete-button { background: #ef4444; color: white; }
-        .delete-button:hover { background: #dc2626; }
+        #globalLoader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            visibility: hidden;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #10b981;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #notifications {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 10000;
+            max-width: 300px;
+        }
+        .notification {
+            background: #1f2937;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .notification-error {
+            background: #ef4444;
+        }
+        .notification-success {
+            background: #10b981;
+        }
+        #debug {
+            position: fixed;
+            bottom: 1rem;
+            left: 1rem;
+            background: #1a202c;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            max-width: 300px;
+            font-size: 0.75rem;
+            overflow-y: auto;
+            max-height: 160px;
+            z-index: 1000;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal.show {
+            display: flex;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #4b5563;
+            margin-bottom: 1rem;
+        }
+        .tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            color: #9ca3af;
+            font-weight: 500;
+        }
+        .tab.active {
+            color: #10b981;
+            border-bottom: 2px solid #10b981;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #4b5563;
+        }
+        th {
+            background: #1f2937;
+            font-weight: 600;
+        }
+        .action-button {
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            color: white;
+            margin-right: 0.5rem;
+        }
+        .edit-button {
+            background: #3b82f6;
+        }
+        .edit-button:hover {
+            background: #2563eb;
+        }
+        .delete-button {
+            background: #ef4444;
+        }
+        .delete-button:hover {
+            background: #dc2626;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen">
-    <div id="globalLoader"><div class="spinner"></div></div>
+    <div id="globalLoader">
+        <div class="spinner"></div>
+    </div>
     <div id="notifications" class="space-y-2"></div>
     <header class="bg-gray-800 p-4 flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-green-500">LOGAN CC's - Admin</h1>
+        <h1 class="text-2xl font-bold text-green-500">LOGAN CC's - Dashboard</h1>
         <div class="flex items-center space-x-4">
-            <button id="shopButton" class="text-gray-300 hover:text-green-500"><i class="fas fa-store mr-2"></i>Loja</button>
-            <button id="logoutButton" class="text-gray-300 hover:text-red-500"><i class="fas fa-sign-out-alt"></i></button>
+            <button type="button" id="shopButton" class="text-gray-300 hover:text-green-500"><i class="fas fa-store mr-2"></i>Loja</button>
+            <button type="button" id="logoutButton" class="text-gray-300 hover:text-red-500"><i class="fas fa-sign-out-alt"></i>Sair</button>
         </div>
     </header>
     <main class="container mx-auto p-6">
-        <div id="adminAuthSection" class="bg-gray-800 p-4 rounded-lg mb-6 hidden">
-            <h2 class="text-xl font-semibold mb-4"><i class="fas fa-lock mr-2"></i>Autenticação de Administrador</h2>
-            <div class="mb-4">
-                <label for="adminPassword" class="block text-sm font-medium">Senha Admin</label>
-                <input type="password" id="adminPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required aria-describedby="adminAuthError">
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+            <div class="tabs">
+                <div class="tab active" data-tab="users">Usuários</div>
+                <div class="tab" data-tab="cards">Cartões</div>
+                <div class="tab" data-tab="levels">Níveis</div>
+                <div class="tab" data-tab="transactions">Transações</div>
+                <div class="tab" data-tab="deposit">Depósito</div>
             </div>
-            <p id="adminAuthError" class="text-red-500 text-sm hidden" role="alert"></p>
-            <div class="flex justify-end">
-                <button id="verifyAdminButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
-                    <span>Verificar</span>
-                    <svg id="verifySpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
-                </button>
-            </div>
-        </div>
-        <div id="levelsSection" class="bg-gray-800 p-4 rounded-lg mb-6 hidden">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold"><i class="fas fa-layer-group mr-2"></i>Níveis de Cartões</h2>
-                <input type="text" id="filterLevel" class="p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Filtrar por nível">
-            </div>
-            <div id="levelList" class="overflow-x-auto">
-                <table><thead><tr><th scope="col">Nível</th><th scope="col">Preço</th><th scope="col">Ações</th></tr></thead><tbody></tbody></table>
-            </div>
-        </div>
-        <div id="usersSection" class="bg-gray-800 p-4 rounded-lg mb-6 hidden">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold"><i class="fas fa-users mr-2"></i>Usuários</h2>
-                <div class="flex items-center space-x-2">
-                    <input type="text" id="filterUser" class="p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Filtrar por ID ou usuário">
-                    <button id="addUserButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-user-plus mr-2"></i>Adicionar Usuário</button>
+            <div id="usersTab" class="tab-content">
+                <div class="flex justify-between mb-4">
+                    <div>
+                        <label for="userSearch" class="block text-sm font-medium">Buscar Usuário</label>
+                        <input type="text" id="userSearch" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500 w-64" placeholder="Digite o username">
+                    </div>
+                </div>
+                <div id="userList" class="overflow-x-auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th scope="col">Username</th>
+                                <th scope="col">Saldo</th>
+                                <th scope="col">Admin</th>
+                                <th scope="col">Criado Em</th>
+                                <th scope="col">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
             </div>
-            <div id="userList" class="overflow-x-auto">
-                <table><thead><tr><th scope="col">ID</th><th scope="col">Usuário</th><th scope="col">Saldo</th><th scope="col">Admin</th><th scope="col">Ações</th></tr></thead><tbody></tbody></table>
-            </div>
-        </div>
-        <div id="cardsSection" class="bg-gray-800 p-4 rounded-lg hidden">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold"><i class="fas fa-credit-card mr-2"></i>Cartões</h2>
-                <div class="flex items-center space-x-2">
-                    <input type="text" id="filterCard" class="p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Filtrar por ID ou número">
-                    <button id="addCardButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-plus mr-2"></i>Adicionar Cartão</button>
-                    <button id="importCardsButton" class="py-2 px-4 bg-blue-500 text-white rounded hover:bg-blue-600"><i class="fas fa-upload mr-2"></i>Importar XLSX</button>
-                    <input type="file" id="importCardsInput" class="hidden" accept=".xlsx">
+            <div id="cardsTab" class="tab-content hidden">
+                <div class="flex justify-between mb-4">
+                    <div>
+                        <label for="cardSearch" class="block text-sm font-medium">Buscar Cartão</label>
+                        <input type="text" id="cardSearch" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500 w-64" placeholder="Digite o número do cartão">
+                    </div>
+                    <button type="button" id="addCardButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600"><i class="fas fa-plus mr-2"></i>Adicionar Cartão</button>
+                </div>
+                <div id="cardList" class="overflow-x-auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th scope="col">Número</th>
+                                <th scope="col">Bandeira</th>
+                                <th scope="col">Banco</th>
+                                <th scope="col">Nível</th>
+                                <th scope="col">Preço</th>
+                                <th scope="col">Adquirido</th>
+                                <th scope="col">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
             </div>
-            <div id="cardList" class="overflow-x-auto">
-                <table><thead><tr><th scope="col">ID</th><th scope="col">Número</th><th scope="col">Bandeira</th><th scope="col">Banco</th><th scope="col">Nível</th><th scope="col">Adquirido</th><th scope="col">Usuário</th><th scope="col">Ações</th></tr></thead><tbody></tbody></table>
+            <div id="levelsTab" class="tab-content hidden">
+                <div id="levelList" class="overflow-x-auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th scope="col">Nível</th>
+                                <th scope="col">Preço</th>
+                                <th scope="col">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="transactionsTab" class="tab-content hidden">
+                <div class="flex justify-between mb-4">
+                    <div>
+                        <label for="transactionUserSearch" class="block text-sm font-medium">Buscar por Usuário</label>
+                        <input type="text" id="transactionUserSearch" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500 w-64" placeholder="Digite o username">
+                    </div>
+                </div>
+                <div id="transactionList" class="overflow-x-auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th scope="col">Usuário</th>
+                                <th scope="col">Tipo</th>
+                                <th scope="col">Valor</th>
+                                <th scope="col">Descrição</th>
+                                <th scope="col">Data</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="depositTab" class="tab-content hidden">
+                <div class="bg-gray-700 p-4 rounded-lg max-w-md">
+                    <h2 class="text-lg font-semibold mb-4"><i class="fas fa-money-bill-wave mr-2"></i>Adicionar Depósito</h2>
+                    <form id="depositForm" class="space-y-4">
+                        <div>
+                            <label for="depositUsername" class="block text-sm font-medium">Usuário</label>
+                            <input type="text" id="depositUsername" class="mt-1 w-full p-2 bg-gray-600 border border-gray-500 rounded focus:ring-green-500 focus:border-green-500" placeholder="Digite o username" required>
+                        </div>
+                        <div>
+                            <label for="depositAmount" class="block text-sm font-medium">Valor</label>
+                            <input type="number" id="depositAmount" step="0.01" min="0.01" class="mt-1 w-full p-2 bg-gray-600 border border-gray-500 rounded focus:ring-green-500 focus:border-green-500" placeholder="Digite o valor" required>
+                        </div>
+                        <p id="depositError" class="text-red-500 text-sm hidden" role="alert"></p>
+                        <button type="submit" id="depositButton" class="w-full py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center justify-center">
+                            <span>Adicionar Depósito</span>
+                            <svg id="depositSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </main>
-    <div id="addUserModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="addUserTitle">
+    <div id="adminAuthModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="adminAuthTitle">
         <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="addUserTitle" class="text-xl font-semibold mb-4"><i class="fas fa-user-plus mr-2"></i>Adicionar Usuário</h2>
-            <form id="addUserForm" class="space-y-4">
-                <div><label for="addUserUsername" class="block text-sm font-medium">Usuário</label><input type="text" id="addUserUsername" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required pattern="[a-zA-Z0-9]{3,}" aria-describedby="addUserError"></div>
-                <div><label for="addUserPassword" class="block text-sm font-medium">Senha</label><input type="password" id="addUserPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required minlength="6" aria-describedby="addUserError"></div>
-                <div><label for="addUserBalance" class="block text-sm font-medium">Saldo Inicial</label><input type="number" id="addUserBalance" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" min="0" step="0.01" value="0" aria-describedby="addUserError"></div>
-                <div class="flex items-center"><input type="checkbox" id="addUserIsAdmin" class="h-4 w-4 text-green-500 focus:ring-green-500 border-gray-600 rounded"><label for="addUserIsAdmin" class="ml-2 text-sm">Administrador</label></div>
-                <p id="addUserError" class="text-red-500 text-sm hidden" role="alert"></p>
+            <h2 id="adminAuthTitle" class="text-xl font-semibold mb-4"><i class="fas fa-lock mr-2"></i>Autenticação de Admin</h2>
+            <form id="adminAuthForm" class="space-y-4">
+                <div>
+                    <label for="adminPassword" class="block text-sm font-medium">Senha de Admin</label>
+                    <input type="password" id="adminPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Digite a senha de admin" required>
+                </div>
+                <p id="adminAuthError" class="text-red-500 text-sm hidden" role="alert"></p>
                 <div class="flex justify-end space-x-2">
-                    <button type="button" id="cancelAddUserButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
-                    <button type="submit" id="saveAddUserButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center"><span>Adicionar</span><svg id="addUserSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg></button>
+                    <button type="button" id="cancelAdminAuthButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
+                    <button type="submit" id="adminAuthButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
+                        <span>Autenticar</span>
+                        <svg id="adminAuthSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                        </svg>
+                    </button>
                 </div>
             </form>
         </div>
@@ -111,568 +291,742 @@
             <h2 id="editUserTitle" class="text-xl font-semibold mb-4"><i class="fas fa-user-edit mr-2"></i>Editar Usuário</h2>
             <form id="editUserForm" class="space-y-4">
                 <input type="hidden" id="editUserId">
-                <div><label for="editUserUsername" class="block text-sm font-medium">Usuário</label><input type="text" id="editUserUsername" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" readonly></div>
-                <div><label for="editUserPassword" class="block text-sm font-medium">Nova Senha (opcional)</label><input type="password" id="editUserPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" minlength="6" aria-describedby="editUserError"></div>
-                <div><label for="editUserBalance" class="block text-sm font-medium">Saldo</label><input type="number" id="editUserBalance" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" min="0" step="0.01" required aria-describedby="editUserError"></div>
-                <div class="flex items-center"><input type="checkbox" id="editUserIsAdmin" class="h-4 w-4 text-green-500 focus:ring-green-500 border-gray-600 rounded"><label for="editUserIsAdmin" class="ml-2 text-sm">Administrador</label></div>
+                <div>
+                    <label for="editUsername" class="block text-sm font-medium">Username</label>
+                    <input type="text" id="editUsername" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" readonly>
+                </div>
+                <div>
+                    <label for="editBalance" class="block text-sm font-medium">Saldo</label>
+                    <input type="number" id="editBalance" step="0.01" min="0" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required>
+                </div>
+                <div>
+                    <label for="editIsAdmin" class="block text-sm font-medium">Admin</label>
+                    <input type="checkbox" id="editIsAdmin" class="mt-1 h-4 w-4 text-green-500 focus:ring-green-500 border-gray-600 rounded">
+                </div>
+                <div>
+                    <label for="editPassword" class="block text-sm font-medium">Nova Senha (opcional)</label>
+                    <input type="password" id="editPassword" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Deixe em branco para não alterar">
+                </div>
                 <p id="editUserError" class="text-red-500 text-sm hidden" role="alert"></p>
                 <div class="flex justify-end space-x-2">
                     <button type="button" id="cancelEditUserButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
-                    <button type="submit" id="saveEditUserButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center"><span>Salvar</span><svg id="editUserSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg></button>
-                </div>
-            </form>
-        </div>
-    </div>
-    <div id="addCardModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="addCardTitle">
-        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="addCardTitle" class="text-xl font-semibold mb-4"><i class="fas fa-credit-card mr-2"></i>Adicionar Cartão</h2>
-            <form id="addCardForm" class="space-y-4">
-                <div><label for="addCardNumero" class="block text-sm font-medium">Número</label><input type="text" id="addCardNumero" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required data-mask="0000 0000 0000 0000" aria-describedby="addCardError"></div>
-                <div><label for="addCardCVV" class="block text-sm font-medium">CVV</label><input type="text" id="addCardCVV" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required data-mask="000" aria-describedby="addCardError"></div>
-                <div><label for="addCardExpiry" class="block text-sm font-medium">Validade (MM/AA)</label><input type="text" id="addCardExpiry" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required data-mask="00/00" aria-describedby="addCardError"></div>
-                <div><label for="addCardName" class="block text-sm font-medium">Nome</label><input type="text" id="addCardName" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required aria-describedby="addCardError"></div>
-                <div><label for="addCardCPF" class="block text-sm font-medium">CPF</label><input type="text" id="addCardCPF" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required data-mask="000.000.000-00" aria-describedby="addCardError"></div>
-                <div><label for="addCardBandeira" class="block text-sm font-medium">Bandeira</label><select id="addCardBandeira" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required aria-describedby="addCardError"><option value="">Selecione</option><option value="Visa">Visa</option><option value="Mastercard">Mastercard</option><option value="Amex">Amex</option><option value="Elo">Elo</option><option value="Hipercard">Hipercard</option><option value="Diners Club">Diners Club</option></select></div>
-                <div><label for="addCardBanco" class="block text-sm font-medium">Banco</label><select id="addCardBanco" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required aria-describedby="addCardError"><option value="">Selecione</option><option value="Nubank">Nubank</option><option value="Itaú">Itaú</option><option value="Bradesco">Bradesco</option><option value="Santander">Santander</option><option value="Banco do Brasil">Banco do Brasil</option><option value="Caixa Econômica Federal">Caixa Econômica Federal</option><option value="Sicredi">Sicredi</option><option value="Sicoob">Sicoob</option></select></div>
-                <div><label for="addCardNivel" class="block text-sm font-medium">Nível</label><select id="addCardNivel" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required aria-describedby="addCardError"><option value="">Selecione</option><option value="Classic">Classic</option><option value="Gold">Gold</option><option value="Platinum">Platinum</option><option value="Black">Black</option></select></div>
-                <p id="addCardError" class="text-red-500 text-sm hidden" role="alert"></p>
-                <div class="flex justify-end space-x-2">
-                    <button type="button" id="cancelAddCardButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
-                    <button type="submit" id="saveAddCardButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center"><span>Adicionar</span><svg id="addCardSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg></button>
+                    <button type="submit" id="saveUserButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
+                        <span>Salvar</span>
+                        <svg id="saveUserSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                        </svg>
+                    </button>
                 </div>
             </form>
         </div>
     </div>
     <div id="editCardModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editCardTitle">
         <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="editCardTitle" class="text-xl font-semibold mb-4"><i class="fas fa-credit-card mr-2"></i>Editar Cartão</h2>
-            <form id="editCardForm" class="space-y-4">
-                <input type="hidden" id="editCardId">
-                <div><label for="editCardNumero" class="block text-sm font-medium">Número</label><input type="text" id="editCardNumero" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required data-mask="0000 0000 0000 0000" aria-describedby="editCardError"></div>
-                <div><label for="editCardCVV" class="block text-sm font-medium">CVV</label><input type="text" id="editCardCVV" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required data-mask="000" aria-describedby="editCardError"></div>
-                <div><label for="editCardExpiry" class="block text-sm font-medium">Validade (MM/AA)</label><input type="text" id="editCardExpiry" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required data-mask="00/00" aria-describedby="editCardError"></div>
-                <div><label for="editCardName" class="block text-sm font-medium">Nome</label><input type="text" id="editCardName" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required aria-describedby="editCardError"></div>
-                <div><label for="editCardCPF" class="block text-sm font-medium">CPF</label><input type="text" id="editCardCPF" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required data-mask="000.000.000-00" aria-describedby="editCardError"></div>
-                <div><label for="editCardBandeira" class="block text-sm font-medium">Bandeira</label><select id="editCardBandeira" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required aria-describedby="editCardError"><option value="">Selecione</option><option value="Visa">Visa</option><option value="Mastercard">Mastercard</option><option value="Amex">Amex</option><option value="Elo">Elo</option><option value="Hipercard">Hipercard</option><option value="Diners Club">Diners Club</option></select></div>
-                <div><label for="editCardBanco" class="block text-sm font-medium">Banco</label><select id="editCardBanco" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required aria-describedby="editCardError"><option value="">Selecione</option><option value="Nubank">Nubank</option><option value="Itaú">Itaú</option><option value="Bradesco">Bradesco</option><option value="Santander">Santander</option><option value="Banco do Brasil">Banco do Brasil</option><option value="Caixa Econômica Federal">Caixa Econômica Federal</option><option value="Sicredi">Sicredi</option><option value="Sicoob">Sicoob</option></select></div>
-                <div><label for="editCardNivel" class="block text-sm font-medium">Nível</label><select id="editCardNivel" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required aria-describedby="editCardError"><option value="">Selecione</option><option value="Classic">Classic</option><option value="Gold">Gold</option><option value="Platinum">Platinum</option><option value="Black">Black</option></select></div>
-                <p id="editCardError" class="text-red-500 text-sm hidden" role="alert"></p>
-                <div class="flex justify-end space-x-2">
-                    <button type="button" id="cancelEditCardButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
-                    <button type="submit" id="saveEditCardButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center"><span>Salvar</span><svg id="editCardSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg></button>
-                </div>
-            </form>
+            <h2 id="editCardTitle" class="text-xl font-semibold mb-4"><i class="fas fa-credit-card mr-2"></option>
+                <option value="Hipercard">Hipercard</option>
+                <option value="Diners Club">Diners Club</option>
+            </select>
         </div>
-    </div>
-    <div id="editLevelModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editLevelTitle">
-        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="editLevelTitle" class="text-xl font-semibold mb-4"><i class="fas fa-layer-group mr-2"></i>Editar Nível</h2>
-            <form id="editLevelForm" class="space-y-4">
-                <input type="hidden" id="editLevelName">
-                <div><label for="editLevelPrice" class="block text-sm font-medium">Preço</label><input type="number" id="editLevelPrice" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded" required min="0" step="0.01" aria-describedby="editLevelError"></div>
-                <p id="editLevelError" class="text-red-500 text-sm hidden" role="alert"></p>
-                <div class="flex justify-end space-x-2">
-                    <button type="button" id="cancelEditLevelButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
-                    <button type="submit" id="saveEditLevelButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center"><span>Salvar</span><svg id="editLevelSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg></button>
-                </div>
-            </form>
+        <div>
+            <label for="editCardBank" class="block text-sm font-medium">Banco</label>
+            <select id="editCardBank" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required>
+                <option value="Nubank">Nubank</option>
+                <option value="Itaú">Itaú</option>
+                <option value="Bradesco">Bradesco</option>
+                <option value="Santander">Santander</option>
+                <option value="Banco do Brasil">Banco do Brasil</option>
+                <option value="Caixa Econômica Federal">Caixa Econômica Federal</option>
+                <option value="Sicredi">Sicredi</option>
+                <option value="Sicoob">Sicoob</option>
+            </select>
         </div>
+        <div>
+            <label for="editCardLevel" class="block text-sm font-medium">Nível</label>
+            <select id="editCardLevel" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required>
+                <option value="Classic">Classic</option>
+                <option value="Gold">Gold</option>
+                <option value="Platinum">Platinum</option>
+                <option value="Black">Black</option>
+            </select>
+        </div>
+        <p id="editCardError" class="text-red-500 text-sm hidden" role="alert"></p>
+        <div class="flex justify-end space-x-2">
+            <button type="button" id="cancelEditCardButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
+            <button type="submit" id="saveCardButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
+                <span>Salvar</span>
+                <svg id="saveCardSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+            </button>
+        </div>
+    </form>
+</div>
+</div>
+<div id="editLevelModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editLevelTitle">
+    <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
+        <h2 id="editLevelTitle" class="text-xl font-semibold mb-4"><i class="fas fa-tags mr-2"></i>Editar Nível</h2>
+        <form id="editLevelForm" class="space-y-4">
+            <input type="hidden" id="editLevelName">
+            <div>
+                <label for="editLevelPrice" class="block text-sm font-medium">Preço</label>
+                <input type="number" id="editLevelPrice" step="0.01" min="0.01" class="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500" required>
+            </div>
+            <p id="editLevelError" class="text-red-500 text-sm hidden" role="alert"></p>
+            <div class="flex justify-end space-x-2">
+                <button type="button" id="cancelEditLevelButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Cancelar</button>
+                <button type="submit" id="saveLevelButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
+                    <span>Salvar</span>
+                    <svg id="saveLevelSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                </button>
+            </div>
+        </form>
     </div>
-    <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40"></div>
-    <script src="debug.js"></script>
-    <script>
-        function formatCurrency(value) {
-            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+</div>
+<div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40"></div>
+<script src="debug.js"></script>
+<script>
+    console.log('dashboard.html carregado');
+
+    function formatCurrency(value) {
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    }
+
+    function formatDate(dateStr) {
+        const date = new Date(dateStr);
+        return date.toLocaleString('pt-BR');
+    }
+
+    function showNotification(message, isError = false) {
+        const notificationsDiv = document.getElementById('notifications');
+        const notification = document.createElement('div');
+        notification.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
+        notification.textContent = DOMPurify.sanitize(message);
+        const closeButton = document.createElement('button');
+        closeButton.innerHTML = '<i class="fas fa-times"></i>';
+        closeButton.className = 'ml-2 text-white hover:text-gray-300';
+        closeButton.addEventListener('click', () => notification.remove());
+        notification.appendChild(closeButton);
+        notificationsDiv.appendChild(notification);
+        setTimeout(() => notification.remove(), 3000);
+    }
+
+    async function verifyAdmin() {
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+            throw new Error('Usuário não autenticado.');
         }
-        function sanitizeInput(input) {
-            return typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(input) : input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '').replace(/[<>]/g, '');
-        }
-        function showNotification(message, isError = false) {
-            const notificationsDiv = document.getElementById('notifications');
-            const notification = document.createElement('div');
-            notification.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
-            notification.textContent = sanitizeInput(message);
-            const closeButton = document.createElement('button');
-            closeButton.innerHTML = '<i class="fas fa-times"></i>';
-            closeButton.className = 'ml-2 text-white hover:text-gray-300';
-            closeButton.addEventListener('click', () => notification.remove());
-            notification.appendChild(closeButton);
-            notificationsDiv.appendChild(notification);
-            setTimeout(() => notification.remove(), 3000);
-        }
-        function applyMasks() {
-            Inputmask({ mask: '9999 9999 9999 9999' }).mask(document.getElementById('addCardNumero'));
-            Inputmask({ mask: '9999 9999 9999 9999' }).mask(document.getElementById('editCardNumero'));
-            Inputmask({ mask: '999' }).mask(document.getElementById('addCardCVV'));
-            Inputmask({ mask: '999' }).mask(document.getElementById('editCardCVV'));
-            Inputmask({ mask: '99/99' }).mask(document.getElementById('addCardExpiry'));
-            Inputmask({ mask: '99/99' }).mask(document.getElementById('editCardExpiry'));
-            Inputmask({ mask: '999.999.999-99' }).mask(document.getElementById('addCardCPF'));
-            Inputmask({ mask: '999.999.999-99' }).mask(document.getElementById('editCardCPF'));
-        }
-        async function verifyAdmin() {
-            const btn = document.getElementById('verifyAdminButton');
-            const spinner = document.getElementById('verifySpinner');
+        return new Promise((resolve, reject) => {
+            const modal = document.getElementById('adminAuthModal');
+            const form = document.getElementById('adminAuthForm');
+            const button = document.getElementById('adminAuthButton');
+            const spinner = document.getElementById('adminAuthSpinner');
             const errorDiv = document.getElementById('adminAuthError');
-            btn.disabled = true;
-            spinner.classList.remove('hidden');
-            document.getElementById('globalLoader').style.visibility = 'visible';
+            const cancelButton = document.getElementById('cancelAdminAuthButton');
+
+            modal.classList.add('show');
             errorDiv.classList.add('hidden');
-            try {
-                const adminPassword = sanitizeInput(document.getElementById('adminPassword').value);
-                if (!adminPassword) throw new Error('Senha admin é obrigatória.');
-                const userId = localStorage.getItem('userId');
-                const res = await fetch('/api/verify-admin', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, adminPassword })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || `Erro HTTP ${res.status}`);
-                document.getElementById('adminAuthSection').classList.add('hidden');
-                document.getElementById('levelsSection').classList.remove('hidden');
-                document.getElementById('usersSection').classList.remove('hidden');
-                document.getElementById('cardsSection').classList.remove('hidden');
-                await loadLevels();
-                await loadUsers();
-                await loadCards();
-                showNotification('Autenticação bem-sucedida!');
-            } catch (err) {
-                errorDiv.textContent = err.message;
-                errorDiv.classList.remove('hidden');
-                showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                btn.disabled = false;
-                spinner.classList.add('hidden');
-                document.getElementById('globalLoader').style.visibility = 'hidden';
-            }
-        }
-        async function loadLevels() {
-            document.getElementById('globalLoader').style.visibility = 'visible';
-            try {
-                const filter = document.getElementById('filterLevel').value.trim().toLowerCase();
-                const res = await fetch('/api/levels');
-                if (!res.ok) {
+
+            const submitHandler = async (e) => {
+                e.preventDefault();
+                button.disabled = true;
+                spinner.classList.remove('hidden');
+                document.getElementById('globalLoader').style.visibility = 'visible';
+                errorDiv.classList.add('hidden');
+
+                try {
+                    const adminPassword = DOMPurify.sanitize(document.getElementById('adminPassword').value);
+                    const res = await fetch('/api/verify-admin', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId, adminPassword })
+                    });
                     const data = await res.json();
-                    throw new Error(data.error || `Erro HTTP ${res.status}`);
+                    if (res.status !== 200) {
+                        throw new Error(data.error || 'Falha na autenticação de admin');
+                    }
+                    modal.classList.remove('show');
+                    resolve();
+                } catch (err) {
+                    console.error('Erro na autenticação de admin:', err.message);
+                    errorDiv.textContent = err.message;
+                    errorDiv.classList.remove('hidden');
+                    showNotification('Erro: ' + err.message, true);
+                    reject(err);
+                } finally {
+                    button.disabled = false;
+                    spinner.classList.add('hidden');
+                    document.getElementById('globalLoader').style.visibility = 'hidden';
                 }
-                let levels = await res.json();
-                if (filter) levels = levels.filter(level => level.level.toLowerCase().includes(filter));
-                const levelTableBody = document.querySelector('#levelList table tbody');
-                levelTableBody.innerHTML = levels.length === 0 ? '<tr><td colspan="3" class="text-center text-gray-500">Nenhum nível encontrado.</td></tr>' : '';
-                levels.forEach(level => {
+            };
+
+            const cancelHandler = () => {
+                modal.classList.remove('show');
+                reject(new Error('Autenticação cancelada'));
+            };
+
+            form.addEventListener('submit', submitHandler, { once: true });
+            cancelButton.addEventListener('click', cancelHandler, { once: true });
+
+            document.getElementById('adminPassword').focus();
+        });
+    }
+
+    async function loadUsers(search = '') {
+        document.getElementById('globalLoader').style.visibility = 'visible';
+        try {
+            await verifyAdmin();
+            const res = await fetch('/api/admin/users');
+            const users = await res.json();
+            console.log('Usuários carregados:', users);
+            const userTableBody = document.querySelector('#userList table tbody');
+            userTableBody.innerHTML = '';
+            const filteredUsers = users.filter(user => user.username.toLowerCase().includes(search.toLowerCase()));
+            if (filteredUsers.length === 0) {
+                userTableBody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500">Nenhum usuário encontrado.</td></tr>';
+            } else {
+                filteredUsers.forEach(user => {
                     const row = document.createElement('tr');
-                    row.innerHTML = `<td>${sanitizeInput(level.level)}</td><td>${formatCurrency(level.price)}</td><td><button class="action-button edit-level-btn" data-level="${level.level}" data-price="${level.price}"><i class="fas fa-edit"></i></button></td>`;
-                    levelTableBody.appendChild(row);
-                });
-            } catch (err) {
-                showNotification(`Erro ao carregar níveis: ${err.message}`, true);
-            } finally {
-                document.getElementById('globalLoader').style.visibility = 'hidden';
-            }
-        }
-        async function loadUsers() {
-            document.getElementById('globalLoader').style.visibility = 'visible';
-            try {
-                const userId = localStorage.getItem('userId');
-                const filter = document.getElementById('filterUser').value.trim().toLowerCase();
-                const res = await fetch(`/api/admin/users?userId=${userId}`);
-                if (!res.ok) {
-                    const data = await res.json();
-                    throw new Error(data.error || `Erro HTTP ${res.status}`);
-                }
-                let users = await res.json();
-                if (filter) users = users.filter(user => user._id.toLowerCase().includes(filter) || user.username.toLowerCase().includes(filter));
-                const userTableBody = document.querySelector('#userList table tbody');
-                userTableBody.innerHTML = users.length === 0 ? '<tr><td colspan="5" class="text-center text-gray-500">Nenhum usuário encontrado.</td></tr>' : '';
-                users.forEach(user => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `<td>${sanitizeInput(user._id)}</td><td>${sanitizeInput(user.username)}</td><td>${formatCurrency(user.balance)}</td><td>${user.is_admin ? 'Sim' : 'Não'}</td><td><button class="action-button edit-user-btn" data-user-id="${user._id}" data-username="${user.username}" data-balance="${user.balance}" data-is-admin="${user.is_admin}"><i class="fas fa-edit"></i></button><button class="delete-button delete-user-btn" data-user-id="${user._id}"><i class="fas fa-trash"></i></button></td>`;
+                    row.innerHTML = `
+                        <td>${DOMPurify.sanitize(user.username)}</td>
+                        <td>${formatCurrency(user.balance)}</td>
+                        <td>${user.is_admin ? 'Sim' : 'Não'}</td>
+                        <td>${formatDate(user.created_at)}</td>
+                        <td>
+                            <button class="action-button edit-button edit-user-btn" data-user-id="${user._id}" data-username="${user.username}" data-balance="${user.balance}" data-is-admin="${user.is_admin}"><i class="fas fa-edit"></i></button>
+                            <button class="action-button delete-button delete-user-btn" data-user-id="${user._id}"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
                     userTableBody.appendChild(row);
                 });
-            } catch (err) {
-                showNotification(`Erro ao carregar usuários: ${err.message}`, true);
-            } finally {
-                document.getElementById('globalLoader').style.visibility = 'hidden';
             }
+            showNotification('Usuários carregados com sucesso!');
+        } catch (err) {
+            console.error('Erro ao carregar usuários:', err.message);
+            showNotification('Erro ao carregar usuários.', true);
+        } finally {
+            document.getElementById('globalLoader').style.visibility = 'hidden';
         }
-        async function loadCards() {
-            document.getElementById('globalLoader').style.visibility = 'visible';
-            try {
-                const userId = localStorage.getItem('userId');
-                const filter = document.getElementById('filterCard').value.trim().toLowerCase();
-                const res = await fetch(`/api/admin/cards?userId=${userId}`);
-                if (!res.ok) {
-                    const data = await res.json();
-                    throw new Error(data.error || `Erro HTTP ${res.status}`);
-                }
-                let cards = await res.json();
-                if (filter) cards = cards.filter(card => card._id.toLowerCase().includes(filter) || card.numero.toLowerCase().includes(filter));
-                const cardTableBody = document.querySelector('#cardList table tbody');
-                cardTableBody.innerHTML = cards.length === 0 ? '<tr><td colspan="8" class="text-center text-gray-500">Nenhum cartão encontrado.</td></tr>' : '';
-                cards.forEach(card => {
+    }
+
+    async function loadCards(search = '') {
+        document.getElementById('globalLoader').style.visibility = 'visible';
+        try {
+            await verifyAdmin();
+            const res = await fetch('/api/admin/cards');
+            const cards = await res.json();
+            console.log('Cartões carregados:', cards);
+            const cardTableBody = document.querySelector('#cardList table tbody');
+            cardTableBody.innerHTML = '';
+            const filteredCards = cards.filter(card => card.numero.includes(search));
+            if (filteredCards.length === 0) {
+                cardTableBody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-500">Nenhum cartão encontrado.</td></tr>';
+            } else {
+                filteredCards.forEach(card => {
                     const row = document.createElement('tr');
-                    row.innerHTML = `<td>${sanitizeInput(card._id)}</td><td>${sanitizeInput(card.numero)}</td><td>${sanitizeInput(card.bandeira)}</td><td>${sanitizeInput(card.banco)}</td><td>${sanitizeInput(card.nivel)}</td><td>${card.acquired ? 'Sim' : 'Não'}</td><td>${card.user_id ? sanitizeInput(card.user_id) : '-'}</td><td><button class="action-button edit-card-btn" data-card-id="${card._id}" data-numero="${card.numero}" data-cvv="${card.cvv}" data-expiry="${card.expiry}" data-name="${card.name}" data-cpf="${card.cpf}" data-bandeira="${card.bandeira}" data-banco="${card.banco}" data-nivel="${card.nivel}"><i class="fas fa-edit"></i></button><button class="delete-button delete-card-btn" data-card-id="${card._id}"><i class="fas fa-trash"></i></button></td>`;
+                    row.innerHTML = `
+                        <td>${DOMPurify.sanitize(card.numero)}</td>
+                        <td>${DOMPurify.sanitize(card.bandeira)}</td>
+                        <td>${DOMPurify.sanitize(card.banco)}</td>
+                        <td>${DOMPurify.sanitize(card.nivel)}</td>
+                        <td>${formatCurrency(card.price)}</td>
+                        <td>${card.acquired ? 'Sim' : 'Não'}</td>
+                        <td>
+                            <button class="action-button edit-button edit-card-btn" data-card-id="${card._id}" data-numero="${card.numero}" data-cvv="${card.cvv}" data-expiry="${card.expiry}" data-name="${card.name}" data-cpf="${card.cpf}" data-bandeira="${card.bandeira}" data-banco="${card.banco}" data-nivel="${card.nivel}"><i class="fas fa-edit"></i></button>
+                            <button class="action-button delete-button delete-card-btn" data-card-id="${card._id}"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
                     cardTableBody.appendChild(row);
                 });
-            } catch (err) {
-                showNotification(`Erro ao carregar cartões: ${err.message}`, true);
-            } finally {
-                document.getElementById('globalLoader').style.visibility = 'hidden';
             }
+            showNotification('Cartões carregados com sucesso!');
+        } catch (err) {
+            console.error('Erro ao carregar cartões:', err.message);
+            showNotification('Erro ao carregar cartões.', true);
+        } finally {
+            document.getElementById('globalLoader').style.visibility = 'hidden';
         }
-        async function addUser() {
-            const btn = document.getElementById('saveAddUserButton');
-            const spinner = document.getElementById('addUserSpinner');
-            const errorDiv = document.getElementById('addUserError');
-            btn.disabled = true;
-            spinner.classList.remove('hidden');
-            document.getElementById('globalLoader').style.visibility = 'visible';
-            errorDiv.classList.add('hidden');
-            try {
-                const username = sanitizeInput(document.getElementById('addUserUsername').value.trim());
-                const password = sanitizeInput(document.getElementById('addUserPassword').value.trim());
-                const balance = parseFloat(document.getElementById('addUserBalance').value) || 0;
-                const isAdmin = document.getElementById('addUserIsAdmin').checked;
-                if (!username.match(/^[a-zA-Z0-9_]{3,}$/)) throw new Error('Usuário inválido.');
-                if (password.length < 6) throw new Error('Senha deve ter pelo menos 6 caracteres.');
-                if (isNaN(balance) || balance < 0) throw new Error('Saldo inválido.');
-                const res = await fetch('/api/admin/users', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password, balance, is_admin: isAdmin })
+    }
+
+    async function loadLevels() {
+        document.getElementById('globalLoader').style.visibility = 'visible';
+        try {
+            await verifyAdmin();
+            const res = await fetch('/api/levels');
+            const levels = await res.json();
+            console.log('Níveis carregados:', levels);
+            const levelTableBody = document.querySelector('#levelList table tbody');
+            levelTableBody.innerHTML = '';
+            if (levels.length === 0) {
+                levelTableBody.innerHTML = '<tr><td colspan="3" class="text-center text-gray-500">Nenhum nível encontrado.</td></tr>';
+            } else {
+                levels.forEach(level => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${DOMPurify.sanitize(level.level)}</td>
+                        <td>${formatCurrency(level.price)}</td>
+                        <td>
+                            <button class="action-button edit-button edit-level-btn" data-level="${level.level}" data-price="${level.price}"><i class="fas fa-edit"></i></button>
+                        </td>
+                    `;
+                    levelTableBody.appendChild(row);
                 });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || `Erro HTTP ${res.status}`);
-                document.getElementById('addUserModal').classList.remove('show');
-                await loadUsers();
-                showNotification('Usuário adicionado!');
-            } catch (err) {
-                errorDiv.textContent = err.message;
-                errorDiv.classList.remove('hidden');
-                showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                btn.disabled = false;
-                spinner.classList.add('hidden');
-                document.getElementById('globalLoader').style.visibility = 'hidden';
             }
+            showNotification('Níveis carregados com sucesso!');
+        } catch (err) {
+            console.error('Erro ao carregar níveis:', err.message);
+            showNotification('Erro ao carregar níveis.', true);
+        } finally {
+            document.getElementById('globalLoader').style.visibility = 'hidden';
         }
-        async function editUser() {
-            const btn = document.getElementById('saveEditUserButton');
-            const spinner = document.getElementById('editUserSpinner');
-            const errorDiv = document.getElementById('editUserError');
-            btn.disabled = true;
-            spinner.classList.remove('hidden');
-            document.getElementById('globalLoader').style.visibility = 'visible';
-            errorDiv.classList.add('hidden');
-            try {
-                const userId = document.getElementById('editUserId').value;
-                const password = document.getElementById('editUserPassword').value.trim();
-                const balance = parseFloat(document.getElementById('editUserBalance').value);
-                const isAdmin = document.getElementById('editUserIsAdmin').checked;
-                if (isNaN(balance) || balance < 0) throw new Error('Saldo inválido.');
-                if (password && password.length < 6) throw new Error('Nova senha deve ter pelo menos 6 caracteres.');
-                const updateData = { userId, balance, is_admin: isAdmin };
-                if (password) updateData.password = password;
-                const res = await fetch('/api/admin/users', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(updateData)
+    }
+
+    async function loadTransactions(search = '') {
+        document.getElementById('globalLoader').style.visibility = 'visible';
+        try {
+            await verifyAdmin();
+            const usersRes = await fetch('/api/admin/users');
+            const users = await usersRes.json();
+            const userMap = users.reduce((map, user) => {
+                map[user._id] = user.username;
+                return map;
+            }, {});
+            const userId = users.find(user => user.username.toLowerCase() === search.toLowerCase())?._id;
+            const query = userId ? `/api/transactions?userId=${userId}` : '';
+            if (!query && search) {
+                showNotification('Usuário não encontrado.', true);
+                document.querySelector('#transactionList table tbody').innerHTML = '<tr><td colspan="5" class="text-center text-gray-500">Nenhum usuário encontrado.</td></tr>';
+                document.getElementById('globalLoader').style.visibility = 'hidden';
+                return;
+            }
+            if (!query) {
+                document.querySelector('#transactionList table tbody').innerHTML = '<tr><td colspan="5" class="text-center text-gray-500">Digite um usuário para buscar transações.</td></tr>';
+                document.getElementById('globalLoader').style.visibility = 'hidden';
+                return;
+            }
+            const res = await fetch(query);
+            const transactions = await res.json();
+            console.log('Transações carregadas:', transactions);
+            const transactionTableBody = document.querySelector('#transactionList table tbody');
+            transactionTableBody.innerHTML = '';
+            if (transactions.length === 0) {
+                transactionTableBody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500">Nenhuma transação encontrada.</td></tr>';
+            } else {
+                transactions.forEach(transaction => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${DOMPurify.sanitize(userMap[transaction.user_id] || 'Desconhecido')}</td>
+                        <td>${DOMPurify.sanitize(transaction.type)}</td>
+                        <td>${formatCurrency(transaction.amount)}</td>
+                        <td>${DOMPurify.sanitize(transaction.description)}</td>
+                        <td>${formatDate(transaction.timestamp)}</td>
+                    `;
+                    transactionTableBody.appendChild(row);
                 });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || `Erro HTTP ${res.status}`);
-                document.getElementById('editUserModal').classList.remove('show');
-                await loadUsers();
-                showNotification('Usuário atualizado!');
-            } catch (err) {
-                errorDiv.textContent = err.message;
-                errorDiv.classList.remove('hidden');
-                showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                btn.disabled = false;
-                spinner.classList.add('hidden');
-                document.getElementById('globalLoader').style.visibility = 'hidden';
             }
+            showNotification('Transações carregadas com sucesso!');
+        } catch (err) {
+            console.error('Erro ao carregar transações:', err.message);
+            showNotification('Erro ao carregar transações.', true);
+        } finally {
+            document.getElementById('globalLoader').style.visibility = 'hidden';
         }
-        async function deleteUser(userId) {
-            if (!confirm('Tem certeza de que deseja excluir este usuário?')) return;
-            document.getElementById('globalLoader').style.visibility = 'visible';
-            try {
-                const res = await fetch('/api/admin/users', {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || `Erro HTTP ${res.status}`);
-                await loadUsers();
-                showNotification('Usuário excluído!');
-            } catch (err) {
-                showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                document.getElementById('globalLoader').style.visibility = 'hidden';
+    }
+
+    async function addDeposit(username, amount) {
+        const button = document.getElementById('depositButton');
+        const spinner = document.getElementById('depositSpinner');
+        const errorDiv = document.getElementById('depositError');
+        button.disabled = true;
+        spinner.classList.remove('hidden');
+        document.getElementById('globalLoader').style.visibility = 'visible';
+        errorDiv.classList.add('hidden');
+        try {
+            await verifyAdmin();
+            const usersRes = await fetch('/api/admin/users');
+            const users = await usersRes.json();
+            const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
+            if (!user) {
+                throw new Error('Usuário não encontrado.');
             }
-        }
-        async function addCard() {
-            const btn = document.getElementById('saveAddCardButton');
-            const spinner = document.getElementById('addCardSpinner');
-            const errorDiv = document.getElementById('addCardError');
-            btn.disabled = true;
-            spinner.classList.remove('hidden');
-            document.getElementById('globalLoader').style.visibility = 'visible';
-            errorDiv.classList.add('hidden');
-            try {
-                const numero = document.getElementById('addCardNumero').value.replace(/\D/g, '');
-                const cvv = document.getElementById('addCardCVV').value.replace(/\D/g, '');
-                const expiry = document.getElementById('addCardExpiry').value;
-                const name = sanitizeInput(document.getElementById('addCardName').value.trim());
-                const cpf = document.getElementById('addCardCPF').value.replace(/\D/g, '');
-                const bandeira = document.getElementById('addCardBandeira').value;
-                const banco = document.getElementById('addCardBanco').value;
-                const nivel = document.getElementById('addCardNivel').value;
-                if (!numero.match(/^\d{16}$/)) throw new Error('Número do cartão inválido.');
-                if (!cvv.match(/^\d{3}$/)) throw new Error('CVV inválido.');
-                if (!expiry.match(/^\d{2}\/\d{2}$/)) throw new Error('Validade inválida.');
-                if (!name) throw new Error('Nome é obrigatório.');
-                if (!cpf.match(/^\d{11}$/)) throw new Error('CPF inválido.');
-                if (!bandeira) throw new Error('Bandeira é obrigatória.');
-                if (!banco) throw new Error('Banco é obrigatório.');
-                if (!nivel) throw new Error('Nível é obrigatório.');
-                const res = await fetch('/api/admin/cards', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ numero, cvv, expiry, name, cpf, bandeira, banco, nivel })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || `Erro HTTP ${res.status}`);
-                document.getElementById('addCardModal').classList.remove('show');
-                await loadCards();
-                showNotification('Cartão cadastrado!');
-            } catch (err) {
-                errorDiv.textContent = err.message;
-                errorDiv.classList.remove('hidden');
-                showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                btn.disabled = false;
-                spinner.classList.add('hidden');
-                document.getElementById('globalLoader').style.visibility = 'hidden';
+            const res = await fetch('/api/admin/users', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user._id, balance: user.balance + amount })
+            });
+            const data = await res.json();
+            if (res.status !== 200) {
+                throw new Error(data.error || 'Erro ao adicionar depósito');
             }
-        }
-        async function editCard() {
-            const btn = document.getElementById('saveEditCardButton');
-            const spinner = document.getElementById('editCardSpinner');
-            const errorDiv = document.getElementById('editCardError');
-            btn.disabled = true;
-            spinner.classList.remove('hidden');
-            document.getElementById('globalLoader').style.visibility = 'visible';
-            errorDiv.classList.add('hidden');
-            try {
-                const cardId = document.getElementById('editCardId').value;
-                const numero = document.getElementById('editCardNumero').value.replace(/\D/g, '');
-                const cvv = document.getElementById('editCardCVV').value.replace(/\D/g, '');
-                const expiry = document.getElementById('editCardExpiry').value;
-                const name = sanitizeInput(document.getElementById('editCardName').value.trim());
-                const cpf = document.getElementById('editCardCPF').value.replace(/\D/g, '');
-                const bandeira = document.getElementById('editCardBandeira').value;
-                const banco = document.getElementById('editCardBanco').value;
-                const nivel = document.getElementById('editCardNivel').value;
-                if (!numero.match(/^\d{16}$/)) throw new Error('Número do cartão inválido.');
-                if (!cvv.match(/^\d{3}$/)) throw new Error('CVV inválido.');
-                if (!expiry.match(/^\d{2}\/\d{2}$/)) throw new Error('Validade inválida.');
-                if (!name) throw new Error('Nome é obrigatório.');
-                if (!cpf.match(/^\d{11}$/)) throw new Error('CPF inválido.');
-                if (!bandeira) throw new Error('Bandeira é obrigatória.');
-                if (!banco) throw new Error('Banco é obrigatório.');
-                if (!nivel) throw new Error('Nível é obrigatório.');
-                const res = await fetch('/api/admin/cards', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cardId, numero, cvv, expiry, name, cpf, bandeira, banco, nivel })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || `Erro HTTP ${res.status}`);
-                document.getElementById('editCardModal').classList.remove('show');
-                await loadCards();
-                showNotification('Cartão atualizado!');
-            } catch (err) {
-                errorDiv.textContent = err.message;
-                errorDiv.classList.remove('hidden');
-                showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                btn.disabled = false;
-                spinner.classList.add('hidden');
-                document.getElementById('globalLoader').style.visibility = 'hidden';
+            const transactionRes = await fetch('/api/transactions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: user._id,
+                    type: 'deposit',
+                    amount,
+                    description: `Depósito de ${formatCurrency(amount)}`
+                })
+            });
+            if (transactionRes.status !== 200) {
+                throw new Error('Erro ao registrar transação de depósito');
             }
+            showNotification('Depósito adicionado com sucesso!');
+            document.getElementById('depositForm').reset();
+        } catch (err) {
+            console.error('Erro ao adicionar depósito:', err.message);
+            errorDiv.textContent = err.message;
+            errorDiv.classList.remove('hidden');
+            showNotification('Erro: ' + err.message, true);
+        } finally {
+            button.disabled = false;
+            spinner.classList.add('hidden');
+            document.getElementById('globalLoader').style.visibility = 'hidden';
         }
-        async function deleteCard(cardId) {
-            if (!confirm('Tem certeza de que deseja excluir este cartão?')) return;
-            document.getElementById('globalLoader').style.visibility = 'visible';
-            try {
-                const res = await fetch('/api/admin/cards', {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cardId })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || `Erro HTTP ${res.status}`);
-                await loadCards();
-                showNotification('Cartão excluído!');
-            } catch (err) {
-                showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                document.getElementById('globalLoader').style.visibility = 'hidden';
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        console.log('DOM carregado');
+        const userId = localStorage.getItem('userId');
+        const isAdmin = localStorage.getItem('is_admin') === 'true';
+        if (!userId || !isAdmin) {
+            showNotification('Acesso restrito a administradores.', true);
+            setTimeout(() => window.location.href = 'index.html', 1000);
+            return;
+        }
+        document.getElementById('globalLoader').style.visibility = 'visible';
+        try {
+            const res = await fetch(`/api/users?userId=${userId}`);
+            if (res.status !== 200) {
+                throw new Error('Sessão inválida. Faça login novamente.');
             }
+            await loadUsers();
+            setupEventListeners();
+            Inputmask({ mask: '9999 9999 9999 9999' }).mask(document.getElementById('editCardNumber'));
+            Inputmask({ mask: '999' }).mask(document.getElementById('editCardCVV'));
+            Inputmask({ mask: '99/99' }).mask(document.getElementById('editCardExpiry'));
+            Inputmask({ mask: '999.999.999-99' }).mask(document.getElementById('editCardCPF'));
+        } catch (err) {
+            console.error('Erro ao validar usuário:', err.message);
+            showNotification(err.message, true);
+            localStorage.removeItem('userId');
+            localStorage.removeItem('username');
+            localStorage.removeItem('is_admin');
+            setTimeout(() => window.location.href = 'index.html', 1000);
+        } finally {
+            document.getElementById('globalLoader').style.visibility = 'hidden';
         }
-        async function editLevel() {
-            const btn = document.getElementById('saveEditLevelButton');
-            const spinner = document.getElementById('editLevelSpinner');
-            const errorDiv = document.getElementById('editLevelError');
-            btn.disabled = true;
-            spinner.classList.remove('hidden');
-            document.getElementById('globalLoader').style.visibility = 'visible';
-            errorDiv.classList.add('hidden');
-            try {
-                const levelName = document.getElementById('editLevelName').value;
-                const price = parseFloat(document.getElementById('editLevelPrice').value);
-                if (isNaN(price) || price <= 0) throw new Error('Preço inválido.');
-                const res = await fetch('/api/levels', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ level: levelName, price })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || `Erro HTTP ${res.status}`);
-                document.getElementById('editLevelModal').classList.remove('show');
-                await loadLevels();
-                await loadCards();
-                showNotification('Nível atualizado!');
-            } catch (err) {
-                errorDiv.textContent = err.message;
-                errorDiv.classList.remove('hidden');
-                showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                btn.disabled = false;
-                spinner.classList.add('hidden');
-                document.getElementById('globalLoader').style.visibility = 'hidden';
-            }
-        }
-        async function importCards(file) {
-            document.getElementById('globalLoader').style.visibility = 'visible';
-            try {
-                const reader = new FileReader();
-                reader.onload = async (e) => {
+    });
+
+    function setupEventListeners() {
+        document.getElementById('logoutButton').addEventListener('click', () => {
+            console.log('Saindo...');
+            localStorage.removeItem('userId');
+            localStorage.removeItem('username');
+            localStorage.removeItem('is_admin');
+            window.location.href = 'index.html';
+        });
+        document.getElementById('shopButton').addEventListener('click', () => {
+            window.location.href = 'shop.html';
+        });
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+                tab.classList.add('active');
+                document.getElementById(`${tab.dataset.tab}Tab`).classList.remove('hidden');
+                if (tab.dataset.tab === 'users') loadUsers(document.getElementById('userSearch').value);
+                else if (tab.dataset.tab === 'cards') loadCards(document.getElementById('cardSearch').value);
+                else if (tab.dataset.tab === 'levels') loadLevels();
+                else if (tab.dataset.tab === 'transactions') loadTransactions(document.getElementById('transactionUserSearch').value);
+            });
+        });
+        document.getElementById('userSearch').addEventListener('input', () => loadUsers(document.getElementById('userSearch').value));
+        document.getElementById('cardSearch').addEventListener('input', () => loadCards(document.getElementById('cardSearch').value));
+        document.getElementById('transactionUserSearch').addEventListener('input', () => loadTransactions(document.getElementById('transactionUserSearch').value));
+        document.getElementById('addCardButton').addEventListener('click', () => {
+            document.getElementById('editCardTitle').textContent = 'Adicionar Cartão';
+            document.getElementById('editCardId').value = '';
+            document.getElementById('editCardForm').reset();
+            document.getElementById('editCardError').classList.add('hidden');
+            document.getElementById('editCardModal').classList.add('show');
+        });
+        document.getElementById('userList').addEventListener('click', async (e) => {
+            if (e.target.closest('.edit-user-btn')) {
+                const btn = e.target.closest('.edit-user-btn');
+                document.getElementById('editUserId').value = btn.dataset.userId;
+                document.getElementById('editUsername').value = btn.dataset.username;
+                document.getElementById('editBalance').value = btn.dataset.balance;
+                document.getElementById('editIsAdmin').checked = btn.dataset.isAdmin === 'true';
+                document.getElementById('editPassword').value = '';
+                document.getElementById('editUserError').classList.add('hidden');
+                document.getElementById('editUserModal').classList.add('show');
+            } else if (e.target.closest('.delete-user-btn')) {
+                const btn = e.target.closest('.delete-user-btn');
+                if (confirm('Tem certeza que deseja excluir este usuário?')) {
+                    document.getElementById('globalLoader').style.visibility = 'visible';
                     try {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, { type: 'array' });
-                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                        const json = XLSX.utils.sheet_to_json(sheet);
-                        for (const row of json) {
-                            const numero = String(row.numero).replace(/\D/g, '');
-                            const cvv = String(row.cvv).replace(/\D/g, '');
-                            const expiry = String(row.expiry);
-                            const name = sanitizeInput(String(row.name).trim());
-                            const cpf = String(row.cpf).replace(/\D/g, '');
-                            const bandeira = String(row.bandeira).trim();
-                            const banco = String(row.banco).trim();
-                            const nivel = String(row.nivel).trim();
-                            if (!numero.match(/^\d{16}$/) || !cvv.match(/^\d{3}$/) || !expiry.match(/^\d{2}\/\d{2}$/) || !name || !cpf.match(/^\d{11}$/) || !['Visa', 'Mastercard', 'Amex', 'Elo', 'Hipercard', 'Diners Club'].includes(bandeira) || !['Nubank', 'Itaú', 'Bradesco', 'Santander', 'Banco do Brasil', 'Caixa Econômica Federal', 'Sicredi', 'Sicoob'].includes(banco) || !['Classic', 'Gold', 'Platinum', 'Black'].includes(nivel)) {
-                                throw new Error(`Dados inválidos na linha: ${JSON.stringify(row)}`);
-                            }
-                            await fetch('/api/admin/cards', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ numero, cvv, expiry, name, cpf, bandeira, banco, nivel })
-                            });
+                        await verifyAdmin();
+                        const res = await fetch('/api/admin/users', {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ userId: btn.dataset.userId })
+                        });
+                        const data = await res.json();
+                        if (res.status !== 200) {
+                            throw new Error(data.error || 'Erro ao excluir usuário');
                         }
-                        await loadCards();
-                        showNotification('Cartões importados!');
+                        showNotification('Usuário excluído com sucesso!');
+                        await loadUsers(document.getElementById('userSearch').value);
                     } catch (err) {
-                        showNotification(`Erro ao importar: ${err.message}`, true);
+                        console.error('Erro ao excluir usuário:', err.message);
+                        showNotification('Erro: ' + err.message, true);
                     } finally {
                         document.getElementById('globalLoader').style.visibility = 'hidden';
                     }
-                };
-                reader.readAsArrayBuffer(file);
+                }
+            }
+        });
+        document.getElementById('editUserForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const button = document.getElementById('saveUserButton');
+            const spinner = document.getElementById('saveUserSpinner');
+            const errorDiv = document.getElementById('editUserError');
+            button.disabled = true;
+            spinner.classList.remove('hidden');
+            document.getElementById('globalLoader').style.visibility = 'visible';
+            errorDiv.classList.add('hidden');
+            try {
+                await verifyAdmin();
+                const userId = document.getElementById('editUserId').value;
+                const balance = parseFloat(document.getElementById('editBalance').value);
+                const isAdmin = document.getElementById('editIsAdmin').checked;
+                const password = document.getElementById('editPassword').value;
+                if (isNaN(balance) || balance < 0) {
+                    throw new Error('Saldo inválido.');
+                }
+                if (password && password.length < 4) {
+                    throw new Error('A senha deve ter pelo menos 4 caracteres.');
+                }
+                const updateBody = { userId, balance, is_admin: isAdmin };
+                if (password) updateBody.password = password;
+                const res = await fetch('/api/admin/users', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updateBody)
+                });
+                const data = await res.json();
+                if (res.status !== 200) {
+                    throw new Error(data.error || 'Erro ao atualizar usuário');
+                }
+                document.getElementById('editUserModal').classList.remove('show');
+                showNotification('Usuário atualizado com sucesso!');
+                await loadUsers(document.getElementById('userSearch').value);
             } catch (err) {
-                showNotification(`Erro: ${err.message}`, true);
+                console.error('Erro ao atualizar usuário:', err.message);
+                errorDiv.textContent = err.message;
+                errorDiv.classList.remove('hidden');
+                showNotification('Erro: ' + err.message, true);
+            } finally {
+                button.disabled = false;
+                spinner.classList.add('hidden');
                 document.getElementById('globalLoader').style.visibility = 'hidden';
             }
-        }
-        document.addEventListener('DOMContentLoaded', () => {
-            const isAdmin = localStorage.getItem('is_admin') === 'true';
-            const userId = localStorage.getItem('userId');
-            if (!isAdmin || !userId) {
-                window.location.href = 'index.html';
+        });
+        document.getElementById('cancelEditUserButton').addEventListener('click', () => {
+            document.getElementById('editUserModal').classList.remove('show');
+        });
+        document.getElementById('cardList').addEventListener('click', async (e) => {
+            if (e.target.closest('.edit-card-btn')) {
+                const btn = e.target.closest('.edit-card-btn');
+                document.getElementById('editCardTitle').textContent = 'Editar Cartão';
+                document.getElementById('editCardId').value = btn.dataset.cardId;
+                document.getElementById('editCardNumber').value = btn.dataset.numero;
+                document.getElementById('editCardCVV').value = btn.dataset.cvv;
+                document.getElementById('editCardExpiry').value = btn.dataset.expiry;
+                document.getElementById('editCardName').value = btn.dataset.name;
+                document.getElementById('editCardCPF').value = btn.dataset.cpf;
+                document.getElementById('editCardBandeira').value = btn.dataset.bandeira;
+                document.getElementById('editCardBanco').value = btn.dataset.banco;
+                document.getElementById('editCardNivel').value = btn.dataset.nivel;
+                document.getElementById('editCardError').classList.add('hidden');
+                document.getElementById('editCardModal').classList.add('show');
+            } else if (e.target.closest('.delete-card-btn')) {
+                const btn = e.target.closest('.delete-card-btn');
+                if (confirm('Tem certeza que deseja excluir este cartão?')) {
+                    document.getElementById('globalLoader').style.visibility = 'visible';
+                    try {
+                        await verifyAdmin();
+                        const res = await fetch('/api/admin/cards', {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ cardId: btn.dataset.cardId })
+                        });
+                        const data = await res.json();
+                        if (res.status !== 200) {
+                            throw new Error(data.error || 'Erro ao excluir cartão');
+                        }
+                        showNotification('Cartão excluído com sucesso!');
+                        await loadCards(document.getElementById('cardSearch').value);
+                    } catch (err) {
+                        console.error('Erro ao excluir cartão:', err.message);
+                        showNotification('Erro: ' + err.message, true);
+                    } finally {
+                        document.getElementById('globalLoader').style.visibility = 'hidden';
+                    }
+                }
+            }
+        });
+        document.getElementById('editCardForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const button = document.getElementById('saveCardButton');
+            const spinner = document.getElementById('saveCardSpinner');
+            const errorDiv = document.getElementById('editCardError');
+            button.disabled = true;
+            spinner.classList.remove('hidden');
+            document.getElementById('globalLoader').style.visibility = 'visible';
+            errorDiv.classList.add('hidden');
+            try {
+                await verifyAdmin();
+                const cardId = document.getElementById('editCardId').value;
+                const numero = document.getElementById('editCardNumber').value.replace(/\s/g, '');
+                const cvv = document.getElementById('editCardCVV').value;
+                const expiry = document.getElementById('editCardExpiry').value;
+                const name = document.getElementById('editCardName').value.trim();
+                const cpf = document.getElementById('editCardCPF').value.replace(/[\.-]/g, '');
+                const bandeira = document.getElementById('editCardBandeira').value;
+                const banco = document.getElementById('editCardBanco').value;
+                const nivel = document.getElementById('editCardNivel').value;
+                if (!numero.match(/^\d{16}$/)) {
+                    throw new Error('Número do cartão inválido.');
+                }
+                if (!cvv.match(/^\d{3}$/)) {
+                    throw new Error('CVV inválido.');
+                }
+                if (!expiry.match(/^\d{2}\/\d{2}$/)) {
+                    throw new Error('Validade inválida.');
+                }
+                if (!name) {
+                    throw new Error('Nome é obrigatório.');
+                }
+                if (!cpf.match(/^\d{11}$/)) {
+                    throw new Error('CPF inválido.');
+                }
+                const cardData = { numero, cvv, expiry, name, cpf, bandeira, banco, nivel };
+                if (cardId) {
+                    cardData.cardId = cardId;
+                    const res = await fetch('/api/admin/cards', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(cardData)
+                    });
+                    const data = await res.json();
+                    if (res.status !== 200) {
+                        throw new Error(data.error || 'Erro ao atualizar cartão');
+                    }
+                } else {
+                    const res = await fetch('/api/admin/cards', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(cardData)
+                    });
+                    const data = await res.json();
+                    if (res.status !== 200) {
+                        throw new Error(data.error || 'Erro ao adicionar cartão');
+                    }
+                }
+                document.getElementById('editCardModal').classList.remove('show');
+                showNotification('Cartão salvo com sucesso!');
+                await loadCards(document.getElementById('cardSearch').value);
+            } catch (err) {
+                console.error('Erro ao salvar cartão:', err.message);
+                errorDiv.textContent = err.message;
+                errorDiv.classList.remove('hidden');
+                showNotification('Erro: ' + err.message, true);
+            } finally {
+                button.disabled = false;
+                spinner.classList.add('hidden');
+                document.getElementById('globalLoader').style.visibility = 'hidden';
+            }
+        });
+        document.getElementById('cancelEditCardButton').addEventListener('click', () => {
+            document.getElementById('editCardModal').classList.remove('show');
+        });
+        document.getElementById('levelList').addEventListener('click', async (e) => {
+            if (e.target.closest('.edit-level-btn')) {
+                const btn = e.target.closest('.edit-level-btn');
+                document.getElementById('editLevelName').value = btn.dataset.level;
+                document.getElementById('editLevelPrice').value = btn.dataset.price;
+                document.getElementById('editLevelError').classList.add('hidden');
+                document.getElementById('editLevelModal').classList.add('show');
+            }
+        });
+        document.getElementById('editLevelForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const button = document.getElementById('saveLevelButton');
+            const spinner = document.getElementById('saveLevelSpinner');
+            const errorDiv = document.getElementById('editLevelError');
+            button.disabled = true;
+            spinner.classList.remove('hidden');
+            document.getElementById('globalLoader').style.visibility = 'visible';
+            errorDiv.classList.add('hidden');
+            try {
+                await verifyAdmin();
+                const level = document.getElementById('editLevelName').value;
+                const price = parseFloat(document.getElementById('editLevelPrice').value);
+                if (isNaN(price) || price <= 0) {
+                    throw new Error('Preço deve ser maior que 0.');
+                }
+                const res = await fetch('/api/levels', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ level, price })
+                });
+                const data = await res.json();
+                if (res.status !== 200) {
+                    throw new Error(data.error || 'Erro ao atualizar nível');
+                }
+                document.getElementById('editLevelModal').classList.remove('show');
+                showNotification('Nível atualizado com sucesso!');
+                await loadLevels();
+            } catch (err) {
+                console.error('Erro ao atualizar nível:', err.message);
+                errorDiv.textContent = err.message;
+                errorDiv.classList.remove('hidden');
+                showNotification('Erro: ' + err.message, true);
+            } finally {
+                button.disabled = false;
+                spinner.classList.add('hidden');
+                document.getElementById('globalLoader').style.visibility = 'hidden';
+            }
+        });
+        document.getElementById('cancelEditLevelButton').addEventListener('click', () => {
+            document.getElementById('editLevelModal').classList.remove('show');
+        });
+        document.getElementById('depositForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = DOMPurify.sanitize(document.getElementById('depositUsername').value.trim());
+            const amount = parseFloat(document.getElementById('depositAmount').value);
+            if (!username) {
+                showNotification('Usuário é obrigatório.', true);
                 return;
             }
-            document.getElementById('adminAuthSection').classList.remove('hidden');
-            applyMasks();
-            document.getElementById('verifyAdminButton').addEventListener('click', verifyAdmin);
-            document.getElementById('shopButton').addEventListener('click', () => window.location.href = 'index.html');
-            document.getElementById('logoutButton').addEventListener('click', () => {
-                localStorage.removeItem('userId');
-                localStorage.removeItem('username');
-                localStorage.removeItem('is_admin');
-                window.location.href = 'index.html';
-            });
-            document.getElementById('filterLevel').addEventListener('input', loadLevels);
-            document.getElementById('filterUser').addEventListener('input', loadUsers);
-            document.getElementById('filterCard').addEventListener('input', loadCards);
-            document.getElementById('addUserButton').addEventListener('click', () => document.getElementById('addUserModal').classList.add('show'));
-            document.getElementById('cancelAddUserButton').addEventListener('click', () => document.getElementById('addUserModal').classList.remove('show'));
-            document.getElementById('addUserForm').addEventListener('submit', async (e) => { e.preventDefault(); await addUser(); });
-            document.getElementById('cancelEditUserButton').addEventListener('click', () => document.getElementById('editUserModal').classList.remove('show'));
-            document.getElementById('editUserForm').addEventListener('submit', async (e) => { e.preventDefault(); await editUser(); });
-            document.getElementById('addCardButton').addEventListener('click', () => document.getElementById('addCardModal').classList.add('show'));
-            document.getElementById('cancelAddCardButton').addEventListener('click', () => document.getElementById('addCardModal').classList.remove('show'));
-            document.getElementById('addCardForm').addEventListener('submit', async (e) => { e.preventDefault(); await addCard(); });
-            document.getElementById('cancelEditCardButton').addEventListener('click', () => document.getElementById('editCardModal').classList.remove('show'));
-            document.getElementById('editCardForm').addEventListener('submit', async (e) => { e.preventDefault(); await editCard(); });
-            document.getElementById('cancelEditLevelButton').addEventListener('click', () => document.getElementById('editLevelModal').classList.remove('show'));
-            document.getElementById('editLevelForm').addEventListener('submit', async (e) => { e.preventDefault(); await editLevel(); });
-            document.getElementById('importCardsButton').addEventListener('click', () => document.getElementById('importCardsInput').click());
-            document.getElementById('importCardsInput').addEventListener('change', (e) => {
-                if (e.target.files[0]) importCards(e.target.files[0]);
-                e.target.value = '';
-            });
-            document.getElementById('levelList').addEventListener('click', (e) => {
-                if (e.target.closest('.edit-level-btn')) {
-                    const btn = e.target.closest('.edit-level-btn');
-                    document.getElementById('editLevelName').value = btn.dataset.level;
-                    document.getElementById('editLevelPrice').value = btn.dataset.price;
-                    document.getElementById('editLevelModal').classList.add('show');
-                }
-            });
-            document.getElementById('userList').addEventListener('click', async (e) => {
-                if (e.target.closest('.edit-user-btn')) {
-                    const btn = e.target.closest('.edit-user-btn');
-                    document.getElementById('editUserId').value = btn.dataset.userId;
-                    document.getElementById('editUserUsername').value = btn.dataset.username;
-                    document.getElementById('editUserBalance').value = btn.dataset.balance;
-                    document.getElementById('editUserIsAdmin').checked = btn.dataset.isAdmin === 'true';
-                    document.getElementById('editUserModal').classList.add('show');
-                } else if (e.target.closest('.delete-user-btn')) {
-                    await deleteUser(e.target.closest('.delete-user-btn').dataset.userId);
-                }
-            });
-            document.getElementById('cardList').addEventListener('click', async (e) => {
-                if (e.target.closest('.edit-card-btn')) {
-                    const btn = e.target.closest('.edit-card-btn');
-                    document.getElementById('editCardId').value = btn.dataset.cardId;
-                    document.getElementById('editCardNumero').value = btn.dataset.numero;
-                    document.getElementById('editCardCVV').value = btn.dataset.cvv;
-                    document.getElementById('editCardExpiry').value = btn.dataset.expiry;
-                    document.getElementById('editCardName').value = btn.dataset.name;
-                    document.getElementById('editCardCPF').value = btn.dataset.cpf;
-                    document.getElementById('editCardBandeira').value = btn.dataset.bandeira;
-                    document.getElementById('editCardBanco').value = btn.dataset.banco;
-                    document.getElementById('editCardNivel').value = btn.dataset.nivel;
-                    document.getElementById('editCardModal').classList.add('show');
-                } else if (e.target.closest('.delete-card-btn')) {
-                    await deleteCard(e.target.closest('.delete-card-btn').dataset.cardId);
-                }
-            });
+            if (isNaN(amount) || amount <= 0) {
+                showNotification('Valor deve ser maior que 0.', true);
+                return;
+            }
+            await addDeposit(username, amount);
         });
-    </script>
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal').forEach(modal => modal.classList.remove('show'));
+            }
+        });
+    }
+</script>
 </body>
 </html>

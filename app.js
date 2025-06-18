@@ -73,6 +73,36 @@ const isValidObjectId = (id) => {
 };
 
 // Endpoints
+app.post('/api/register', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      debug('Dados de registro ausentes:', { username });
+      return res.status(400).json({ error: 'Username e senha são obrigatórios' });
+    }
+    if (password.length < 6) {
+      debug('Senha muito curta:', { username });
+      return res.status(400).json({ error: 'A senha deve ter pelo menos 6 caracteres' });
+    }
+    const existingUser = await User.findOne({ username }).lean();
+    if (existingUser) {
+      debug('Usuário já existe:', username);
+      return res.status(400).json({ error: 'Usuário já existe' });
+    }
+    const user = new User({ username, password, balance: 0, is_admin: false });
+    await user.save();
+    debug('Usuário registrado:', username);
+    res.status(201).json({
+      userId: user._id,
+      username: user.username,
+      is_admin: user.is_admin
+    });
+  } catch (err) {
+    debug('Erro no registro:', err.message);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -85,7 +115,7 @@ app.post('/api/login', async (req, res) => {
       debug('Usuário não encontrado:', username);
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
-    // Em produção, use bcrypt para comparar hash
+    // Em produção, use bcrypt
     if (user.password !== password) {
       debug('Senha incorreta para:', username);
       return res.status(401).json({ error: 'Credenciais inválidas' });

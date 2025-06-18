@@ -2,7 +2,6 @@ const express = require('express');
 const mongoose = require('mongoose');
 const serverless = require('serverless-http');
 const debug = require('debug')('loganccs:app');
-const path = require('path');
 const bcrypt = require('bcrypt');
 const { body, validationResult } = require('express-validator');
 
@@ -10,28 +9,20 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 app.use((req, res, next) => {
   debug(`Requisição recebida: ${req.method} ${req.url}`);
   res.setHeader('Content-Type', 'application/json');
-  res.header('Access-Control-Allow-Origin', 'https://loganccs.netlify.app');
+  res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
   next();
 });
 
-// Servir arquivos estáticos
-app.use(express.static(__dirname));
-
 // Conexão com MongoDB
 const connectMongoDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000,
-    });
+    await mongoose.connect(process.env.MONGODB_URI);
     debug('Conectado ao MongoDB Atlas');
   } catch (err) {
     debug('Erro ao conectar ao MongoDB:', err.message);
@@ -63,7 +54,6 @@ const UserSchema = new mongoose.Schema({
   password: { type: String, required: true },
   balance: { type: Number, default: 0 },
   is_admin: { type: Boolean, default: false },
-  created_at: { type: Date, default: Date.now },
 }, { timestamps: true });
 UserSchema.index({ username: 1 });
 const User = mongoose.model('User', UserSchema);
@@ -79,18 +69,16 @@ TransactionSchema.index({ user_id: 1, timestamp: -1 });
 const Transaction = mongoose.model('Transaction', TransactionSchema);
 
 // Validação de ObjectId
-const isValidObjectId = (id) => {
-  return mongoose.Types.ObjectId.isValid(id);
-};
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 // Validações
 const registerValidation = [
-  body('username').trim().notEmpty().withMessage('Username é obrigatório').isLength({ max: 50 }).withMessage('Username deve ter no máximo 50 caracteres'),
-  body('password').notEmpty().withMessage('Senha é obrigatória').isLength({ min: 6 }).withMessage('A senha deve ter pelo menos 6 caracteres'),
+  body('username').trim().notEmpty().withMessage('Usuário é obrigatório').isLength({ max: 50 }),
+  body('password').notEmpty().withMessage('Senha é obrigatória').isLength({ min: 6 }),
 ];
 
 const loginValidation = [
-  body('username').trim().notEmpty().withMessage('Username é obrigatório'),
+  body('username').trim().notEmpty().withMessage('Usuário é obrigatório'),
   body('password').notEmpty().withMessage('Senha é obrigatória'),
 ];
 
@@ -99,12 +87,6 @@ const buyCardValidation = [
   body('cardId').custom(isValidObjectId).withMessage('ID de cartão inválido'),
   body('price').isFloat({ min: 0 }).withMessage('Preço inválido'),
 ];
-
-// Rota de teste
-app.get('/api/test', (req, res) => {
-  debug('Rota de teste acessada');
-  res.json({ message: 'API funcionando' });
-});
 
 // Endpoints
 app.post('/api/register', registerValidation, async (req, res) => {
@@ -132,7 +114,7 @@ app.post('/api/register', registerValidation, async (req, res) => {
     });
   } catch (error) {
     debug('Erro no registro:', error.message);
-    res.status(500).json({ error: 'Erro ao registrar usuário. Tente novamente.' });
+    res.status(500).json({ error: 'Erro ao registrar usuário' });
   }
 });
 
@@ -148,12 +130,12 @@ app.post('/api/login', loginValidation, async (req, res) => {
     const user = await User.findOne({ username }).lean();
     if (!user) {
       debug('Usuário não encontrado:', username);
-      return res.status(401).json({ error: 'Credenciais inválidas' });
+      return res.status(401).json({ error: 'Usuário não encontrado' });
     }
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       debug('Senha incorreta para:', username);
-      return res.status(401).json({ error: 'Credenciais inválidas' });
+      return res.status(401).json({ error: 'Senha incorreta' });
     }
     debug('Login bem-sucedido:', username);
     res.status(200).json({
@@ -163,7 +145,7 @@ app.post('/api/login', loginValidation, async (req, res) => {
     });
   } catch (error) {
     debug('Erro no login:', error.message);
-    res.status(500).json({ error: 'Erro ao realizar login. Tente novamente.' });
+    res.status(500).json({ error: 'Erro ao realizar login' });
   }
 });
 
@@ -180,7 +162,7 @@ app.get('/api/cards', async (req, res) => {
     res.status(200).json(cards);
   } catch (error) {
     debug('Erro ao buscar cartões:', error.message);
-    res.status(500).json({ error: 'Erro ao carregar cartões. Tente novamente.' });
+    res.status(500).json({ error: 'Erro ao carregar cartões' });
   }
 });
 
@@ -236,7 +218,7 @@ app.post('/api/buy-card', buyCardValidation, async (req, res) => {
     }
   } catch (error) {
     debug('Erro ao comprar cartão:', error.message);
-    res.status(500).json({ error: 'Erro ao processar compra. Tente novamente.' });
+    res.status(500).json({ error: 'Erro ao processar compra' });
   }
 });
 
@@ -249,11 +231,7 @@ app.get('/api/users', async (req, res) => {
       return res.status(401).json({ error: 'Usuário não autenticado' });
     }
     const user = await User.findById(userId).select('is_admin').lean();
-    if (!user) {
-      debug('Usuário não encontrado:', userId);
-      return res.status(404).json({ error: 'Usuário não encontrado' });
-    }
-    if (!user.is_admin) {
+    if (!user || !user.is_admin) {
       debug('Acesso não autorizado:', userId);
       return res.status(403).json({ error: 'Acesso restrito a administradores' });
     }
@@ -262,7 +240,7 @@ app.get('/api/users', async (req, res) => {
     res.status(200).json(users);
   } catch (error) {
     debug('Erro ao buscar usuários:', error.message);
-    res.status(500).json({ error: 'Erro ao carregar usuários. Tente novamente.' });
+    res.status(500).json({ error: 'Erro ao carregar usuários' });
   }
 });
 
@@ -283,7 +261,7 @@ app.get('/api/user', async (req, res) => {
     res.status(200).json(user);
   } catch (error) {
     debug('Erro ao buscar usuário:', error.message);
-    res.status(500).json({ error: 'Erro ao carregar dados do usuário. Tente novamente.' });
+    res.status(500).json({ error: 'Erro ao carregar dados do usuário' });
   }
 });
 
@@ -299,21 +277,14 @@ app.post('/api/logout', async (req, res) => {
     res.status(200).json({ message: 'Logout realizado com sucesso' });
   } catch (error) {
     debug('Erro no logout:', error.message);
-    res.status(500).json({ error: 'Erro ao realizar logout. Tente novamente.' });
+    res.status(500).json({ error: 'Erro ao realizar logout' });
   }
-});
-
-// Rota padrão
-app.get('/', (req, res) => {
-  debug('Servindo index.html');
-  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Manipulador de erros
 app.use((err, req, res, next) => {
   debug('Erro não tratado:', err.message);
-  res.status(500).json({ error: 'Erro interno do servidor. Tente novamente.' });
+  res.status(500).json({ error: 'Erro interno do servidor' });
 });
 
-module.exports = app;
 module.exports.handler = serverless(app);

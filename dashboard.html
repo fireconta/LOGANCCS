@@ -136,7 +136,7 @@
         </div>
         <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
             <h2 class="text-xl font-semibold text-green-500 mb-4 flex items-center">
-                <i class="fas fa-credit-card mr-2" aria-hidden="true"></i> Cartões Disponíveis
+                <i class="fas fa-credit-card mr-2" aria-hidden="true"></i> Cartões
             </h2>
             <div id="cardsLoader" class="text-gray-500 text-center p-4 hidden" aria-hidden="true">
                 <i class="fas fa-spinner fa-2x animate-spin mr-2"></i> Carregando cartões...
@@ -152,6 +152,7 @@
                             <th scope="col">Banco</th>
                             <th scope="col">Nível</th>
                             <th scope="col">Preço</th>
+                            <th scope="col">Adquirido</th>
                         </tr>
                     </thead>
                     <tbody id="cardsTableBody"></tbody>
@@ -163,6 +164,45 @@
     <script src="debug.js"></script>
     <script src="utils.js"></script>
     <script>
+        if (typeof fetchWithTimeout === 'undefined') {
+            console.error('fetchWithTimeout não definido. Verifique utils.js.');
+            showNotification('Erro ao carregar dependências.', true);
+        }
+
+        async function loadUserData() {
+            Debug.log('Carregando dados do usuário');
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                showNotification('Usuário não autenticado. Faça login.', true);
+                setTimeout(() => window.location.href = 'index.html', 1000);
+                return;
+            }
+            try {
+                const res = await fetchWithTimeout(`/api/user?userId=${encodeURIComponent(userId)}`);
+                const text = await res.text();
+                Debug.log(`Resposta /api/user: Status ${res.status}`, { response: text });
+                let user;
+                try {
+                    user = JSON.parse(text);
+                } catch {
+                    throw new Error(`Resposta inválida: formato não JSON (${text.slice(0, 100)}...)`);
+                }
+                if (!res.ok) {
+                    throw new Error(user.error || `Erro ao carregar dados (Status: ${res.status})`);
+                }
+                document.getElementById('userBalance').innerHTML = `<i class="fas fa-wallet mr-1"></i> Saldo: ${formatCurrency(user.balance)}`;
+                if (!user.is_admin) {
+                    showNotification('Acesso restrito a administradores.', true);
+                    setTimeout(() => window.location.href = 'shop.html', 1000);
+                }
+            } catch (err) {
+                Debug.error('Erro ao carregar dados do usuário', { error: err.message });
+                showNotification(`Erro: ${err.message}`, true);
+                localStorage.clear();
+                setTimeout(() => window.location.href = 'index.html', 1000);
+            }
+        }
+
         async function loadUsers() {
             Debug.log('Carregando usuários');
             const usersTableBody = document.getElementById('usersTableBody');
@@ -170,44 +210,31 @@
             const usersError = document.getElementById('usersError');
             usersLoader.classList.remove('hidden');
             usersError.classList.add('hidden');
-            usersTableBody.innerHTML = '';
             try {
                 const userId = localStorage.getItem('userId');
-                const isAdmin = localStorage.getItem('is_admin') === 'true';
-                if (!userId || !isAdmin) {
-                    throw new Error('Acesso restrito a administradores.');
-                }
-                const res = await fetchWithTimeout(`/api/users?userId=${userId}`, {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' }
-                });
+                const res = await fetchWithTimeout(`/api/users?userId=${encodeURIComponent(userId)}`);
                 const text = await res.text();
                 Debug.log(`Resposta /api/users: Status ${res.status}`, { response: text });
+                let users;
+                try {
+                    users = JSON.parse(text);
+                } catch {
+                    throw new Error(`Resposta inválida: formato não JSON (${text.slice(0, 100)}...)`);
+                }
                 if (!res.ok) {
-                    try {
-                        const json = JSON.parse(text);
-                        throw new Error(json.error || 'Erro ao carregar usuários');
-                    } catch {
-                        throw new Error('Resposta inválida do servidor');
-                    }
+                    throw new Error(users.error || `Erro ao carregar usuários (Status: ${res.status})`);
                 }
-                const users = JSON.parse(text);
-                Debug.log('Usuários recebidos', { count: users.length });
-                if (users.length === 0) {
-                    usersTableBody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500 py-4">Nenhum usuário encontrado.</td></tr>';
-                } else {
-                    users.forEach(user => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${DOMPurify.sanitize(user.username)}</td>
-                            <td>${formatCurrency(user.balance)}</td>
-                            <td>${user.is_admin ? '<i class="fas fa-check text-green-500" aria-label="Administrador"></i>' : '<i class="fas fa-times text-red-500" aria-label="Não administrador"></i>'}</td>
-                            <td>${formatDate(user.created_at)}</td>
-                        `;
-                        usersTableBody.appendChild(row);
-                    });
-                }
-                showNotification('Usuários carregados com sucesso!');
+                usersTableBody.innerHTML = '';
+                users.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${DOMPurify.sanitize(user.username)}</td>
+                        <td>${formatCurrency(user.balance)}</td>
+                        <td>${user.is_admin ? 'Sim' : 'Não'}</td>
+                        <td>${formatDate(user.created_at)}</td>
+                    `;
+                    usersTableBody.appendChild(row);
+                });
             } catch (err) {
                 Debug.error('Erro ao carregar usuários', { error: err.message });
                 usersError.textContent = err.message;
@@ -225,44 +252,33 @@
             const cardsError = document.getElementById('cardsError');
             cardsLoader.classList.remove('hidden');
             cardsError.classList.add('hidden');
-            cardsTableBody.innerHTML = '';
             try {
                 const userId = localStorage.getItem('userId');
-                if (!userId) {
-                    throw new Error('Usuário não autenticado.');
-                }
-                const res = await fetchWithTimeout(`/api/cards?userId=${userId}`, {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' }
-                });
+                const res = await fetchWithTimeout(`/api/cards?userId=${encodeURIComponent(userId)}`);
                 const text = await res.text();
                 Debug.log(`Resposta /api/cards: Status ${res.status}`, { response: text });
+                let cards;
+                try {
+                    cards = JSON.parse(text);
+                } catch {
+                    throw new Error(`Resposta inválida: formato não JSON (${text.slice(0, 100)}...)`);
+                }
                 if (!res.ok) {
-                    try {
-                        const json = JSON.parse(text);
-                        throw new Error(json.error || 'Erro ao carregar cartões');
-                    } catch {
-                        throw new Error('Resposta inválida do servidor');
-                    }
+                    throw new Error(cards.error || `Erro ao carregar cartões (Status: ${res.status})`);
                 }
-                const cards = JSON.parse(text);
-                Debug.log('Cartões recebidos', { count: cards.length });
-                if (cards.length === 0) {
-                    cardsTableBody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500 py-4">Nenhum cartão disponível.</td></tr>';
-                } else {
-                    cards.forEach(card => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>**** **** **** ${DOMPurify.sanitize(card.numero.slice(-4))}</td>
-                            <td>${DOMPurify.sanitize(card.bandeira)}</td>
-                            <td>${DOMPurify.sanitize(card.banco)}</td>
-                            <td>${DOMPurify.sanitize(card.nivel)}</td>
-                            <td>${formatCurrency(card.price)}</td>
-                        `;
-                        cardsTableBody.appendChild(row);
-                    });
-                }
-                showNotification('Cartões carregados com sucesso!');
+                cardsTableBody.innerHTML = '';
+                cards.forEach(card => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${DOMPurify.sanitize(card.numero)}</td>
+                        <td>${DOMPurify.sanitize(card.bandeira)}</td>
+                        <td>${DOMPurify.sanitize(card.banco)}</td>
+                        <td>${DOMPurify.sanitize(card.nivel)}</td>
+                        <td>${formatCurrency(card.price)}</td>
+                        <td>${card.acquired ? 'Sim' : 'Não'}</td>
+                    `;
+                    cardsTableBody.appendChild(row);
+                });
             } catch (err) {
                 Debug.error('Erro ao carregar cartões', { error: err.message });
                 cardsError.textContent = err.message;
@@ -273,70 +289,25 @@
             }
         }
 
-        async function loadUserData() {
-            Debug.log('Carregando dados do usuário');
-            const userId = localStorage.getItem('userId');
-            const username = localStorage.getItem('username');
-            const isAdmin = localStorage.getItem('is_admin') === 'true';
-            if (!userId || !username || !isAdmin) {
-                showNotification('Acesso restrito a administradores.', true);
-                localStorage.clear();
-                setTimeout(() => window.location.replace('index.html'), 1000);
-                return;
-            }
-            try {
-                const res = await fetchWithTimeout(`/api/user?userId=${userId}`, {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                const text = await res.text();
-                Debug.log(`Resposta /api/user: Status ${res.status}`, { response: text });
-                if (!res.ok) {
-                    try {
-                        const json = JSON.parse(text);
-                        throw new Error(json.error || 'Erro ao carregar dados do usuário');
-                    } catch {
-                        throw new Error('Resposta inválida do servidor');
-                    }
-                }
-                const user = JSON.parse(text);
-                document.getElementById('userBalance').innerHTML = `<i class="fas fa-wallet mr-1" aria-hidden="true"></i> Saldo: ${formatCurrency(user.balance)}`;
-            } catch (err) {
-                Debug.error('Erro ao carregar dados do usuário', { error: err.message });
-                showNotification(err.message, true);
-                localStorage.clear();
-                setTimeout(() => window.location.replace('index.html'), 1000);
-            }
+        function setupEventListeners() {
+            Debug.log('Configurando event listeners');
+            document.getElementById('logoutButton').addEventListener('click', logout);
+            document.getElementById('shopButton').addEventListener('click', () => {
+                window.location.href = 'shop.html';
+            });
         }
 
-        document.addEventListener('DOMContentLoaded', async () => {
+        document.addEventListener('DOMContentLoaded', () => {
             Debug.log('DOM carregado');
-            document.getElementById('globalLoader').style.visibility = 'visible';
-            try {
-                const userId = localStorage.getItem('userId');
-                const isAdmin = localStorage.getItem('is_admin') === 'true';
-                if (!userId || !isAdmin) {
-                    showNotification('Acesso restrito a administradores.', true);
-                    setTimeout(() => window.location.replace('index.html'), 1000);
-                    return;
-                }
-                await loadUserData();
-                await loadUsers();
-                await loadCards();
-                document.getElementById('shopButton').addEventListener('click', () => {
-                    Debug.log('Botão loja clicado');
-                    window.location.href = 'shop.html';
-                });
-                document.getElementById('logoutButton').addEventListener('click', () => {
-                    Debug.log('Botão logout clicado');
-                    logout();
-                });
-            } catch (err) {
-                Debug.error('Erro na inicialização', { error: err.message });
-                showNotification('Erro ao inicializar o dashboard.', true);
-            } finally {
-                document.getElementById('globalLoader').style.visibility = 'hidden';
+            if (!localStorage.getItem('userId')) {
+                showNotification('Usuário não autenticado. Faça login.', true);
+                setTimeout(() => window.location.href = 'index.html', 1000);
+                return;
             }
+            setupEventListeners();
+            loadUserData();
+            loadUsers();
+            loadCards();
         });
     </script>
 </body>

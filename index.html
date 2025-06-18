@@ -161,9 +161,47 @@
     <script src="debug.js"></script>
     <script src="utils.js"></script>
     <script>
+        // Fallback para Debug.log
+        window.Debug = window.Debug || {
+            log: (msg, data) => {
+                const debugDiv = document.getElementById('debug');
+                const log = `[INFO] ${new Date().toLocaleTimeString()} - ${msg}: ${data ? JSON.stringify(data) : ''}`;
+                console.log(log);
+                debugDiv.innerHTML += `<div class="debug-info">${log}</div>`;
+                debugDiv.scrollTop = debugDiv.scrollHeight;
+            },
+            error: (msg, data) => {
+                const debugDiv = document.getElementById('debug');
+                const log = `[ERROR] ${new Date().toLocaleTimeString()} - ${msg}: ${data ? JSON.stringify(data) : ''}`;
+                console.error(log);
+                debugDiv.innerHTML += `<div class="debug-error">${log}</div>`;
+                debugDiv.scrollTop = debugDiv.scrollHeight;
+            }
+        };
+
         if (typeof fetchWithTimeout === 'undefined') {
             console.error('fetchWithTimeout não definido. Verifique utils.js.');
+            Debug.error('fetchWithTimeout não definido', { file: 'utils.js' });
             showNotification('Erro ao carregar dependências.', true);
+        }
+
+        // Verificar status do MongoDB
+        async function checkMongoStatus() {
+            Debug.log('Verificando status do MongoDB');
+            try {
+                const res = await fetchWithTimeout('/api/health', {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await res.json();
+                if (res.ok && data.mongoConnected) {
+                    Debug.log('MongoDB carregado corretamente', { state: data.mongooseConnectionState });
+                } else {
+                    Debug.error('MongoDB não carregado', { state: data.mongooseConnectionState });
+                }
+            } catch (err) {
+                Debug.error('Erro ao verificar status do MongoDB', { error: err.message });
+            }
         }
 
         async function login(username, password) {
@@ -311,6 +349,7 @@
                 window.location.href = localStorage.getItem('is_admin') === 'true' ? 'dashboard.html' : 'shop.html';
             }
             setupEventListeners();
+            checkMongoStatus(); // Verificar MongoDB ao carregar
         });
     </script>
 </body>

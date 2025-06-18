@@ -120,6 +120,9 @@
         #cardGridLoader.show {
             display: block;
         }
+        .debug-info { color: #10b981; }
+        .debug-warn { color: #f59e0b; }
+        .debug-error { color: #ef4444; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen">
@@ -183,7 +186,7 @@
                     </select>
                 </div>
             </div>
-            <div id="cardGridLoader" class="text-gray-500">
+            <div id="cardGridLoader" class="text-gray-500 text-center p-8 hidden">
                 <i class="fas fa-spinner animate-spin mr-2"></i> Carregando cartões...
             </div>
             <div id="cardGrid" class="card-grid"></div>
@@ -217,15 +220,14 @@
         </div>
     </div>
     <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40 hidden"></div>
-    <script src="/debug.js"></script>
+    <script src="debug.js"></script>
     <script>
-        console.log('shop.html carregado');
-
         function formatCurrency(value) {
             return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
         }
 
         function showNotification(message, isError = false) {
+            Debug.log(`Notificação: ${message}`, { isError });
             const notificationsDiv = document.getElementById('notifications');
             const notification = document.createElement('div');
             notification.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
@@ -240,6 +242,7 @@
         }
 
         async function fetchWithTimeout(url, options, timeout = 5000) {
+            Debug.log(`Iniciando requisição para: ${url}`, options);
             return Promise.race([
                 fetch(url, options),
                 new Promise((_, reject) =>
@@ -249,6 +252,7 @@
         }
 
         async function loadCards(filters = {}) {
+            Debug.log('Carregando cartões', { filters });
             const cardGrid = document.getElementById('cardGrid');
             const cardGridLoader = document.getElementById('cardGridLoader');
             cardGridLoader.classList.add('show');
@@ -258,16 +262,17 @@
                 if (!userId) {
                     throw new Error('Usuário não autenticado. Faça login.');
                 }
-                console.log('Carregando cartões para userId:', userId);
+                Debug.log('Carregando cartões para userId:', { userId });
                 const res = await fetchWithTimeout(`/api/cards?userId=${userId}`, {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' }
                 });
+                const text = await res.text();
+                Debug.log(`Resposta /api/cards: Status ${res.status}`, { response: text });
                 if (res.status === 401) {
                     throw new Error('Sessão inválida. Faça login novamente.');
                 }
                 if (!res.ok) {
-                    const text = await res.text();
                     try {
                         const json = JSON.parse(text);
                         throw new Error(json.error || `Erro ${res.status}`);
@@ -275,8 +280,8 @@
                         throw new Error(`Erro ${res.status}: Resposta inválida do servidor`);
                     }
                 }
-                const cards = await res.json();
-                console.log('Cartões recebidos:', cards);
+                const cards = JSON.parse(text);
+                Debug.log('Cartões recebidos', { count: cards.length });
                 const filteredCards = cards.filter(card => {
                     return (!filters.bandeira || card.bandeira === filters.bandeira) &&
                            (!filters.banco || card.banco === filters.banco) &&
@@ -297,6 +302,7 @@
                             <p class="text-sm font-bold text-green-400">Preço: ${formatCurrency(card.price)}</p>
                         `;
                         cardDiv.addEventListener('click', () => {
+                            Debug.log('Cartão selecionado', { cardId: card._id });
                             document.getElementById('cardNumber').textContent = DOMPurify.sanitize(card.numero);
                             document.getElementById('cardBandeira').textContent = DOMPurify.sanitize(card.bandeira);
                             document.getElementById('cardBanco').textContent = DOMPurify.sanitize(card.banco);
@@ -312,7 +318,7 @@
                 }
                 showNotification('Cartões carregados com sucesso!');
             } catch (err) {
-                console.error('Erro ao carregar cartões:', err.message);
+                Debug.error('Erro ao carregar cartões', { error: err.message });
                 showNotification(`Erro: ${err.message}`, true);
                 cardGrid.innerHTML = '<p class="text-center text-gray-500 col-span-full py-4">Erro ao carregar cartões.</p>';
             } finally {
@@ -322,6 +328,7 @@
         }
 
         async function loadUserData() {
+            Debug.log('Carregando dados do usuário');
             const userId = localStorage.getItem('userId');
             const username = localStorage.getItem('username');
             const isAdmin = localStorage.getItem('is_admin') === 'true';
@@ -333,12 +340,13 @@
             }
             document.getElementById('globalLoader').style.visibility = 'visible';
             try {
-                const res = await fetchWithTimeout(`/api/users?userId=${userId}`, {
+                const res = await fetchWithTimeout(`/api/user?userId=${userId}`, {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' }
                 });
+                const text = await res.text();
+                Debug.log(`Resposta /api/user: Status ${res.status}`, { response: text });
                 if (!res.ok) {
-                    const text = await res.text();
                     try {
                         const json = JSON.parse(text);
                         throw new Error(json.error || `Erro ${res.status}`);
@@ -346,13 +354,13 @@
                         throw new Error(`Erro ${res.status}: Resposta inválida do servidor`);
                     }
                 }
-                const user = await res.json();
+                const user = JSON.parse(text);
                 document.getElementById('userBalance').innerHTML = `<i class="fas fa-wallet mr-1"></i> Saldo: ${formatCurrency(user.balance)}`;
                 if (isAdmin) {
                     document.getElementById('dashboardButton').classList.remove('hidden');
                 }
             } catch (err) {
-                console.error('Erro ao carregar dados do usuário:', err.message);
+                Debug.error('Erro ao carregar dados do usuário', { error: err.message });
                 showNotification(err.message, true);
                 localStorage.clear();
                 setTimeout(() => window.location.replace('index.html'), 1000);
@@ -362,6 +370,7 @@
         }
 
         async function buyCard(cardId, price) {
+            Debug.log('Iniciando compra de cartão', { cardId, price });
             const button = document.getElementById('buyCardButton');
             const spinner = document.getElementById('buyCardSpinner');
             const errorDiv = document.getElementById('cardDetailsError');
@@ -379,10 +388,17 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId, cardId, price })
                 });
-                const data = await res.json();
+                const text = await res.text();
+                Debug.log(`Resposta /api/buy-card: Status ${res.status}`, { response: text });
                 if (!res.ok) {
-                    throw new Error(data.error || `Erro ${res.status}`);
+                    try {
+                        const json = JSON.parse(text);
+                        throw new Error(json.error || `Erro ${res.status}`);
+                    } catch {
+                        throw new Error(`Erro ${res.status}: Resposta inválida do servidor`);
+                    }
                 }
+                const data = JSON.parse(text);
                 document.getElementById('cardDetailsModal').classList.remove('show');
                 showNotification('Cartão comprado com sucesso!');
                 await loadCards({
@@ -392,7 +408,7 @@
                 });
                 await loadUserData();
             } catch (err) {
-                console.error('Erro ao comprar cartão:', err.message);
+                Debug.error('Erro ao comprar cartão', { error: err.message });
                 errorDiv.textContent = err.message;
                 errorDiv.classList.remove('hidden');
                 showNotification(`Erro: ${err.message}`, true);
@@ -403,30 +419,32 @@
             }
         }
 
-        function logout() {
-            console.log('Logout iniciado');
+        async function logout() {
+            Debug.log('Iniciando logout');
             try {
                 const userId = localStorage.getItem('userId');
-                localStorage.removeItem('userId');
-                localStorage.removeItem('username');
-                localStorage.removeItem('is_admin');
-                console.log('localStorage limpo');
+                localStorage.clear();
+                Debug.log('localStorage limpo');
                 if (userId) {
-                    fetch('/api/logout', {
+                    const res = await fetchWithTimeout('/api/logout', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ userId })
-                    }).catch(err => console.error('Erro no logout do backend:', err.message));
+                    });
+                    const text = await res.text();
+                    Debug.log(`Resposta /api/logout: Status ${res.status}`, { response: text });
                 }
+                showNotification('Logout realizado com sucesso!');
                 window.location.replace('index.html');
             } catch (err) {
-                console.error('Erro no logout:', err.message);
+                Debug.error('Erro no logout', { error: err.message });
                 showNotification('Erro ao sair.', true);
+                window.location.replace('index.html');
             }
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log('DOM carregado');
+            Debug.log('DOM carregado');
             document.getElementById('globalLoader').style.visibility = 'visible';
             try {
                 const userId = localStorage.getItem('userId');
@@ -439,7 +457,7 @@
                 await loadCards();
                 setupEventListeners();
             } catch (err) {
-                console.error('Erro na inicialização:', err.message);
+                Debug.error('Erro na inicialização', { error: err.message });
                 showNotification('Erro ao inicializar a loja.', true);
             } finally {
                 document.getElementById('globalLoader').style.visibility = 'hidden';
@@ -447,11 +465,16 @@
         });
 
         function setupEventListeners() {
-            document.getElementById('logoutButton').addEventListener('click', logout);
+            document.getElementById('logoutButton').addEventListener('click', () => {
+                Debug.log('Botão logout clicado');
+                logout();
+            });
             document.getElementById('dashboardButton').addEventListener('click', () => {
+                Debug.log('Botão dashboard clicado');
                 window.location.href = 'dashboard.html';
             });
             document.getElementById('bandeiraFilter').addEventListener('change', () => {
+                Debug.log('Filtro bandeira alterado', { value: document.getElementById('bandeiraFilter').value });
                 loadCards({
                     bandeira: document.getElementById('bandeiraFilter').value,
                     banco: document.getElementById('bancoFilter').value,
@@ -459,6 +482,7 @@
                 });
             });
             document.getElementById('bancoFilter').addEventListener('change', () => {
+                Debug.log('Filtro banco alterado', { value: document.getElementById('bancoFilter').value });
                 loadCards({
                     bandeira: document.getElementById('bandeiraFilter').value,
                     banco: document.getElementById('bancoFilter').value,
@@ -466,6 +490,7 @@
                 });
             });
             document.getElementById('nivelFilter').addEventListener('change', () => {
+                Debug.log('Filtro nível alterado', { value: document.getElementById('nivelFilter').value });
                 loadCards({
                     bandeira: document.getElementById('bandeiraFilter').value,
                     banco: document.getElementById('bancoFilter').value,
@@ -473,6 +498,7 @@
                 });
             });
             document.getElementById('buyCardButton').addEventListener('click', () => {
+                Debug.log('Botão comprar clicado');
                 const cardId = document.getElementById('buyCardButton').dataset.cardId;
                 const price = parseFloat(document.getElementById('buyCardButton').dataset.cardPrice);
                 if (!cardId || isNaN(price)) {
@@ -482,10 +508,12 @@
                 buyCard(cardId, price);
             });
             document.getElementById('cancelCardDetailsButton').addEventListener('click', () => {
+                Debug.log('Botão fechar modal clicado');
                 document.getElementById('cardDetailsModal').classList.remove('show');
             });
             document.addEventListener('keydown', e => {
                 if (e.key === 'Escape') {
+                    Debug.log('Tecla Escape pressionada');
                     document.querySelectorAll('.modal').forEach(modal => modal.classList.remove('show'));
                 }
             });

@@ -6,7 +6,7 @@
     <title>LOGAN CC's - Loja</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.9/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.7/purify.min.js"></script>
     <style>
         #globalLoader {
             position: fixed;
@@ -14,7 +14,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.7);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -38,24 +38,29 @@
             top: 1rem;
             right: 1rem;
             z-index: 10000;
-            max-width: 300px;
+            max-width: 320px;
         }
         .notification {
             background: #1f2937;
             color: white;
             padding: 1rem;
-            border-radius: 0.375rem;
+            border-radius: 0.5rem;
             margin-bottom: 0.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            animation: slideIn 0.3s ease-out;
         }
         .notification-error {
             background: #ef4444;
         }
         .notification-success {
             background: #10b981;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
         .modal {
             display: none;
@@ -64,27 +69,56 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.7);
             align-items: center;
             justify-content: center;
             z-index: 1000;
         }
         .modal.show {
             display: flex;
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
         .card-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 1rem;
+            gap: 1.5rem;
         }
         .card {
             background: #1f2937;
-            padding: 1rem;
-            border-radius: 0.375rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
         }
         .card:hover {
-            background: #374151;
+            transform: translateY(-4px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        .level-badge {
+            position: absolute;
+            top: -0.75rem;
+            right: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .level-classic { background: #3b82f6; }
+        .level-gold { background: #f59e0b; }
+        .level-platinum { background: #6b7280; }
+        .level-black { background: #111827; }
+        #cardGridLoader {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+        #cardGridLoader.show {
+            display: block;
         }
     </style>
 </head>
@@ -93,20 +127,28 @@
         <div class="spinner"></div>
     </div>
     <div id="notifications" class="space-y-2"></div>
-    <header class="bg-gray-800 p-4 flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-green-500">LOGAN CC's - Loja</h1>
+    <header class="bg-gray-800 p-4 flex justify-between items-center sticky top-0 z-10 shadow-lg">
+        <h1 class="text-2xl font-bold text-green-500 flex items-center">
+            <i class="fas fa-store mr-2"></i> LOGAN CC's - Loja
+        </h1>
         <div class="flex items-center space-x-4">
-            <span id="userBalance" class="text-gray-300"></span>
-            <button type="button" id="dashboardButton" class="text-gray-300 hover:text-green-500 hidden"><i class="fas fa-tachometer-alt mr-2"></i>Dashboard</button>
-            <button type="button" id="logoutButton" class="text-gray-300 hover:text-red-500"><i class="fas fa-sign-out-alt"></i>Sair</button>
+            <span id="userBalance" class="text-gray-300 flex items-center">
+                <i class="fas fa-wallet mr-1"></i> Saldo: Carregando...
+            </span>
+            <button type="button" id="dashboardButton" class="text-gray-300 hover:text-green-500 hidden">
+                <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+            </button>
+            <button type="button" id="logoutButton" class="text-gray-300 hover:text-red-500 flex items-center">
+                <i class="fas fa-sign-out-alt mr-2"></i> Sair
+            </button>
         </div>
     </header>
     <main class="container mx-auto p-6">
         <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-            <div class="flex flex-col md:flex-row justify-between mb-4 space-y-4 md:space-y-0 md:space-x-4">
-                <div>
-                    <label for="bandeiraFilter" class="block text-sm font-medium">Bandeira</label>
-                    <select id="bandeiraFilter" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500 w-full md:w-48">
+            <div class="flex flex-col md:flex-row justify-between mb-6 space-y-4 md:space-y-0 md:space-x-4">
+                <div class="flex-1">
+                    <label for="bandeiraFilter" class="block text-sm font-medium text-gray-300">Bandeira</label>
+                    <select id="bandeiraFilter" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500">
                         <option value="">Todas</option>
                         <option value="Visa">Visa</option>
                         <option value="Mastercard">Mastercard</option>
@@ -116,9 +158,9 @@
                         <option value="Diners Club">Diners Club</option>
                     </select>
                 </div>
-                <div>
-                    <label for="bancoFilter" class="block text-sm font-medium">Banco</label>
-                    <select id="bancoFilter" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500 w-full md:w-48">
+                <div class="flex-1">
+                    <label for="bancoFilter" class="block text-sm font-medium text-gray-300">Banco</label>
+                    <select id="bancoFilter" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500">
                         <option value="">Todos</option>
                         <option value="Nubank">Nubank</option>
                         <option value="Itaú">Itaú</option>
@@ -130,9 +172,9 @@
                         <option value="Sicoob">Sicoob</option>
                     </select>
                 </div>
-                <div>
-                    <label for="nivelFilter" class="block text-sm font-medium">Nível</label>
-                    <select id="nivelFilter" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded focus:ring-green-500 focus:border-green-500 w-full md:w-48">
+                <div class="flex-1">
+                    <label for="nivelFilter" class="block text-sm font-medium text-gray-300">Nível</label>
+                    <select id="nivelFilter" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500">
                         <option value="">Todos</option>
                         <option value="Classic">Classic</option>
                         <option value="Gold">Gold</option>
@@ -141,34 +183,41 @@
                     </select>
                 </div>
             </div>
+            <div id="cardGridLoader" class="text-gray-500">
+                <i class="fas fa-spinner animate-spin mr-2"></i> Carregando cartões...
+            </div>
             <div id="cardGrid" class="card-grid"></div>
         </div>
     </main>
     <div id="cardDetailsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="cardDetailsTitle">
         <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="cardDetailsTitle" class="text-xl font-semibold mb-4"><i class="fas fa-credit-card mr-2"></i>Detalhes do Cartão</h2>
-            <div id="cardDetailsContent" class="space-y-2">
+            <h2 id="cardDetailsTitle" class="text-xl font-semibold mb-4 flex items-center">
+                <i class="fas fa-credit-card mr-2"></i> Detalhes do Cartão
+            </h2>
+            <div id="cardDetailsContent" class="space-y-3 text-gray-300">
                 <p><strong>Número:</strong> <span id="cardNumber"></span></p>
                 <p><strong>Bandeira:</strong> <span id="cardBandeira"></span></p>
                 <p><strong>Banco:</strong> <span id="cardBanco"></span></p>
                 <p><strong>Nível:</strong> <span id="cardNivel"></span></p>
                 <p><strong>Preço:</strong> <span id="cardPrice"></span></p>
             </div>
-            <p id="cardDetailsError" class="text-red-500 text-sm hidden" role="alert"></p>
-            <div class="flex justify-end space-x-2 mt-4">
-                <button type="button" id="cancelCardDetailsButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700"><i class="fas fa-times mr-2"></i>Fechar</button>
+            <p id="cardDetailsError" class="text-red-500 text-sm mt-2 hidden" role="alert"></p>
+            <div class="flex justify-end space-x-2 mt-6">
+                <button type="button" id="cancelCardDetailsButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700 flex items-center">
+                    <i class="fas fa-times mr-2"></i> Fechar
+                </button>
                 <button type="button" id="buyCardButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center">
                     <span>Comprar</span>
                     <svg id="buyCardSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"></circle>
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                     </svg>
                 </button>
             </div>
         </div>
     </div>
-    <div id="debug" class="fixed bottom-4 left-4 bg-gray-800 text-white p-4 rounded-md max-w-xs text-xs hidden"></div>
-    <script src="debug.js"></script>
+    <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40 hidden"></div>
+    <script src="/debug.js"></script>
     <script>
         console.log('shop.html carregado');
 
@@ -187,40 +236,59 @@
             closeButton.addEventListener('click', () => notification.remove());
             notification.appendChild(closeButton);
             notificationsDiv.appendChild(notification);
-            setTimeout(() => notification.remove(), 3000);
+            setTimeout(() => notification.remove(), 5000);
+        }
+
+        async function fetchWithTimeout(url, options, timeout = 5000) {
+            return Promise.race([
+                fetch(url, options),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Requisição expirou')), timeout)
+                )
+            ]);
         }
 
         async function loadCards(filters = {}) {
-            document.getElementById('globalLoader').style.visibility = 'visible';
+            const cardGrid = document.getElementById('cardGrid');
+            const cardGridLoader = document.getElementById('cardGridLoader');
+            cardGridLoader.classList.add('show');
+            cardGrid.innerHTML = '';
             try {
                 const userId = localStorage.getItem('userId');
                 if (!userId) {
                     throw new Error('Usuário não autenticado. Faça login.');
                 }
-                const res = await fetch(`/api/cards?userId=${userId}`);
-                const cards = await res.json();
-                if (res.status !== 200) {
-                    throw new Error(cards.error || 'Erro ao carregar cartões');
+                console.log('Carregando cartões para userId:', userId);
+                const res = await fetchWithTimeout(`/api/cards?userId=${userId}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (res.status === 401) {
+                    throw new Error('Sessão inválida. Faça login novamente.');
                 }
-                console.log('Cartões carregados:', cards);
-                const cardGrid = document.getElementById('cardGrid');
-                cardGrid.innerHTML = '';
+                if (!res.ok) {
+                    throw new Error(`Erro ${res.status}: ${await res.text()}`);
+                }
+                const cards = await res.json();
+                console.log('Cartões recebidos:', cards);
                 const filteredCards = cards.filter(card => {
                     return (!filters.bandeira || card.bandeira === filters.bandeira) &&
                            (!filters.banco || card.banco === filters.banco) &&
                            (!filters.nivel || card.nivel === filters.nivel);
                 });
                 if (filteredCards.length === 0) {
-                    cardGrid.innerHTML = '<p class="text-center text-gray-500 col-span-full">Nenhum cartão disponível.</p>';
+                    cardGrid.innerHTML = '<p class="text-center text-gray-500 col-span-full py-4">Nenhum cartão disponível.</p>';
                 } else {
                     filteredCards.forEach(card => {
                         const cardDiv = document.createElement('div');
                         cardDiv.className = 'card cursor-pointer';
+                        const levelClass = `level-${card.nivel.toLowerCase()}`;
                         cardDiv.innerHTML = `
-                            <h3 class="text-lg font-semibold">${DOMPurify.sanitize(card.bandeira)} ${DOMPurify.sanitize(card.nivel)}</h3>
-                            <p><strong>Banco:</strong> ${DOMPurify.sanitize(card.banco)}</p>
-                            <p><strong>Número:</strong> ${DOMPurify.sanitize(card.numero.slice(-4).padStart(16, '*'))}</p>
-                            <p><strong>Preço:</strong> ${formatCurrency(card.price)}</p>
+                            <div class="level-badge ${levelClass} text-white">${DOMPurify.sanitize(card.nivel)}</div>
+                            <h3 class="text-lg font-semibold text-green-500">${DOMPurify.sanitize(card.bandeira)}</h3>
+                            <p class="text-sm"><strong>Banco:</strong> ${DOMPurify.sanitize(card.banco)}</p>
+                            <p class="text-sm"><strong>Número:</strong> **** **** **** ${DOMPurify.sanitize(card.numero.slice(-4))}</p>
+                            <p class="text-sm font-bold text-green-400">Preço: ${formatCurrency(card.price)}</p>
                         `;
                         cardDiv.addEventListener('click', () => {
                             document.getElementById('cardNumber').textContent = DOMPurify.sanitize(card.numero);
@@ -236,11 +304,13 @@
                         cardGrid.appendChild(cardDiv);
                     });
                 }
+                showNotification('Cartões carregados com sucesso!');
             } catch (err) {
                 console.error('Erro ao carregar cartões:', err.message);
-                showNotification('Erro ao carregar cartões.', true);
-                document.getElementById('cardGrid').innerHTML = '<p class="text-center text-gray-500 col-span-full">Erro ao carregar cartões.</p>';
+                showNotification(`Erro: ${err.message}`, true);
+                cardGrid.innerHTML = '<p class="text-center text-gray-500 col-span-full py-4">Erro ao carregar cartões.</p>';
             } finally {
+                cardGridLoader.classList.remove('show');
                 document.getElementById('globalLoader').style.visibility = 'hidden';
             }
         }
@@ -251,17 +321,21 @@
             const isAdmin = localStorage.getItem('is_admin') === 'true';
             if (!userId || !username) {
                 showNotification('Sessão expirada. Faça login novamente.', true);
-                setTimeout(() => window.location.href = 'index.html', 1000);
+                localStorage.clear();
+                setTimeout(() => window.location.replace('index.html'), 1000);
                 return;
             }
             document.getElementById('globalLoader').style.visibility = 'visible';
             try {
-                const res = await fetch(`/api/users?userId=${userId}`);
-                const user = await res.json();
-                if (res.status !== 200) {
-                    throw new Error(user.error || 'Erro ao carregar dados do usuário');
+                const res = await fetchWithTimeout(`/api/users?userId=${userId}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (!res.ok) {
+                    throw new Error(`Erro ${res.status}: ${await res.text()}`);
                 }
-                document.getElementById('userBalance').textContent = `Saldo: ${formatCurrency(user.balance)}`;
+                const user = await res.json();
+                document.getElementById('userBalance').innerHTML = `<i class="fas fa-wallet mr-1"></i> Saldo: ${formatCurrency(user.balance)}`;
                 if (isAdmin) {
                     document.getElementById('dashboardButton').classList.remove('hidden');
                 }
@@ -269,7 +343,7 @@
                 console.error('Erro ao carregar dados do usuário:', err.message);
                 showNotification(err.message, true);
                 localStorage.clear();
-                setTimeout(() => window.location.href = 'index.html', 1000);
+                setTimeout(() => window.location.replace('index.html'), 1000);
             } finally {
                 document.getElementById('globalLoader').style.visibility = 'hidden';
             }
@@ -285,14 +359,17 @@
             errorDiv.classList.add('hidden');
             try {
                 const userId = localStorage.getItem('userId');
-                const res = await fetch('/api/buy-card', {
+                if (!userId) {
+                    throw new Error('Usuário não autenticado.');
+                }
+                const res = await fetchWithTimeout('/api/buy-card', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId, cardId, price })
                 });
                 const data = await res.json();
-                if (res.status !== 200) {
-                    throw new Error(data.error || 'Erro ao comprar cartão');
+                if (!res.ok) {
+                    throw new Error(data.error || `Erro ${res.status}`);
                 }
                 document.getElementById('cardDetailsModal').classList.remove('show');
                 showNotification('Cartão comprado com sucesso!');
@@ -306,7 +383,7 @@
                 console.error('Erro ao comprar cartão:', err.message);
                 errorDiv.textContent = err.message;
                 errorDiv.classList.remove('hidden');
-                showNotification('Erro: ' + err.message, true);
+                showNotification(`Erro: ${err.message}`, true);
             } finally {
                 button.disabled = false;
                 spinner.classList.add('hidden');
@@ -314,19 +391,31 @@
             }
         }
 
+        function logout() {
+            console.log('Logout realizado com sucesso');
+            localStorage.removeItem('userId');
+            localStorage.removeItem('username');
+            localStorage.removeItem('is_admin');
+            window.location.replace('index.html');
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('DOM carregado');
-            await loadUserData();
-            await loadCards();
-            setupEventListeners();
+            document.getElementById('globalLoader').style.visibility = 'visible';
+            try {
+                await loadUserData();
+                await loadCards();
+                setupEventListeners();
+            } catch (err) {
+                console.error('Erro na inicialização:', err.message);
+                showNotification('Erro ao inicializar a loja.', true);
+            } finally {
+                document.getElementById('globalLoader').style.visibility = 'hidden';
+            }
         });
 
         function setupEventListeners() {
-            document.getElementById('logoutButton').addEventListener('click', () => {
-                console.log('Saindo...');
-                localStorage.clear();
-                window.location.href = 'index.html';
-            });
+            document.getElementById('logoutButton').addEventListener('click', logout);
             document.getElementById('dashboardButton').addEventListener('click', () => {
                 window.location.href = 'dashboard.html';
             });
@@ -354,6 +443,10 @@
             document.getElementById('buyCardButton').addEventListener('click', () => {
                 const cardId = document.getElementById('buyCardButton').dataset.cardId;
                 const price = parseFloat(document.getElementById('buyCardButton').dataset.cardPrice);
+                if (!cardId || isNaN(price)) {
+                    showNotification('Erro: Dados do cartão inválidos.', true);
+                    return;
+                }
                 buyCard(cardId, price);
             });
             document.getElementById('cancelCardDetailsButton').addEventListener('click', () => {

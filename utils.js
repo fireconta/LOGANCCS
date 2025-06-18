@@ -68,11 +68,12 @@ async function logout() {
             const text = await res.text();
             Debug.log(`Resposta /api/logout: Status ${res.status}`, { response: text });
             if (!res.ok) {
+                let data;
                 try {
-                    const json = JSON.parse(text);
-                    throw new Error(json.error || 'Erro ao realizar logout');
+                    data = JSON.parse(text);
+                    throw new Error(data.error || 'Erro ao realizar logout');
                 } catch {
-                    throw new Error('Resposta inválida do servidor');
+                    throw new Error(`Resposta inválida: formato não JSON (${text.slice(0, 100)}...)`);
                 }
             }
         }

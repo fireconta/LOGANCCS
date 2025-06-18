@@ -187,7 +187,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Manipulador de erros
+// Manipulador de erros para garantir JSON
 app.use((err, req, res, next) => {
   debug('Erro não tratado:', err.message);
   res.status(500).json({ error: 'Erro interno do servidor' });

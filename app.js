@@ -23,6 +23,7 @@ app.use((req, res, next) => {
 });
 
 // Conexão com MongoDB
+let mongoConnected = false;
 const connectMongoDB = async () => {
   try {
     debug('Tentando conectar ao MongoDB com URI: %s', process.env.MONGODB_URI ? 'CONFIGURADO' : 'NÃO CONFIGURADO');
@@ -34,10 +35,12 @@ const connectMongoDB = async () => {
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
-      authSource: 'admin' // Garantir autenticação no banco admin
+      authSource: 'admin'
     });
+    mongoConnected = true;
     debug('Conectado ao MongoDB Atlas');
   } catch (err) {
+    mongoConnected = false;
     debug('Erro ao conectar ao MongoDB: %s - Stack: %s', err.message, err.stack);
     throw new Error(`Falha na conexão com o banco de dados: ${err.message}`);
   }
@@ -45,6 +48,15 @@ const connectMongoDB = async () => {
 connectMongoDB().catch(err => {
   console.error('Falha na conexão inicial com MongoDB:', err.message);
   process.exit(1);
+});
+
+// Endpoint para verificar saúde do MongoDB
+app.get('/api/health', (req, res) => {
+  debug('Verificando saúde do MongoDB');
+  res.status(200).json({
+    mongoConnected,
+    mongooseConnectionState: mongoose.connection.readyState // 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
+  });
 });
 
 // Modelos

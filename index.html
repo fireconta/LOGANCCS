@@ -81,31 +81,31 @@
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center">
-    <div id="globalLoader">
+    <div id="globalLoader" aria-hidden="true">
         <div class="spinner"></div>
     </div>
-    <div id="notifications" class="space-y-2"></div>
+    <div id="notifications" class="space-y-2" aria-live="polite"></div>
     <div class="bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full">
         <h1 class="text-2xl font-bold text-green-500 mb-6 flex items-center">
-            <i class="fas fa-lock mr-2"></i> LOGAN CC's
+            <i class="fas fa-lock mr-2" aria-hidden="true"></i> LOGAN CC's
         </h1>
         <div class="flex border-b border-gray-600 mb-4">
-            <div id="loginTab" class="tab flex-1 text-center active">Login</div>
-            <div id="registerTab" class="tab flex-1 text-center">Registro</div>
+            <div id="loginTab" class="tab flex-1 text-center active" role="tab" aria-selected="true" tabindex="0">Login</div>
+            <div id="registerTab" class="tab flex-1 text-center" role="tab" aria-selected="false" tabindex="0">Registro</div>
         </div>
-        <div id="loginFormContainer">
+        <div id="loginFormContainer" role="region" aria-labelledby="loginTab">
             <form id="loginForm" class="space-y-4">
                 <div>
                     <label for="loginUsername" class="block text-sm font-medium text-gray-300">Usuário</label>
-                    <input type="text" id="loginUsername" name="username" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required>
+                    <input type="text" id="loginUsername" name="username" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" pattern="[A-Za-z0-9_]{3,50}" title="Username deve ter de 3 a 50 caracteres alfanuméricos ou sublinhado" required aria-describedby="loginUsernameError">
                 </div>
                 <div>
                     <label for="loginPassword" class="block text-sm font-medium text-gray-300">Senha</label>
-                    <input type="password" id="loginPassword" name="password" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required>
+                    <input type="password" id="loginPassword" name="password" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-describedby="loginPasswordError">
                 </div>
-                <button type="submit" id="loginButton" class="w-full py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center justify-center">
+                <button type="submit" id="loginButton" class="w-full py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center justify-center" aria-label="Entrar">
                     <span>Entrar</span>
-                    <svg id="loginSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg id="loginSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                     </svg>
@@ -113,23 +113,23 @@
             </form>
             <p id="loginError" class="text-red-500 text-sm mt-2 hidden" role="alert"></p>
         </div>
-        <div id="registerFormContainer" class="hidden">
+        <div id="registerFormContainer" class="hidden" role="region" aria-labelledby="registerTab">
             <form id="registerForm" class="space-y-4">
                 <div>
                     <label for="registerUsername" class="block text-sm font-medium text-gray-300">Usuário</label>
-                    <input type="text" id="registerUsername" name="username" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required>
+                    <input type="text" id="registerUsername" name="username" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" pattern="[A-Za-z0-9_]{3,50}" title="Username deve ter de 3 a 50 caracteres alfanuméricos ou sublinhado" required aria-describedby="registerUsernameError">
                 </div>
                 <div>
                     <label for="registerPassword" class="block text-sm font-medium text-gray-300">Senha</label>
-                    <input type="password" id="registerPassword" name="password" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required minlength="6">
+                    <input type="password" id="registerPassword" name="password" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" minlength="6" required aria-describedby="registerPasswordError">
                 </div>
                 <div>
                     <label for="confirmPassword" class="block text-sm font-medium text-gray-300">Confirmar Senha</label>
-                    <input type="password" id="confirmPassword" name="confirmPassword" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required minlength="6">
+                    <input type="password" id="confirmPassword" name="confirmPassword" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" minlength="6" required aria-describedby="confirmPasswordError">
                 </div>
-                <button type="submit" id="registerButton" class="w-full py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center justify-center">
+                <button type="submit" id="registerButton" class="w-full py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center justify-center" aria-label="Registrar">
                     <span>Registrar</span>
-                    <svg id="registerSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg id="registerSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                     </svg>
@@ -138,32 +138,13 @@
             <p id="registerError" class="text-red-500 text-sm mt-2 hidden" role="alert"></p>
         </div>
     </div>
-    <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40 hidden"></div>
+    <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40 hidden" aria-live="assertive"></div>
     <script src="debug.js"></script>
+    <script src="utils.js"></script>
     <script>
-        function showNotification(message, isError = false) {
-            Debug.log(`Notificação: ${message}`, { isError });
-            const notificationsDiv = document.getElementById('notifications');
-            const notification = document.createElement('div');
-            notification.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
-            notification.textContent = DOMPurify.sanitize(message);
-            const closeButton = document.createElement('button');
-            closeButton.innerHTML = '<i class="fas fa-times"></i>';
-            closeButton.className = 'ml-2 text-white hover:text-gray-300';
-            closeButton.addEventListener('click', () => notification.remove());
-            notification.appendChild(closeButton);
-            notificationsDiv.appendChild(notification);
-            setTimeout(() => notification.remove(), 5000);
-        }
-
-        async function fetchWithTimeout(url, options, timeout = 5000) {
-            Debug.log(`Iniciando requisição para: ${url}`, options);
-            return Promise.race([
-                fetch(url, options),
-                new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Requisição expirou')), timeout)
-                )
-            ]);
+        function validateUsername(username) {
+            const regex = /^[A-Za-z0-9_]{3,50}$/;
+            return regex.test(username);
         }
 
         async function login(event) {
@@ -182,6 +163,9 @@
                 if (!username || !password) {
                     throw new Error('Preencha todos os campos');
                 }
+                if (!validateUsername(username)) {
+                    throw new Error('Username deve ter de 3 a 50 caracteres alfanuméricos ou sublinhado');
+                }
                 const res = await fetchWithTimeout('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -192,9 +176,9 @@
                 if (!res.ok) {
                     try {
                         const json = JSON.parse(text);
-                        throw new Error(json.error || `Erro ${res.status}`);
+                        throw new Error(json.error || 'Erro ao realizar login');
                     } catch {
-                        throw new Error(`Erro ${res.status}: Resposta inválida do servidor`);
+                        throw new Error('Resposta inválida do servidor');
                     }
                 }
                 const data = JSON.parse(text);
@@ -235,6 +219,9 @@
                 if (!username || !password || !confirmPassword) {
                     throw new Error('Preencha todos os campos');
                 }
+                if (!validateUsername(username)) {
+                    throw new Error('Username deve ter de 3 a 50 caracteres alfanuméricos ou sublinhado');
+                }
                 if (password !== confirmPassword) {
                     throw new Error('As senhas não coincidem');
                 }
@@ -251,9 +238,9 @@
                 if (!res.ok) {
                     try {
                         const json = JSON.parse(text);
-                        throw new Error(json.error || `Erro ${res.status}`);
+                        throw new Error(json.error || 'Erro ao registrar usuário');
                     } catch {
-                        throw new Error(`Erro ${res.status}: Resposta inválida do servidor`);
+                        throw new Error('Resposta inválida do servidor');
                     }
                 }
                 const data = JSON.parse(text);
@@ -288,6 +275,8 @@
                 Debug.log('Aba login selecionada');
                 loginTab.classList.add('active');
                 registerTab.classList.remove('active');
+                loginTab.setAttribute('aria-selected', 'true');
+                registerTab.setAttribute('aria-selected', 'false');
                 loginFormContainer.classList.remove('hidden');
                 registerFormContainer.classList.add('hidden');
             });
@@ -296,6 +285,8 @@
                 Debug.log('Aba registro selecionada');
                 registerTab.classList.add('active');
                 loginTab.classList.remove('active');
+                registerTab.setAttribute('aria-selected', 'true');
+                loginTab.setAttribute('aria-selected', 'false');
                 registerFormContainer.classList.remove('hidden');
                 loginFormContainer.classList.add('hidden');
             });

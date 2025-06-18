@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const serverless = require('serverless-http');
 const debug = require('debug')('loganccs:app');
 const path = require('path');
+const bcrypt = require('bcrypt');
+const { body, validationResult } = require('express-validator');
 
 const app = express();
 
@@ -12,7 +14,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use((req, res, next) => {
   debug(`Requisição recebida: ${req.method} ${req.url}`);
   res.setHeader('Content-Type', 'application/json');
-  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Origin', 'https://loganccs.netlify.app');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -33,7 +35,7 @@ const connectMongoDB = async () => {
     debug('Conectado ao MongoDB Atlas');
   } catch (err) {
     debug('Erro ao conectar ao MongoDB:', err.message);
-    throw err;
+    throw new Error('Falha na conexão com o banco de dados');
   }
 };
 connectMongoDB().catch(err => {
@@ -53,7 +55,7 @@ const CardSchema = new mongoose.Schema({
   acquired: { type: Boolean, default: false },
   acquired_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
-CardSchema.index({ acquired: 1 });
+CardSchema.index({ acquired: 1, bandeira: 1, banco: 1, nivel: 1 });
 const Card = mongoose.model('Card', CardSchema);
 
 const UserSchema = new mongoose.Schema({
@@ -81,6 +83,23 @@ const isValidObjectId = (id) => {
   return mongoose.Types.ObjectId.isValid(id);
 };
 
+// Validações
+const registerValidation = [
+  body('username').trim().notEmpty().withMessage('Username é obrigatório').isLength({ max: 50 }).withMessage('Username deve ter no máximo 50 caracteres'),
+  body('password').notEmpty().withMessage('Senha é obrigatória').isLength({ min: 6 }).withMessage('A senha deve ter pelo menos 6 caracteres'),
+];
+
+const loginValidation = [
+  body('username').trim().notEmpty().withMessage('Username é obrigatório'),
+  body('password').notEmpty().withMessage('Senha é obrigatória'),
+];
+
+const buyCardValidation = [
+  body('userId').custom(isValidObjectId).withMessage('ID de usuário inválido'),
+  body('cardId').custom(isValidObjectId).withMessage('ID de cartão inválido'),
+  body('price').isFloat({ min: 0 }).withMessage('Preço inválido'),
+];
+
 // Rota de teste
 app.get('/api/test', (req, res) => {
   debug('Rota de teste acessada');
@@ -88,24 +107,22 @@ app.get('/api/test', (req, res) => {
 });
 
 // Endpoints
-app.post('/api/register', async (req, res) => {
+app.post('/api/register', registerValidation, async (req, res) => {
   try {
     debug('Iniciando registro:', req.body.username);
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      debug('Erros de validação:', errors.array());
+      return res.status(400).json({ error: errors.array()[0].msg });
+    }
     const { username, password } = req.body;
-    if (!username || !password) {
-      debug('Dados de registro ausentes:', { username });
-      return res.status(400).json({ error: 'Username e senha são obrigatórios' });
-    }
-    if (password.length < 6) {
-      debug('Senha muito curta:', { username });
-      return res.status(400).json({ error: 'A senha deve ter pelo menos 6 caracteres' });
-    }
     const existingUser = await User.findOne({ username }).lean();
     if (existingUser) {
       debug('Usuário já existe:', username);
       return res.status(400).json({ error: 'Usuário já existe' });
     }
-    const user = new User({ username, password, balance: 0, is_admin: false });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({ username, password: hashedPassword, balance: 0, is_admin: false });
     await user.save();
     debug('Usuário registrado:', username);
     res.status(201).json({
@@ -115,24 +132,26 @@ app.post('/api/register', async (req, res) => {
     });
   } catch (error) {
     debug('Erro no registro:', error.message);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    res.status(500).json({ error: 'Erro ao registrar usuário. Tente novamente.' });
   }
 });
 
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', loginValidation, async (req, res) => {
   try {
     debug('Iniciando login:', req.body.username);
-    const { username, password } = req.body;
-    if (!username || !password) {
-      debug('Dados de login ausentes:', { username });
-      return res.status(400).json({ error: 'Username e senha são obrigatórios' });
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      debug('Erros de validação:', errors.array());
+      return res.status(400).json({ error: errors.array()[0].msg });
     }
+    const { username, password } = req.body;
     const user = await User.findOne({ username }).lean();
     if (!user) {
       debug('Usuário não encontrado:', username);
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
-    if (user.password !== password) {
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
       debug('Senha incorreta para:', username);
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
@@ -144,7 +163,7 @@ app.post('/api/login', async (req, res) => {
     });
   } catch (error) {
     debug('Erro no login:', error.message);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    res.status(500).json({ error: 'Erro ao realizar login. Tente novamente.' });
   }
 });
 
@@ -161,22 +180,19 @@ app.get('/api/cards', async (req, res) => {
     res.status(200).json(cards);
   } catch (error) {
     debug('Erro ao buscar cartões:', error.message);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    res.status(500).json({ error: 'Erro ao carregar cartões. Tente novamente.' });
   }
 });
 
-app.post('/api/buy-card', async (req, res) => {
+app.post('/api/buy-card', buyCardValidation, async (req, res) => {
   try {
     debug('Iniciando compra de cartão:', req.body);
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      debug('Erros de validação:', errors.array());
+      return res.status(400).json({ error: errors.array()[0].msg });
+    }
     const { userId, cardId, price } = req.body;
-    if (!userId || !cardId || !isValidObjectId(userId) || !isValidObjectId(cardId)) {
-      debug('Dados inválidos:', { userId, cardId });
-      return res.status(400).json({ error: 'Dados inválidos' });
-    }
-    if (!price || isNaN(price) || price <= 0) {
-      debug('Preço inválido:', price);
-      return res.status(400).json({ error: 'Preço inválido' });
-    }
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
@@ -220,15 +236,14 @@ app.post('/api/buy-card', async (req, res) => {
     }
   } catch (error) {
     debug('Erro ao comprar cartão:', error.message);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    res.status(500).json({ error: 'Erro ao processar compra. Tente novamente.' });
   }
 });
 
 app.get('/api/users', async (req, res) => {
   try {
     const userId = req.query.userId;
-    const isAdmin = req.query.isAdmin === 'true';
-    debug('Buscando usuários:', { userId, isAdmin });
+    debug('Buscando usuários:', { userId });
     if (!userId || !isValidObjectId(userId)) {
       debug('userId inválido:', userId);
       return res.status(401).json({ error: 'Usuário não autenticado' });
@@ -238,7 +253,7 @@ app.get('/api/users', async (req, res) => {
       debug('Usuário não encontrado:', userId);
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
-    if (!isAdmin || !user.is_admin) {
+    if (!user.is_admin) {
       debug('Acesso não autorizado:', userId);
       return res.status(403).json({ error: 'Acesso restrito a administradores' });
     }
@@ -247,7 +262,7 @@ app.get('/api/users', async (req, res) => {
     res.status(200).json(users);
   } catch (error) {
     debug('Erro ao buscar usuários:', error.message);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    res.status(500).json({ error: 'Erro ao carregar usuários. Tente novamente.' });
   }
 });
 
@@ -268,11 +283,11 @@ app.get('/api/user', async (req, res) => {
     res.status(200).json(user);
   } catch (error) {
     debug('Erro ao buscar usuário:', error.message);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    res.status(500).json({ error: 'Erro ao carregar dados do usuário. Tente novamente.' });
   }
 });
 
-app.post('/api/logout', (req, res) => {
+app.post('/api/logout', async (req, res) => {
   try {
     const userId = req.body.userId;
     debug('Iniciando logout:', userId);
@@ -284,7 +299,7 @@ app.post('/api/logout', (req, res) => {
     res.status(200).json({ message: 'Logout realizado com sucesso' });
   } catch (error) {
     debug('Erro no logout:', error.message);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    res.status(500).json({ error: 'Erro ao realizar logout. Tente novamente.' });
   }
 });
 
@@ -297,7 +312,7 @@ app.get('/', (req, res) => {
 // Manipulador de erros
 app.use((err, req, res, next) => {
   debug('Erro não tratado:', err.message);
-  res.status(500).json({ error: 'Erro interno do servidor' });
+  res.status(500).json({ error: 'Erro interno do servidor. Tente novamente.' });
 });
 
 module.exports = app;

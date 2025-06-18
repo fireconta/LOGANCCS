@@ -1,3 +1,4 @@
+// Módulo de depuração para logs no console e na interface
 const Debug = {
   enabled: true,
   uiElementId: 'debug',

@@ -9,6 +9,11 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use((req, res, next) => {
+  debug(`Requisição recebida: ${req.method} ${req.url}`);
+  res.setHeader('Content-Type', 'application/json');
+  next();
+});
 
 // Servir arquivos estáticos do mesmo diretório
 app.use(express.static(__dirname));
@@ -75,6 +80,7 @@ const isValidObjectId = (id) => {
 // Endpoints
 app.post('/api/register', async (req, res) => {
   try {
+    debug('Iniciando registro:', req.body.username);
     const { username, password } = req.body;
     if (!username || !password) {
       debug('Dados de registro ausentes:', { username });
@@ -97,14 +103,15 @@ app.post('/api/register', async (req, res) => {
       username: user.username,
       is_admin: user.is_admin
     });
-  } catch (err) {
-    debug('Erro no registro:', err.message);
+  } catch (error) {
+    debug('Erro no registro:', error.message);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
 
 app.post('/api/login', async (req, res) => {
   try {
+    debug('Iniciando login:', req.body.username);
     const { username, password } = req.body;
     if (!username || !password) {
       debug('Dados de login ausentes:', { username });
@@ -126,8 +133,8 @@ app.post('/api/login', async (req, res) => {
       username: user.username,
       is_admin: user.is_admin
     });
-  } catch (err) {
-    debug('Erro no login:', err.message);
+  } catch (error) {
+    debug('Erro no login:', error.message);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -135,6 +142,7 @@ app.post('/api/login', async (req, res) => {
 app.get('/api/cards', async (req, res) => {
   try {
     const userId = req.query.userId;
+    debug('Buscando cartões para userId:', userId);
     if (!userId || !isValidObjectId(userId)) {
       debug('userId inválido:', userId);
       return res.status(401).json({ error: 'Usuário não autenticado' });
@@ -142,14 +150,15 @@ app.get('/api/cards', async (req, res) => {
     const cards = await Card.find({ acquired: false }).lean();
     debug(`Retornando ${cards.length} cartões disponíveis`);
     res.status(200).json(cards);
-  } catch (err) {
-    debug('Erro ao buscar cartões:', err.message);
+  } catch (error) {
+    debug('Erro ao buscar cartões:', error.message);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
 
 app.post('/api/buy-card', async (req, res) => {
   try {
+    debug('Iniciando compra de cartão:', req.body);
     const { userId, cardId, price } = req.body;
     if (!userId || !cardId || !isValidObjectId(userId) || !isValidObjectId(cardId)) {
       debug('Dados inválidos:', { userId, cardId });
@@ -200,8 +209,8 @@ app.post('/api/buy-card', async (req, res) => {
     } finally {
       session.endSession();
     }
-  } catch (err) {
-    debug('Erro ao comprar cartão:', err.message);
+  } catch (error) {
+    debug('Erro ao comprar cartão:', error.message);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -209,6 +218,34 @@ app.post('/api/buy-card', async (req, res) => {
 app.get('/api/users', async (req, res) => {
   try {
     const userId = req.query.userId;
+    const isAdmin = req.query.isAdmin === 'true';
+    debug('Buscando usuários:', { userId, isAdmin });
+    if (!userId || !isValidObjectId(userId)) {
+      debug('userId inválido:', userId);
+      return res.status(401).json({ error: 'Usuário não autenticado' });
+    }
+    const user = await User.findById(userId).select('is_admin').lean();
+    if (!user) {
+      debug('Usuário não encontrado:', userId);
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+    if (!isAdmin || !user.is_admin) {
+      debug('Acesso não autorizado:', userId);
+      return res.status(403).json({ error: 'Acesso restrito a administradores' });
+    }
+    const users = await User.find().select('username balance is_admin created_at').lean();
+    debug(`Retornando ${users.length} usuários`);
+    res.status(200).json(users);
+  } catch (error) {
+    debug('Erro ao buscar usuários:', error.message);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+app.get('/api/user', async (req, res) => {
+  try {
+    const userId = req.query.userId;
+    debug('Buscando dados do usuário:', userId);
     if (!userId || !isValidObjectId(userId)) {
       debug('userId inválido:', userId);
       return res.status(401).json({ error: 'Usuário não autenticado' });
@@ -220,8 +257,8 @@ app.get('/api/users', async (req, res) => {
     }
     debug('Dados do usuário retornados:', userId);
     res.status(200).json(user);
-  } catch (err) {
-    debug('Erro ao buscar usuário:', err.message);
+  } catch (error) {
+    debug('Erro ao buscar usuário:', error.message);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -229,20 +266,22 @@ app.get('/api/users', async (req, res) => {
 app.post('/api/logout', (req, res) => {
   try {
     const userId = req.body.userId;
+    debug('Iniciando logout:', userId);
     if (!userId || !isValidObjectId(userId)) {
       debug('userId inválido para logout:', userId);
       return res.status(401).json({ error: 'Usuário não autenticado' });
     }
     debug('Logout realizado no backend:', userId);
     res.status(200).json({ message: 'Logout realizado com sucesso' });
-  } catch (err) {
-    debug('Erro ao realizar logout:', err.message);
+  } catch (error) {
+    debug('Erro no logout:', error.message);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
 
 // Rota padrão
 app.get('/', (req, res) => {
+  debug('Servindo index.html');
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 

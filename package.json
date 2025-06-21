@@ -1,18 +1,20 @@
 {
   "name": "loganccs",
   "version": "1.0.0",
-  "description": "LOGAN CC's - Loja de cartões",
-  "main": "app.js",
+  "description": "LOGAN CC's - Sistema de Compra de Cartões",
+  "main": "App.js",
   "scripts": {
-    "start": "node app.js"
+    "start": "node App.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "mongoose": "^6.10.0",
-    "serverless-http": "^3.1.0",
-    "debug": "^4.3.4",
     "bcryptjs": "^2.4.3",
-    "express-validator": "^6.14.2",
-    "cors": "^2.8.5"
-  }
+    "debug": "^4.3.7",
+    "express": "^4.21.0",
+    "express-validator": "^7.2.0",
+    "cors": "^2.8.5",
+    "mongoose": "^8.7.0",
+    "serverless-http": "^3.2.0"
+  },
+  "author": "fireconta",
+  "license": "ISC"
 }

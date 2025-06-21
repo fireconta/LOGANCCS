@@ -97,63 +97,53 @@
         <div class="spinner"></div>
     </div>
     <div id="notifications" class="space-y-2" aria-live="polite"></div>
-    <div class="container mx-auto p-6 max-w-md">
-        <div class="bg-gray-800 p-8 rounded-lg shadow-lg">
-            <h1 class="text-2xl font-bold text-green-500 text-center mb-6 flex items-center justify-center">
-                <i class="fas fa-lock mr-2" aria-hidden="true"></i> LOGAN CC's
-            </h1>
-            <div id="loginForm" class="space-y-4">
-                <h2 class="text-xl font-semibold text-center">Login</h2>
-                <div id="loginFormElement" aria-label="Formulário de login">
-                    <div>
-                        <label for="loginUsername" class="block text-sm font-medium text-gray-300">Usuário</label>
-                        <input type="text" id="loginUsername" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-label="Nome de usuário" autocomplete="username">
-                    </div>
-                    <div>
-                        <label for="loginPassword" class="block text-sm font-medium text-gray-300">Senha</label>
-                        <input type="password" id="loginPassword" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-label="Senha" autocomplete="current-password">
-                    </div>
-                    <p id="loginError" class="text-red-500 text-sm hidden" role="alert"></p>
-                    <button type="submit" id="loginButton" class="w-full py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center justify-center" aria-label="Entrar">
-                        <span>Entrar</span>
-                        <svg id="loginSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                        </svg>
-                    </button>
-                </div>
-                <p class="text-center text-sm text-gray-400">
-                    Não tem uma conta? <button type="button" id="showRegisterForm" class="text-green-500 hover:underline" aria-label="Mostrar formulário de registro">Registre-se</button>
-                </p>
+    <div class="bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full">
+        <h1 class="text-2xl font-bold text-green-500 mb-6 text-center flex items-center justify-center">
+            <i class="fas fa-credit-card mr-2" aria-hidden="true"></i> LOGAN CC's
+        </h1>
+        <div id="loginForm" class="space-y-4">
+            <h2 class="text-xl font-semibold text-center">Login</h2>
+            <div>
+                <label for="loginUsername" class="block text-sm font-medium text-gray-300">Usuário</label>
+                <input type="text" id="loginUsername" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-label="Usuário para login">
             </div>
-            <div id="registerForm" class="space-y-4 hidden">
-                <h2 class="text-xl font-semibold text-center">Registro</h2>
-                <div id="registerFormElement" aria-label="Formulário de registro">
-                    <div>
-                        <label for="registerUsername" class="block text-sm font-medium text-gray-300">Usuário</label>
-                        <input type="text" id="registerUsername" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-label="Nome de usuário" autocomplete="username">
-                    </div>
-                    <div>
-                        <label for="registerPassword" class="block text-sm font-medium text-gray-300">Senha</label>
-                        <input type="password" id="registerPassword" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-label="Senha" autocomplete="new-password">
-                    </div>
-                    <div>
-                        <label for="confirmPassword" class="block text-sm font-medium text-gray-300">Confirmar Senha</label>
-                        <input type="password" id="confirmPassword" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-label="Confirmar senha" autocomplete="new-password">
-                    </div>
-                    <p id="registerError" class="text-red-500 text-sm hidden" role="alert"></p>
-                    <button type="submit" id="registerButton" class="w-full py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center justify-center" aria-label="Registrar">
-                        <span>Registrar</span>
-                        <svg id="registerSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                        </svg>
-                    </button>
-                </div>
-                <p class="text-center text-sm text-gray-400">
-                    Já tem uma conta? <button type="button" id="showLoginForm" class="text-green-500 hover:underline" aria-label="Mostrar formulário de login">Faça login</button>
-                </p>
+            <div>
+                <label for="loginPassword" class="block text-sm font-medium text-gray-300">Senha</label>
+                <input type="password" id="loginPassword" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-label="Senha para login">
             </div>
+            <p id="loginError" class="text-red-500 text-sm hidden" role="alert"></p>
+            <button type="submit" id="loginButton" onclick="login()" class="w-full py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center justify-center" aria-label="Entrar">
+                <span>Entrar</span>
+                <svg id="loginSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+            </button>
+            <p class="text-center text-sm text-gray-400">
+                Não tem uma conta? <a href="#" onclick="toggleForm('register')" class="text-green-500 hover:underline" aria-label="Mudar para formulário de registro">Registre-se</a>
+            </p>
+        </div>
+        <div id="registerForm" class="space-y-4 hidden">
+            <h2 class="text-xl font-semibold text-center">Registro</h2>
+            <div>
+                <label for="registerUsername" class="block text-sm font-medium text-gray-300">Usuário</label>
+                <input type="text" id="registerUsername" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-label="Usuário para registro">
+            </div>
+            <div>
+                <label for="registerPassword" class="block text-sm font-medium text-gray-300">Senha</label>
+                <input type="password" id="registerPassword" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-label="Senha para registro">
+            </div>
+            <p id="registerError" class="text-red-500 text-sm hidden" role="alert"></p>
+            <button type="submit" id="registerButton" onclick="register()" class="w-full py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center justify-center" aria-label="Registrar">
+                <span>Registrar</span>
+                <svg id="registerSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+            </button>
+            <p class="text-center text-sm text-gray-400">
+                Já tem uma conta? <a href="#" onclick="toggleForm('login')" class="text-green-500 hover:underline" aria-label="Mudar para formulário de login">Faça login</a>
+            </p>
         </div>
     </div>
     <button id="toggleDebug" aria-label="Alternar visibilidade do debug">Esconder Debug</button>
@@ -161,175 +151,145 @@
     <script src="debug.js"></script>
     <script src="utils.js"></script>
     <script>
-        // Fallback para Debug.log
-        window.Debug = window.Debug || {
-            log: (msg, data) => {
-                const debugDiv = document.getElementById('debug');
-                const log = `[INFO] ${new Date().toLocaleTimeString()} - ${msg}: ${data ? JSON.stringify(data) : ''}`;
-                console.log(log);
-                debugDiv.innerHTML += `<div class="debug-info">${log}</div>`;
-                debugDiv.scrollTop = debugDiv.scrollHeight;
-            },
-            error: (msg, data) => {
-                const debugDiv = document.getElementById('debug');
-                const log = `[ERROR] ${new Date().toLocaleTimeString()} - ${msg}: ${data ? JSON.stringify(data) : ''}`;
-                console.error(log);
-                debugDiv.innerHTML += `<div class="debug-error">${log}</div>`;
-                debugDiv.scrollTop = debugDiv.scrollHeight;
-            }
-        };
-
-        if (typeof fetchWithTimeout === 'undefined') {
-            console.error('fetchWithTimeout não definido. Verifique utils.js.');
-            Debug.error('fetchWithTimeout não definido', { file: 'utils drilling.js' });
-            showNotification('Erro ao carregar dependências.', true);
-        }
-
-        // Verificar status do MongoDB
-        async function checkMongoStatus() {
-            Debug.log('Verificando status do MongoDB');
-            try {
-                const res = await fetchWithTimeout('/api/health', {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                const data = await res.json();
-                if (res.ok && data.mongoConnected) {
-                    Debug.log('MongoDB carregado corretamente', { state: data.mongooseConnectionState });
-                    showNotification('MongoDB conectado com sucesso!');
-                } else {
-                    Debug.error('MongoDB não carregado', { state: data.mongooseConnectionState, error: data.error || 'Sem detalhes' });
-                    showNotification(`Erro ao conectar ao MongoDB: ${data.error || 'Verifique o servidor'}`, true);
-                }
-            } catch (err) {
-                Debug.error('Erro ao verificar status do MongoDB', { error: err.message });
-                showNotification(`Erro ao verificar MongoDB: ${err.message}`, true);
-            }
-        }
-
-        async function login(username, password) {
-            Debug.log('Iniciando login', { username: username.trim() });
+        async function login() {
+            Debug.log('Iniciando login');
             const button = document.getElementById('loginButton');
             const spinner = document.getElementById('loginSpinner');
             const errorDiv = document.getElementById('loginError');
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
             button.disabled = true;
             spinner.classList.remove('hidden');
             errorDiv.classList.add('hidden');
-            document.getElementById('globalLoader').style.visibility = 'visible';
+            if (!username || !password) {
+                Debug.error('Campos obrigatórios não preenchidos', { username, password: '***' });
+                errorDiv.textContent = 'Preencha usuário e senha';
+                errorDiv.classList.remove('hidden');
+                button.disabled = false;
+                spinner.classList.add('hidden');
+                return;
+            }
             try {
                 const res = await fetchWithTimeout('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: username.trim(), password })
+                    body: JSON.stringify({ username, password })
                 });
                 const text = await res.text();
                 Debug.log(`Resposta /api/login: Status ${res.status}`, { response: text });
                 let data;
                 try {
                     data = JSON.parse(text);
-                } catch (e) {
-                    Debug.error('Erro ao parsear resposta', { error: e.message, response: text });
+                } catch {
                     throw new Error(`Resposta inválida: formato não JSON (${text.slice(0, 100)}...)`);
                 }
                 if (!res.ok) {
-                    Debug.error('Erro na resposta do login', { status: res.status, error: data.error });
                     throw new Error(data.error || `Erro ao fazer login (Status: ${res.status})`);
                 }
                 localStorage.setItem('userId', data.userId);
                 localStorage.setItem('username', data.username);
-                localStorage.setItem('is_admin', data.is_admin);
-                Debug.log('Login bem-sucedido', { userId: data.userId });
                 showNotification('Login realizado com sucesso!');
-                setTimeout(() => window.location.href = data.is_admin ? 'dashboard.html' : 'shop.html', 1000);
+                Debug.log('Login bem-sucedido', { userId: data.userId, username: data.username });
+                setTimeout(() => {
+                    window.location.href = data.is_admin ? 'Dashboard.html' : 'Shop.html';
+                }, 1000);
             } catch (err) {
                 Debug.error('Erro ao fazer login', { error: err.message });
-                errorDiv.textContent = err.message.includes('MongoServerError') ? 'Falha na conexão com o banco. Verifique permissões ou configuração do MongoDB.' : err.message;
+                errorDiv.textContent = err.message;
                 errorDiv.classList.remove('hidden');
                 showNotification(`Erro: ${err.message}`, true);
             } finally {
                 button.disabled = false;
                 spinner.classList.add('hidden');
-                document.getElementById('globalLoader').style.visibility = 'hidden';
             }
         }
 
-        async function register(username, password, confirmPassword) {
-            Debug.log('Iniciando registro', { username: username.trim() });
+        async function register() {
+            Debug.log('Iniciando registro');
             const button = document.getElementById('registerButton');
             const spinner = document.getElementById('registerSpinner');
             const errorDiv = document.getElementById('registerError');
+            const username = document.getElementById('registerUsername').value.trim();
+            const password = document.getElementById('registerPassword').value;
             button.disabled = true;
             spinner.classList.remove('hidden');
             errorDiv.classList.add('hidden');
-            document.getElementById('globalLoader').style.visibility = 'visible';
+            if (!username || !password) {
+                Debug.error('Campos obrigatórios não preenchidos', { username, password: '***' });
+                errorDiv.textContent = 'Preencha usuário e senha';
+                errorDiv.classList.remove('hidden');
+                button.disabled = false;
+                spinner.classList.add('hidden');
+                return;
+            }
+            if (username.length < 3 || username.length > 20) {
+                Debug.error('Usuário inválido', { username });
+                errorDiv.textContent = 'Usuário deve ter entre 3 e 20 caracteres';
+                errorDiv.classList.remove('hidden');
+                button.disabled = false;
+                spinner.classList.add('hidden');
+                return;
+            }
+            if (password.length < 6) {
+                Debug.error('Senha inválida', { password: '***' });
+                errorDiv.textContent = 'Senha deve ter pelo menos 6 caracteres';
+                errorDiv.classList.remove('hidden');
+                button.disabled = false;
+                spinner.classList.add('hidden');
+                return;
+            }
             try {
-                if (password !== confirmPassword) {
-                    Debug.error('Senhas não coincidem', { password, confirmPassword });
-                    throw new Error('As senhas não coincidem');
-                }
                 const res = await fetchWithTimeout('/api/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: username.trim(), password })
+                    body: JSON.stringify({ username, password })
                 });
                 const text = await res.text();
                 Debug.log(`Resposta /api/register: Status ${res.status}`, { response: text });
                 let data;
                 try {
                     data = JSON.parse(text);
-                } catch (e) {
-                    Debug.error('Erro ao parsear resposta', { error: e.message, response: text });
+                } catch {
                     throw new Error(`Resposta inválida: formato não JSON (${text.slice(0, 100)}...)`);
                 }
                 if (!res.ok) {
-                    Debug.error('Erro na resposta do registro', { status: res.status, error: data.error });
                     throw new Error(data.error || `Erro ao registrar (Status: ${res.status})`);
                 }
-                Debug.log('Registro bem-sucedido', { username: data.username });
                 showNotification('Registro realizado com sucesso! Faça login.');
-                document.getElementById('registerForm').classList.add('hidden');
-                document.getElementById('loginForm').classList.remove('hidden');
+                Debug.log('Registro bem-sucedido', { username });
+                toggleForm('login');
             } catch (err) {
                 Debug.error('Erro ao registrar', { error: err.message });
-                errorDiv.textContent = err.message.includes('MongoServerError') ? 'Falha na conexão com o banco. Verifique permissões ou configuração do MongoDB.' : err.message;
+                errorDiv.textContent = err.message;
                 errorDiv.classList.remove('hidden');
                 showNotification(`Erro: ${err.message}`, true);
             } finally {
                 button.disabled = false;
                 spinner.classList.add('hidden');
-                document.getElementById('globalLoader').style.visibility = 'hidden';
+            }
+        }
+
+        function toggleForm(form) {
+            Debug.log(`Alternando para formulário: ${form}`);
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            if (form === 'register') {
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+                document.getElementById('loginUsername').value = '';
+                document.getElementById('loginPassword').value = '';
+                document.getElementById('loginError').classList.add('hidden');
+            } else {
+                registerForm.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+                document.getElementById('registerUsername').value = '';
+                document.getElementById('registerPassword').value = '';
+                document.getElementById('registerError').classList.add('hidden');
             }
         }
 
         function setupEventListeners() {
             Debug.log('Configurando event listeners');
-            document.getElementById('loginFormElement').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const username = document.getElementById('loginUsername').value;
-                const password = document.getElementById('loginPassword').value;
-                await login(username, password);
-            });
-
-            document.getElementById('registerFormElement').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const username = document.getElementById('registerUsername').value;
-                const password = document.getElementById('registerPassword').value;
-                const confirmPassword = document.getElementById('confirmPassword').value;
-                await register(username, password, confirmPassword);
-            });
-
-            document.getElementById('showRegisterForm').addEventListener('click', () => {
-                Debug.log('Mostrando formulário de registro');
-                document.getElementById('loginForm').classList.add('hidden');
-                document.getElementById('registerForm').classList.remove('hidden');
-            });
-
-            document.getElementById('showLoginForm').addEventListener('click', () => {
-                Debug.log('Mostrando formulário de login');
-                document.getElementById('registerForm').classList.add('hidden');
-                document.getElementById('loginForm').classList.remove('hidden');
-            });
-
             document.getElementById('toggleDebug').addEventListener('click', () => {
                 const debugDiv = document.getElementById('debug');
                 const button = document.getElementById('toggleDebug');
@@ -347,12 +307,9 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             Debug.log('DOM carregado');
-            if (localStorage.getItem('userId')) {
-                Debug.log('Usuário já logado, redirecionando');
-                window.location.href = localStorage.getItem('is_admin') === 'true' ? 'dashboard.html' : 'shop.html';
-            }
             setupEventListeners();
-            checkMongoStatus();
+            document.getElementById('debug').style.display = 'block';
+            document.getElementById('toggleDebug').textContent = 'Esconder Debug';
         });
     </script>
 </body>

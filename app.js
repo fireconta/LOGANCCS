@@ -1,40 +1,33 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const serverless = require('serverless-http');
-const debug = require('debug')('loganccs:app');
+const debug = require('debug')('app');
 const bcrypt = require('bcryptjs');
 const { body, validationResult } = require('express-validator');
+const cors = require('cors');
 
 const app = express();
-
-// Middleware
+app.use(cors({ origin: 'https://loganccs.netlify.app' }));
 app.use(express.json());
-app.use((req, res, next) => {
-  debug(`Requisição recebida: ${req.method} ${req.url} - Body: %o`, req.body);
-  res.setHeader('Content-Type', 'application/json');
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') {
-    debug('Respondendo OPTIONS');
-    return res.status(200).end();
-  }
-  next();
-});
 
-// Conexão com MongoDB
 let mongoConnected = false;
+let cachedConnection = null;
+
 const connectMongoDB = async () => {
+  if (cachedConnection && mongoose.connection.readyState === 1) {
+    debug('Reutilizando conexão existente com MongoDB');
+    return;
+  }
   try {
     debug('Tentando conectar ao MongoDB com URI: %s', process.env.MONGODB_URI ? 'CONFIGURADO' : 'NÃO CONFIGURADO');
     if (!process.env.MONGODB_URI) {
       throw new Error('MONGODB_URI não está configurado');
     }
-    await mongoose.connect(process.env.MONGODB_URI, {
+    cachedConnection = await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000
+      serverSelectionTimeoutMS: 15000,
+      socketTimeoutMS: 90000
     });
     mongoConnected = true;
     debug('Conectado ao MongoDB Atlas');
@@ -44,273 +37,240 @@ const connectMongoDB = async () => {
     throw new Error(`Falha na conexão com o banco de dados: ${err.message}`);
   }
 };
-connectMongoDB().catch(err => {
-  console.error('Falha na conexão inicial com MongoDB:', err.message);
+
+app.use(async (req, res, next) => {
+  try {
+    await connectMongoDB();
+    next();
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Endpoint para verificar saúde do MongoDB
-app.get('/api/health', (req, res) => {
-  debug('Verificando saúde do MongoDB');
-  res.status(200).json({
-    mongoConnected,
-    mongooseConnectionState: mongoose.connection.readyState,
-    error: mongoConnected ? null : mongoose.connection.error || 'Falha na conexão'
-  });
-});
+const UserSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  is_admin: { type: Boolean, default: false },
+  balance: { type: Number, default: 0 }
+}, { timestamps: true });
+UserSchema.index({ username: 1 });
+const User = mongoose.model('User', UserSchema);
 
-// Modelos
 const CardSchema = new mongoose.Schema({
   numero: { type: String, required: true, unique: true },
   bandeira: { type: String, required: true },
   banco: { type: String, required: true },
   nivel: { type: String, required: true },
   price: { type: Number, required: true },
-  cvv: { type: String, required: true },
-  validade: { type: String, required: true },
-  acquired: { type: Boolean, default: false },
-  acquired_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
 }, { timestamps: true });
-CardSchema.index({ acquired: 1, bandeira: 1, banco: 1, nivel: 1 });
+CardSchema.index({ bandeira: 1, banco: 1, nivel: 1 });
 const Card = mongoose.model('Card', CardSchema);
 
-const UserSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  balance: { type: Number, default: 0 },
-  is_admin: { type: Boolean, default: false },
-}, { timestamps: true });
-UserSchema.index({ username: 1 });
-const User = mongoose.model('User', UserSchema);
-
 const TransactionSchema = new mongoose.Schema({
-  user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  type: { type: String, required: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  cardId: { type: mongoose.Schema.Types.ObjectId, ref: 'Card', required: true },
   amount: { type: Number, required: true },
-  description: { type: String, required: true },
-  timestamp: { type: Date, default: Date.now },
+  status: { type: String, default: 'completed' }
 }, { timestamps: true });
-TransactionSchema.index({ user_id: 1, timestamp: -1 });
 const Transaction = mongoose.model('Transaction', TransactionSchema);
 
-// Validação de ObjectId
-const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+app.get('/api/health', (req, res) => {
+  debug('Verificando saúde do MongoDB');
+  res.status(200).json({
+    mongoConnected,
+    mongooseConnectionState: mongoose.connection.readyState,
+    error: mongoConnected ? null : mongoose.connection.error?.message || 'Falha na conexão'
+  });
+});
 
-// Validações
-const registerValidation = [
-  body('username').trim().notEmpty().withMessage('Usuário é obrigatório').isLength({ max: 50 }).withMessage('Usuário muito longo'),
-  body('password').notEmpty().withMessage('Senha é obrigatória').isLength({ min: 6 }).withMessage('Senha deve ter pelo menos 6 caracteres'),
-];
-
-const loginValidation = [
-  body('username').trim().notEmpty().withMessage('Usuário é obrigatório'),
-  body('password').notEmpty().withMessage('Senha é obrigatória'),
-];
-
-const buyCardValidation = [
-  body('userId').custom(isValidObjectId).withMessage('ID de usuário inválido'),
-  body('cardId').custom(isValidObjectId).withMessage('ID de cartão inválido'),
-  body('price').isFloat({ min: 0 }).withMessage('Preço inválido'),
-];
-
-// Endpoints
-app.post('/api/register', registerValidation, async (req, res) => {
+app.post('/api/register', [
+  body('username').trim().notEmpty().isLength({ min: 3, max: 20 }),
+  body('password').notEmpty().isLength({ min: 6 })
+], async (req, res) => {
+  debug('Tentando registrar usuário: %s', req.body.username);
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ error: errors.array()[0].msg });
+  }
+  const { username, password } = req.body;
   try {
-    debug('Iniciando registro: %o', req.body);
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      debug('Erros de validação: %o', errors.array());
-      return res.status(400).json({ error: errors.array()[0].msg });
-    }
-    const { username, password } = req.body;
-    const existingUser = await User.findOne({ username }).lean();
+    const existingUser = await User.findOne({ username });
     if (existingUser) {
       debug('Usuário já existe: %s', username);
       return res.status(400).json({ error: 'Usuário já existe' });
     }
     const hashedPassword = await bcrypt.hash(password, 10);
-    debug('Senha hasheada para %s', username);
-    const user = new User({ username, password: hashedPassword, balance: 0, is_admin: false });
+    const user = new User({ username, password: hashedPassword, is_admin: username === 'admin' });
     await user.save();
-    debug('Usuário registrado: %s', username);
-    res.status(201).json({
-      userId: user._id,
-      username: user.username,
-      is_admin: user.is_admin
-    });
-  } catch (error) {
-    debug('Erro no registro: %s - Stack: %s', error.message, error.stack);
-    res.status(500).json({ error: `Erro ao registrar usuário: ${error.message.includes('MongoServerError') ? 'Falha na autenticação do banco. Verifique permissões ou configuração.' : error.message}` });
+    debug('Usuário registrado com sucesso: %s', username);
+    res.status(201).json({ username });
+  } catch (err) {
+    debug('Erro ao registrar usuário: %s', err.message);
+    res.status(500).json({ error: err.message.includes('MongoServerError') ? 'Falha na conexão com o banco' : err.message });
   }
 });
 
-app.post('/api/login', loginValidation, async (req, res) => {
+app.post('/api/login', [
+  body('username').trim().notEmpty(),
+  body('password').notEmpty()
+], async (req, res) => {
+  debug('Tentando login para usuário: %s', req.body.username);
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ error: errors.array()[0].msg });
+  }
+  const { username, password } = req.body;
   try {
-    debug('Iniciando login: %o', req.body);
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      debug('Erros de validação: %o', errors.array());
-      return res.status(400).json({ error: errors.array()[0].msg });
-    }
-    const { username, password } = req.body;
-    const user = await User.findOne({ username }).lean();
+    const user = await User.findOne({ username });
     if (!user) {
       debug('Usuário não encontrado: %s', username);
-      return res.status(401).json({ error: 'Usuário não encontrado' });
+      return res.status(401).json({ error: 'Credenciais inválidas' });
     }
-    debug('Usuário encontrado, comparando senha: %s', username);
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      debug('Senha incorreta para: %s', username);
-      return res.status(401).json({ error: 'Senha incorreta' });
+      debug('Senha incorreta para usuário: %s', username);
+      return res.status(401).json({ error: 'Credenciais inválidas' });
     }
-    debug('Login bem-sucedido: %s', username);
-    res.status(200).json({
-      userId: user._id,
-      username: user.username,
-      is_admin: user.is_admin
-    });
-  } catch (error) {
-    debug('Erro no login: %s - Stack: %s', error.message, error.stack);
-    res.status(500).json({ error: `Erro ao realizar login: ${error.message.includes('MongoServerError') ? 'Falha na autenticação do banco. Verifique permissões ou configuração.' : error.message}` });
-  }
-});
-
-app.get('/api/cards', async (req, res) => {
-  try {
-    const userId = req.query.userId;
-    debug('Buscando cartões para userId: %s', userId);
-    if (!userId || !isValidObjectId(userId)) {
-      debug('userId inválido: %s', userId);
-      return res.status(401).json({ error: 'Usuário não autenticado' });
-    }
-    const cards = await Card.find({ acquired: false }).lean();
-    debug('Retornando %d cartões disponíveis', cards.length);
-    res.status(200).json(cards);
-  } catch (error) {
-    debug('Erro ao buscar cartões: %s - Stack: %s', error.message, error.stack);
-    res.status(500).json({ error: `Erro ao carregar cartões: ${error.message}` });
-  }
-});
-
-app.post('/api/buy-card', buyCardValidation, async (req, res) => {
-  try {
-    debug('Iniciando compra de cartão: %o', req.body);
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      debug('Erros de validação: %o', errors.array());
-      return res.status(400).json({ error: errors.array()[0].msg });
-    }
-    const { userId, cardId, price } = req.body;
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    try {
-      const user = await User.findById(userId).session(session);
-      const card = await Card.findById(cardId).session(session);
-      if (!user || !card) {
-        await session.abortTransaction();
-        debug('Usuário ou cartão não encontrado: %o', { userId, cardId });
-        return res.status(404).json({ error: 'Usuário ou cartão não encontrado' });
-      }
-      if (card.acquired) {
-        await session.abortTransaction();
-        debug('Cartão já adquirido: %s', cardId);
-        return res.status(400).json({ error: 'Cartão já foi adquirido' });
-      }
-      if (user.balance < price) {
-        await session.abortTransaction();
-        debug('Saldo insuficiente: %o', { userId, balance: user.balance, price });
-        return res.status(400).json({ error: 'Saldo insuficiente' });
-      }
-      user.balance -= price;
-      card.acquired = true;
-      card.acquired_by = userId;
-      await user.save({ session });
-      await card.save({ session });
-      await Transaction.create([{
-        user_id: userId,
-        type: 'purchase',
-        amount: price,
-        description: `Compra de cartão ${card.nivel} ${card.bandeira}`,
-      }], { session });
-      await session.commitTransaction();
-      debug('Compra realizada: %o', { userId, cardId, price });
-      res.status(200).json({ message: 'Compra realizada com sucesso' });
-    } catch (err) {
-      await session.abortTransaction();
-      debug('Erro na transação de compra: %s - Stack: %s', err.message, err.stack);
-      throw err;
-    } finally {
-      session.endSession();
-    }
-  } catch (error) {
-    debug('Erro ao comprar cartão: %s - Stack: %s', error.message, error.stack);
-    res.status(500).json({ error: `Erro ao processar compra: ${error.message}` });
-  }
-});
-
-app.get('/api/users', async (req, res) => {
-  try {
-    const userId = req.query.userId;
-    debug('Buscando usuários: %o', { userId });
-    if (!userId || !isValidObjectId(userId)) {
-      debug('userId inválido: %s', userId);
-      return res.status(401).json({ error: 'Usuário não autenticado' });
-    }
-    const user = await User.findById(userId).select('is_admin').lean();
-    if (!user || !user.is_admin) {
-      debug('Acesso não autorizado: %s', userId);
-      return res.status(403).json({ error: 'Acesso restrito a administradores' });
-    }
-    const users = await User.find().select('username balance is_admin created_at').lean();
-    debug('Retornando %d usuários', users.length);
-    res.status(200).json(users);
-  } catch (error) {
-    debug('Erro ao buscar usuários: %s - Stack: %s', error.message, error.stack);
-    res.status(500).json({ error: `Erro ao carregar usuários: ${error.message}` });
+    debug('Login bem-sucedido para usuário: %s', username);
+    res.status(200).json({ userId: user._id, username: user.username, is_admin: user.is_admin });
+  } catch (err) {
+    debug('Erro ao fazer login: %s', err.message);
+    res.status(500).json({ error: err.message.includes('MongoServerError') ? 'Falha na conexão com o banco' : err.message });
   }
 });
 
 app.get('/api/user', async (req, res) => {
+  debug('Buscando dados do usuário: %s', req.query.userId);
   try {
-    const userId = req.query.userId;
-    debug('Buscando dados do usuário: %s', userId);
-    if (!userId || !isValidObjectId(userId)) {
-      debug('userId inválido: %s', userId);
-      return res.status(401).json({ error: 'Usuário não autenticado' });
-    }
-    const user = await User.findById(userId).select('username balance is_admin').lean();
+    const user = await User.findById(req.query.userId).select('-password');
     if (!user) {
-      debug('Usuário não encontrado: %s', userId);
+      debug('Usuário não encontrado: %s', req.query.userId);
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
-    debug('Dados do usuário retornados: %s', userId);
     res.status(200).json(user);
-  } catch (error) {
-    debug('Erro ao buscar usuário: %s - Stack: %s', error.message, error.stack);
-    res.status(500).json({ error: `Erro ao carregar dados do usuário: ${error.message}` });
+  } catch (err) {
+    debug('Erro ao buscar usuário: %s', err.message);
+    res.status(500).json({ error: err.message.includes('MongoServerError') ? 'Falha na conexão com o banco' : err.message });
   }
 });
 
-app.post('/api/logout', async (req, res) => {
+app.get('/api/users', async (req, res) => {
+  debug('Buscando lista de usuários');
   try {
-    const userId = req.body.userId;
-    debug('Iniciando logout: %s', userId);
-    if (!userId || !isValidObjectId(userId)) {
-      debug('userId inválido para logout: %s', userId);
-      return res.status(401).json({ error: 'Usuário não autenticado' });
+    const user = await User.findById(req.query.userId);
+    if (!user || !user.is_admin) {
+      debug('Acesso negado para usuário: %s', req.query.userId);
+      return res.status(403).json({ error: 'Acesso negado' });
     }
-    debug('Logout realizado no backend: %s', userId);
-    res.status(200).json({ message: 'Logout realizado com sucesso' });
-  } catch (error) {
-    debug('Erro no logout: %s - Stack: %s', error.message, error.stack);
-    res.status(500).json({ error: `Erro ao realizar logout: ${error.message}` });
+    const users = await User.find().select('-password');
+    res.status(200).json(users);
+  } catch (err) {
+    debug('Erro ao buscar usuários: %s', err.message);
+    res.status(500).json({ error: err.message.includes('MongoServerError') ? 'Falha na conexão com o banco' : err.message });
   }
 });
 
-// Manipulador de erros
-app.use((err, req, res, next) => {
-  debug('Erro não tratado: %s - Stack: %s', err.message, err.stack);
-  res.status(500).json({ error: `Erro interno do servidor: ${err.message}` });
+app.get('/api/cards', async (req, res) => {
+  debug('Buscando lista de cartões');
+  try {
+    const cards = await Card.find({ userId: null });
+    res.status(200).json(cards);
+  } catch (err) {
+    debug('Erro ao buscar cartões: %s', err.message);
+    res.status(500).json({ error: err.message.includes('MongoServerError') ? 'Falha na conexão com o banco' : err.message });
+  }
+});
+
+app.post('/api/buy-card', async (req, res) => {
+  debug('Iniciando compra de cartão: %s', req.body.cardId);
+  const { userId, cardId, price } = req.body;
+  const transactionSession = await mongoose.startSession();
+  try {
+    transactionSession.startTransaction();
+    const user = await User.findById(userId).session(transactionSession);
+    if (!user) {
+      debug('Usuário não encontrado: %s', userId);
+      throw new Error('Usuário não encontrado');
+    }
+    if (user.balance < price) {
+      debug('Saldo insuficiente para usuário: %s', userId);
+      throw new Error('Saldo insuficiente');
+    }
+    const card = await Card.findById(cardId).session(transactionSession);
+    if (!card || card.userId) {
+      debug('Cartão inválido ou já comprado: %s', cardId);
+      throw new Error('Cartão inválido ou já comprado');
+    }
+    user.balance -= price;
+    card.userId = userId;
+    const transaction = new Transaction({ userId, cardId, amount: price });
+    await Promise.all([
+      user.save({ session: transactionSession }),
+      card.save({ session: transactionSession }),
+      transaction.save({ session: transactionSession })
+    ]);
+    await transactionSession.commitTransaction();
+    debug('Compra de cartão concluída: %s', cardId);
+    res.status(200).json({ message: 'Compra realizada com sucesso' });
+  } catch (err) {
+    await transactionSession.abortTransaction();
+    debug('Erro ao comprar cartão: %s', err.message);
+    res.status(400).json({ error: err.message });
+  } finally {
+    transactionSession.endSession();
+  }
+});
+
+app.post('/api/seed', async (req, res) => {
+  debug('Iniciando seeding do banco de dados');
+  try {
+    const userId = req.query.userId;
+    const user = await User.findById(userId);
+    if (!user || !user.is_admin) {
+      debug('Acesso negado para seeding: %s', userId);
+      return res.status(403).json({ error: 'Acesso negado, apenas administradores podem executar o seeding' });
+    }
+
+    // Limpar coleções existentes
+    await Promise.all([
+      User.deleteMany({}),
+      Card.deleteMany({}),
+      Transaction.deleteMany({})
+    ]);
+    debug('Coleções existentes limpas');
+
+    // Inserir usuários fictícios
+    const adminPassword = await bcrypt.hash('admin123', 10);
+    const userPassword = await bcrypt.hash('user123', 10);
+    const users = [
+      { username: 'admin', password: adminPassword, is_admin: true, balance: 1000, createdAt: new Date('2025-06-21T00:00:00Z'), updatedAt: new Date('2025-06-21T00:00:00Z') },
+      { username: 'user1', password: userPassword, is_admin: false, balance: 500, createdAt: new Date('2025-06-21T00:00:00Z'), updatedAt: new Date('2025-06-21T00:00:00Z') },
+      { username: 'user2', password: userPassword, is_admin: false, balance: 300, createdAt: new Date('2025-06-21T00:00:00Z'), updatedAt: new Date('2025-06-21T00:00:00Z') }
+    ];
+    const insertedUsers = await User.insertMany(users);
+    debug('Usuários fictícios inseridos', { count: insertedUsers.length });
+
+    // Inserir cartões com BINs reais
+    const cards = [
+      { numero: '4532015112831234', bandeira: 'Visa', banco: 'Nubank', nivel: 'Classic', price: 50, userId: null, createdAt: new Date('2025-06-21T00:00:00Z'), updatedAt: new Date('2025-06-21T00:00:00Z') },
+      { numero: '5100109876543210', bandeira: 'Mastercard', banco: 'Itaú', nivel: 'Gold', price: 100, userId: null, createdAt: new Date('2025-06-21T00:00:00Z'), updatedAt: new Date('2025-06-21T00:00:00Z') },
+      { numero: '374220123456789', bandeira: 'Amex', banco: 'Bradesco', nivel: 'Platinum', price: 200, userId: null, createdAt: new Date('2025-06-21T00:00:00Z'), updatedAt: new Date('2025-06-21T00:00:00Z') },
+      { numero: '5067891234567890', bandeira: 'Elo', banco: 'Caixa Econômica Federal', nivel: 'Black', price: 300, userId: null, createdAt: new Date('2025-06-21T00:00:00Z'), updatedAt: new Date('2025-06-21T00:00:00Z') }
+    ];
+    const insertedCards = await Card.insertMany(cards);
+    debug('Cartões fictícios inseridos', { count: insertedCards.length });
+
+    res.status(200).json({ message: 'Banco de dados populado com sucesso', users: insertedUsers.length, cards: insertedCards.length });
+  } catch (err) {
+    debug('Erro ao realizar seeding: %s', err.message);
+    res.status(500).json({ error: err.message.includes('MongoServerError') ? 'Falha na conexão com o banco' : err.message });
+  }
+});
+
+app.post('/api/logout', (req, res) => {
+  debug('Logout solicitado para usuário: %s', req.body.userId);
+  res.status(200).json({ message: 'Logout realizado com sucesso' });
 });
 
 module.exports.handler = serverless(app);

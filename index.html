@@ -8,94 +8,23 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.7/purify.min.js"></script>
     <style>
-        #globalLoader {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            visibility: hidden;
-        }
-        .spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid #10b981;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        #notifications {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            z-index: 10000;
-            max-width: 320px;
-        }
-        .notification {
-            background: #1f2937;
-            color: white;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin-bottom: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            animation: slideIn 0.3s ease-out;
-        }
-        .notification-error {
-            background: #ef4444;
-        }
-        .notification-success {
-            background: #10b981;
-        }
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        #debug {
-            position: fixed;
-            bottom: 4rem;
-            left: 1rem;
-            background: #1f2937;
-            color: white;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            max-width: 400px;
-            max-height: 300px;
-            overflow-y: auto;
-            z-index: 1000;
-            font-size: 0.75rem;
-        }
-        #toggleDebug {
-            position: fixed;
-            bottom: 1rem;
-            left: 1rem;
-            background: #10b981;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.25rem;
-            z-index: 1001;
-            cursor: pointer;
-        }
+        #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; visibility: hidden; }
+        .spinner { border: 4px solid rgba(255, 255, 255, 0.3); border-top: 4px solid #10b981; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #notifications { position: fixed; top: 1rem; right: 1rem; z-index: 10000; max-width: 320px; }
+        .notification { background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 0.5rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); display: flex; justify-content: space-between; align-items: center; animation: slideIn 0.3s ease-out; }
+        .notification-error { background: #ef4444; }
+        .notification-success { background: #10b981; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        #debug { position: fixed; bottom: 4rem; left: 1rem; background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; max-width: 400px; max-height: 300px; overflow-y: auto; z-index: 1000; font-size: 0.75rem; }
+        #toggleDebug { position: fixed; bottom: 1rem; left: 1rem; background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 0.25rem; z-index: 1001; cursor: pointer; }
         .debug-info { color: #10b981; }
         .debug-warn { color: #f59e0b; }
         .debug-error { color: #ef4444; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center">
-    <div id="globalLoader" aria-hidden="true">
-        <div class="spinner"></div>
-    </div>
+    <div id="globalLoader" aria-hidden="true"><div class="spinner"></div></div>
     <div id="notifications" class="space-y-2" aria-live="polite"></div>
     <div class="bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full">
         <h1 class="text-2xl font-bold text-green-500 mb-6 text-center flex items-center justify-center">
@@ -120,7 +49,7 @@
                 </svg>
             </button>
             <p class="text-center text-sm text-gray-400">
-                Não tem uma conta? <a href="#" onclick="toggleForm('register')" class="text-green-500 hover:underline" aria-label="Mudar para formulário de registro">Registre-se</a>
+                Não tem uma conta? <a href="#" onclick="toggleForm('register')" class="text-green-500 hover:underline" aria-label="Mudar para registro">Registre-se</a>
             </p>
         </div>
         <div id="registerForm" class="space-y-4 hidden">
@@ -142,14 +71,14 @@
                 </svg>
             </button>
             <p class="text-center text-sm text-gray-400">
-                Já tem uma conta? <a href="#" onclick="toggleForm('login')" class="text-green-500 hover:underline" aria-label="Mudar para formulário de login">Faça login</a>
+                Já tem uma conta? <a href="#" onclick="toggleForm('login')" class="text-green-500 hover:underline" aria-label="Mudar para login">Faça login</a>
             </p>
         </div>
     </div>
-    <button id="toggleDebug" aria-label="Alternar visibilidade do debug">Esconder Debug</button>
+    <button id="toggleDebug" aria-label="Alternar debug">Esconder Debug</button>
     <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40" aria-live="assertive"></div>
-    <script src="debug.js"></script>
-    <script src="utils.js"></script>
+    <script src="Debug.js"></script>
+    <script src="Utils.js"></script>
     <script>
         async function login() {
             Debug.log('Iniciando login');
@@ -162,7 +91,7 @@
             spinner.classList.remove('hidden');
             errorDiv.classList.add('hidden');
             if (!username || !password) {
-                Debug.error('Campos obrigatórios não preenchidos', { username, password: '***' });
+                Debug.error('Campos obrigatórios não preenchidos');
                 errorDiv.textContent = 'Preencha usuário e senha';
                 errorDiv.classList.remove('hidden');
                 button.disabled = false;
@@ -170,7 +99,7 @@
                 return;
             }
             try {
-                const res = await fetchWithTimeout('/api/login', {
+                const res = await fetchWithTimeout('/.netlify/functions/app/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
@@ -181,15 +110,12 @@
                 try {
                     data = JSON.parse(text);
                 } catch {
-                    throw new Error(`Resposta inválida: formato não JSON (${text.slice(0, 100)}...)`);
+                    throw new Error('Resposta inválida: formato não JSON');
                 }
-                if (!res.ok) {
-                    throw new Error(data.error || `Erro ao fazer login (Status: ${res.status})`);
-                }
+                if (!res.ok) throw new Error(data.error || 'Erro ao fazer login');
                 localStorage.setItem('userId', data.userId);
                 localStorage.setItem('username', data.username);
                 showNotification('Login realizado com sucesso!');
-                Debug.log('Login bem-sucedido', { userId: data.userId, username: data.username });
                 setTimeout(() => {
                     window.location.href = data.is_admin ? 'Dashboard.html' : 'Shop.html';
                 }, 1000);
@@ -215,7 +141,7 @@
             spinner.classList.remove('hidden');
             errorDiv.classList.add('hidden');
             if (!username || !password) {
-                Debug.error('Campos obrigatórios não preenchidos', { username, password: '***' });
+                Debug.error('Campos obrigatórios não preenchidos');
                 errorDiv.textContent = 'Preencha usuário e senha';
                 errorDiv.classList.remove('hidden');
                 button.disabled = false;
@@ -223,23 +149,23 @@
                 return;
             }
             if (username.length < 3 || username.length > 20) {
-                Debug.error('Usuário inválido', { username });
-                errorDiv.textContent = 'Usuário deve ter entre 3 e 20 caracteres';
+                Debug.error('Usuário inválido');
+                errorDiv.textContent = 'Usuário: 3-20 caracteres';
                 errorDiv.classList.remove('hidden');
                 button.disabled = false;
                 spinner.classList.add('hidden');
                 return;
             }
             if (password.length < 6) {
-                Debug.error('Senha inválida', { password: '***' });
-                errorDiv.textContent = 'Senha deve ter pelo menos 6 caracteres';
+                Debug.error('Senha inválida');
+                errorDiv.textContent = 'Senha: mínimo 6 caracteres';
                 errorDiv.classList.remove('hidden');
                 button.disabled = false;
                 spinner.classList.add('hidden');
                 return;
             }
             try {
-                const res = await fetchWithTimeout('/api/register', {
+                const res = await fetchWithTimeout('/.netlify/functions/app/api/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
@@ -250,13 +176,10 @@
                 try {
                     data = JSON.parse(text);
                 } catch {
-                    throw new Error(`Resposta inválida: formato não JSON (${text.slice(0, 100)}...)`);
+                    throw new Error('Resposta inválida: formato não JSON');
                 }
-                if (!res.ok) {
-                    throw new Error(data.error || `Erro ao registrar (Status: ${res.status})`);
-                }
+                if (!res.ok) throw new Error(data.error || 'Erro ao registrar');
                 showNotification('Registro realizado com sucesso! Faça login.');
-                Debug.log('Registro bem-sucedido', { username });
                 toggleForm('login');
             } catch (err) {
                 Debug.error('Erro ao registrar', { error: err.message });
@@ -270,7 +193,7 @@
         }
 
         function toggleForm(form) {
-            Debug.log(`Alternando para formulário: ${form}`);
+            Debug.log(`Alternando para ${form}`);
             const loginForm = document.getElementById('loginForm');
             const registerForm = document.getElementById('registerForm');
             if (form === 'register') {
@@ -288,28 +211,15 @@
             }
         }
 
-        function setupEventListeners() {
-            Debug.log('Configurando event listeners');
+        document.addEventListener('DOMContentLoaded', () => {
+            Debug.log('DOM carregado');
             document.getElementById('toggleDebug').addEventListener('click', () => {
                 const debugDiv = document.getElementById('debug');
                 const button = document.getElementById('toggleDebug');
-                if (debugDiv.style.display === 'none') {
-                    debugDiv.style.display = 'block';
-                    button.textContent = 'Esconder Debug';
-                    Debug.log('Debug ativado');
-                } else {
-                    debugDiv.style.display = 'none';
-                    button.textContent = 'Mostrar Debug';
-                    Debug.log('Debug desativado');
-                }
+                debugDiv.style.display = debugDiv.style.display === 'none' ? 'block' : 'none';
+                button.textContent = debugDiv.style.display === 'none' ? 'Mostrar Debug' : 'Esconder Debug';
+                Debug.log(`Debug ${debugDiv.style.display === 'none' ? 'desativado' : 'ativado'}`);
             });
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            Debug.log('DOM carregado');
-            setupEventListeners();
-            document.getElementById('debug').style.display = 'block';
-            document.getElementById('toggleDebug').textContent = 'Esconder Debug';
         });
     </script>
 </body>

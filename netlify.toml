@@ -6,9 +6,9 @@
 
 [[redirects]]
   from = "/*"
-  to = "/index.html"
+  to = "/Index.html"
   status = 200
-  conditions = { "Path": ["/index.html", "/dashboard.html", "/shop.html"] }
+  conditions = { "Path": ["/Index.html", "/Dashboard.html", "/Shop.html"] }
 
 [build]
   command = "npm install"

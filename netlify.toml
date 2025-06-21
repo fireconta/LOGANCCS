@@ -1,16 +1,16 @@
-[build]
-  base = "/"
-  publish = "/"
-  command = ""
-  functions = "."
-
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/app/:splat"
-  status = 200
-  force = true
-
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+[build]
+  command = "npm install"
+  functions = "netlify/functions"
+  publish = "."
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "https://loganccs.netlify.app"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type"

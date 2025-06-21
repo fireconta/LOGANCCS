@@ -62,31 +62,38 @@
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
-        .table-container {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 0.75rem;
-            text-align: left;
-            border-bottom: 1px solid #374151;
-        }
-        th {
+        #debug {
+            position: fixed;
+            bottom: 4rem;
+            left: 1rem;
             background: #1f2937;
-            position: sticky;
-            top: 0;
-            z-index: 10;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            max-width: 400px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            font-size: 0.75rem;
         }
-        tbody tr:hover {
-            background: #374151;
+        #toggleDebug {
+            position: fixed;
+            bottom: 1rem;
+            left: 1rem;
+            background: #10b981;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            z-index: 1001;
+            cursor: pointer;
         }
         .debug-info { color: #10b981; }
         .debug-warn { color: #f59e0b; }
         .debug-error { color: #ef4444; }
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen">
@@ -94,40 +101,72 @@
         <div class="spinner"></div>
     </div>
     <div id="notifications" class="space-y-2" aria-live="polite"></div>
-    <header class="bg-gray-800 p-4 flex justify-between items-center sticky top-0 z-10 shadow-lg">
+    <header class="bg-gray-800 p-4 flex justify-between items-center">
         <h1 class="text-2xl font-bold text-green-500 flex items-center">
             <i class="fas fa-tachometer-alt mr-2" aria-hidden="true"></i> LOGAN CC's - Dashboard
         </h1>
         <div class="flex items-center space-x-4">
-            <span id="userBalance" class="text-gray-300 flex items-center" aria-label="Saldo do usuário">
+            <span id="userBalance" class="text-gray-300">
                 <i class="fas fa-wallet mr-1" aria-hidden="true"></i> Saldo: Carregando...
             </span>
-            <button type="button" id="shopButton" class="text-gray-300 hover:text-green-500 flex items-center" aria-label="Ir para a loja">
-                <i class="fas fa-store mr-2" aria-hidden="true"></i> Loja
-            </button>
-            <button type="button" id="logoutButton" class="text-gray-300 hover:text-red-500 flex items-center" aria-label="Sair">
+            <button type="button" id="logoutButton" onclick="logout()" class="text-gray-300 hover:text-red-500 flex items-center" aria-label="Sair">
                 <i class="fas fa-sign-out-alt mr-2" aria-hidden="true"></i> Sair
             </button>
         </div>
     </header>
     <main class="container mx-auto p-6">
         <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
-            <h2 class="text-xl font-semibold text-green-500 mb-4 flex items-center">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <i class="fas fa-money-bill-wave mr-2" aria-hidden="true"></i> Configurar Preços dos Cartões
+            </h2>
+            <div id="cardPricesLoader" class="text-gray-500 text-center p-4 hidden" aria-hidden="true">
+                <i class="fas fa-spinner animate-spin mr-2"></i> Carregando preços...
+            </div>
+            <form id="cardPricesForm" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="priceClassic" class="block text-sm font-medium text-gray-300">Classic</label>
+                        <input type="number" id="priceClassic" min="0" step="0.01" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-label="Preço Classic">
+                    </div>
+                    <div>
+                        <label for="priceGold" class="block text-sm font-medium text-gray-300">Gold</label>
+                        <input type="number" id="priceGold" min="0" step="0.01" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-label="Preço Gold">
+                    </div>
+                    <div>
+                        <label for="pricePlatinum" class="block text-sm font-medium text-gray-300">Platinum</label>
+                        <input type="number" id="pricePlatinum" min="0" step="0.01" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-label="Preço Platinum">
+                    </div>
+                    <div>
+                        <label for="priceBlack" class="block text-sm font-medium text-gray-300">Black</label>
+                        <input type="number" id="priceBlack" min="0" step="0.01" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-label="Preço Black">
+                    </div>
+                </div>
+                <p id="cardPricesError" class="text-red-500 text-sm hidden" role="alert"></p>
+                <button type="submit" id="savePricesButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center" aria-label="Salvar preços">
+                    <span>Salvar Preços</span>
+                    <svg id="savePricesSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                </button>
+            </form>
+        </div>
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
                 <i class="fas fa-users mr-2" aria-hidden="true"></i> Usuários
             </h2>
-            <div id="usersLoader" class="text-gray-500 text-center p-4 hidden" aria-hidden="true">
-                <i class="fas fa-spinner fa-2x animate-spin mr-2"></i> Carregando usuários...
+            <div id="usersTableLoader" class="text-gray-500 text-center p-4 hidden" aria-hidden="true">
+                <i class="fas fa-spinner animate-spin mr-2"></i> Carregando usuários...
             </div>
-            <div id="usersError" class="text-red-600 text-sm mt-2 hidden" role="alert"></div>
             <div class="table-container">
-                <table id="usersTable" aria-describedby="usersTableDescription">
-                    <caption id="usersTableDescription" class="sr-only">Tabela de usuários registrados</caption>
-                    <thead>
+                <table id="usersTable" class="w-full text-sm text-left text-gray-300">
+                    <thead class="sticky top-0 bg-gray-700">
                         <tr>
-                            <th scope="col">Usuário</th>
-                            <th scope="col">Saldo</th>
-                            <th scope="col">Admin</th>
-                            <th scope="col">Criado em</th>
+                            <th class="px-4 py-2">ID</th>
+                            <th class="px-4 py-2">Usuário</th>
+                            <th class="px-4 py-2">Admin</th>
+                            <th class="px-4 py-2">Saldo</th>
+                            <th class="px-4 py-2">Criado em</th>
                         </tr>
                     </thead>
                     <tbody id="usersTableBody"></tbody>
@@ -135,24 +174,24 @@
             </div>
         </div>
         <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-            <h2 class="text-xl font-semibold text-green-500 mb-4 flex items-center">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
                 <i class="fas fa-credit-card mr-2" aria-hidden="true"></i> Cartões
             </h2>
-            <div id="cardsLoader" class="text-gray-500 text-center p-4 hidden" aria-hidden="true">
-                <i class="fas fa-spinner fa-2x animate-spin mr-2"></i> Carregando cartões...
+            <div id="cardsTableLoader" class="text-gray-500 text-center p-4 hidden" aria-hidden="true">
+                <i class="fas fa-spinner animate-spin mr-2"></i> Carregando cartões...
             </div>
-            <div id="cardsError" class="text-red-600 text-sm mt-2 hidden" role="alert"></div>
             <div class="table-container">
-                <table id="cardsTable" aria-describedby="cardsTableDescription">
-                    <caption id="cardsTableDescription" class="sr-only">Tabela de cartões disponíveis</caption>
-                    <thead>
+                <table id="cardsTable" class="w-full text-sm text-left text-gray-300">
+                    <thead class="sticky top-0 bg-gray-700">
                         <tr>
-                            <th scope="col">Número</th>
-                            <th scope="col">Bandeira</th>
-                            <th scope="col">Banco</th>
-                            <th scope="col">Nível</th>
-                            <th scope="col">Preço</th>
-                            <th scope="col">Adquirido</th>
+                            <th class="px-4 py-2">ID</th>
+                            <th class="px-4 py-2">Número</th>
+                            <th class="px-4 py-2">Bandeira</th>
+                            <th class="px-4 py-2">Banco</th>
+                            <th class="px-4 py-2">Nível</th>
+                            <th class="px-4 py-2">Preço</th>
+                            <th class="px-4 py-2">Dono</th>
+                            <th class="px-4 py-2">Criado em</th>
                         </tr>
                     </thead>
                     <tbody id="cardsTableBody"></tbody>
@@ -160,12 +199,14 @@
             </div>
         </div>
     </main>
-    <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40 hidden" aria-live="assertive"></div>
+    <button id="toggleDebug" aria-label="Alternar visibilidade do debug">Esconder Debug</button>
+    <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40" aria-live="assertive"></div>
     <script src="debug.js"></script>
     <script src="utils.js"></script>
     <script>
         if (typeof fetchWithTimeout === 'undefined') {
             console.error('fetchWithTimeout não definido. Verifique utils.js.');
+            Debug.error('fetchWithTimeout não definido', { file: 'utils.js' });
             showNotification('Erro ao carregar dependências.', true);
         }
 
@@ -191,10 +232,6 @@
                     throw new Error(user.error || `Erro ao carregar dados (Status: ${res.status})`);
                 }
                 document.getElementById('userBalance').innerHTML = `<i class="fas fa-wallet mr-1"></i> Saldo: ${formatCurrency(user.balance)}`;
-                if (!user.is_admin) {
-                    showNotification('Acesso restrito a administradores.', true);
-                    setTimeout(() => window.location.href = 'shop.html', 1000);
-                }
             } catch (err) {
                 Debug.error('Erro ao carregar dados do usuário', { error: err.message });
                 showNotification(`Erro: ${err.message}`, true);
@@ -204,14 +241,16 @@
         }
 
         async function loadUsers() {
-            Debug.log('Carregando usuários');
+            Debug.log('Carregando lista de usuários');
             const usersTableBody = document.getElementById('usersTableBody');
-            const usersLoader = document.getElementById('usersLoader');
-            const usersError = document.getElementById('usersError');
-            usersLoader.classList.remove('hidden');
-            usersError.classList.add('hidden');
+            const usersTableLoader = document.getElementById('usersTableLoader');
+            usersTableLoader.classList.remove('hidden');
+            usersTableBody.innerHTML = '';
             try {
                 const userId = localStorage.getItem('userId');
+                if (!userId) {
+                    throw new Error('Usuário não autenticado. Faça login.');
+                }
                 const res = await fetchWithTimeout(`/api/users?userId=${encodeURIComponent(userId)}`);
                 const text = await res.text();
                 Debug.log(`Resposta /api/users: Status ${res.status}`, { response: text });
@@ -224,36 +263,37 @@
                 if (!res.ok) {
                     throw new Error(users.error || `Erro ao carregar usuários (Status: ${res.status})`);
                 }
-                usersTableBody.innerHTML = '';
                 users.forEach(user => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${DOMPurify.sanitize(user.username)}</td>
-                        <td>${formatCurrency(user.balance)}</td>
-                        <td>${user.is_admin ? 'Sim' : 'Não'}</td>
-                        <td>${formatDate(user.created_at)}</td>
+                        <td class="px-4 py-2">${DOMPurify.sanitize(user._id)}</td>
+                        <td class="px-4 py-2">${DOMPurify.sanitize(user.username)}</td>
+                        <td class="px-4 py-2">${user.is_admin ? 'Sim' : 'Não'}</td>
+                        <td class="px-4 py-2">${formatCurrency(user.balance)}</td>
+                        <td class="px-4 py-2">${formatDate(user.createdAt)}</td>
                     `;
                     usersTableBody.appendChild(row);
                 });
             } catch (err) {
                 Debug.error('Erro ao carregar usuários', { error: err.message });
-                usersError.textContent = err.message;
-                usersError.classList.remove('hidden');
+                usersTableBody.innerHTML = `<tr><td colspan="5" class="text-center text-red-500">Erro: ${DOMPurify.sanitize(err.message)}</td></tr>`;
                 showNotification(`Erro: ${err.message}`, true);
             } finally {
-                usersLoader.classList.add('hidden');
+                usersTableLoader.classList.add('hidden');
             }
         }
 
         async function loadCards() {
-            Debug.log('Carregando cartões');
+            Debug.log('Carregando lista de cartões');
             const cardsTableBody = document.getElementById('cardsTableBody');
-            const cardsLoader = document.getElementById('cardsLoader');
-            const cardsError = document.getElementById('cardsError');
-            cardsLoader.classList.remove('hidden');
-            cardsError.classList.add('hidden');
+            const cardsTableLoader = document.getElementById('cardsTableLoader');
+            cardsTableLoader.classList.remove('hidden');
+            cardsTableBody.innerHTML = '';
             try {
                 const userId = localStorage.getItem('userId');
+                if (!userId) {
+                    throw new Error('Usuário não autenticado. Faça login.');
+                }
                 const res = await fetchWithTimeout(`/api/cards?userId=${encodeURIComponent(userId)}`);
                 const text = await res.text();
                 Debug.log(`Resposta /api/cards: Status ${res.status}`, { response: text });
@@ -266,35 +306,131 @@
                 if (!res.ok) {
                     throw new Error(cards.error || `Erro ao carregar cartões (Status: ${res.status})`);
                 }
-                cardsTableBody.innerHTML = '';
                 cards.forEach(card => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${DOMPurify.sanitize(card.numero)}</td>
-                        <td>${DOMPurify.sanitize(card.bandeira)}</td>
-                        <td>${DOMPurify.sanitize(card.banco)}</td>
-                        <td>${DOMPurify.sanitize(card.nivel)}</td>
-                        <td>${formatCurrency(card.price)}</td>
-                        <td>${card.acquired ? 'Sim' : 'Não'}</td>
+                        <td class="px-4 py-2">${DOMPurify.sanitize(card._id)}</td>
+                        <td class="px-4 py-2">${DOMPurify.sanitize(card.numero)}</td>
+                        <td class="px-4 py-2">${DOMPurify.sanitize(card.bandeira)}</td>
+                        <td class="px-4 py-2">${DOMPurify.sanitize(card.banco)}</td>
+                        <td class="px-4 py-2">${DOMPurify.sanitize(card.nivel)}</td>
+                        <td class="px-4 py-2">${formatCurrency(card.price)}</td>
+                        <td class="px-4 py-2">${card.userId ? DOMPurify.sanitize(card.userId) : 'Nenhum'}</td>
+                        <td class="px-4 py-2">${formatDate(card.createdAt)}</td>
                     `;
                     cardsTableBody.appendChild(row);
                 });
             } catch (err) {
                 Debug.error('Erro ao carregar cartões', { error: err.message });
-                cardsError.textContent = err.message;
-                cardsError.classList.remove('hidden');
+                cardsTableBody.innerHTML = `<tr><td colspan="8" class="text-center text-red-500">Erro: ${DOMPurify.sanitize(err.message)}</td></tr>`;
                 showNotification(`Erro: ${err.message}`, true);
             } finally {
-                cardsLoader.classList.add('hidden');
+                cardsTableLoader.classList.add('hidden');
+            }
+        }
+
+        async function loadCardPrices() {
+            Debug.log('Carregando preços dos cartões');
+            const cardPricesLoader = document.getElementById('cardPricesLoader');
+            cardPricesLoader.classList.remove('hidden');
+            try {
+                const userId = localStorage.getItem('userId');
+                if (!userId) {
+                    throw new Error('Usuário não autenticado. Faça login.');
+                }
+                const res = await fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(userId)}`);
+                const text = await res.text();
+                Debug.log(`Resposta /api/get-card-prices: Status ${res.status}`, { response: text });
+                let prices;
+                try {
+                    prices = JSON.parse(text);
+                } catch {
+                    throw new Error(`Resposta inválida: formato não JSON (${text.slice(0, 100)}...)`);
+                }
+                if (!res.ok) {
+                    throw new Error(prices.error || `Erro ao carregar preços (Status: ${res.status})`);
+                }
+                prices.forEach(price => {
+                    const input = document.getElementById(`price${price.nivel}`);
+                    if (input) input.value = price.price;
+                });
+            } catch (err) {
+                Debug.error('Erro ao carregar preços', { error: err.message });
+                showNotification(`Erro: ${err.message}`, true);
+            } finally {
+                cardPricesLoader.classList.add('hidden');
+            }
+        }
+
+        async function saveCardPrices(event) {
+            event.preventDefault();
+            Debug.log('Salvando preços dos cartões');
+            const button = document.getElementById('savePricesButton');
+            const spinner = document.getElementById('savePricesSpinner');
+            const errorDiv = document.getElementById('cardPricesError');
+            button.disabled = true;
+            spinner.classList.remove('hidden');
+            errorDiv.classList.add('hidden');
+            try {
+                const userId = localStorage.getItem('userId');
+                if (!userId) {
+                    throw new Error('Usuário não autenticado. Faça login.');
+                }
+                const prices = [
+                    { nivel: 'Classic', price: parseFloat(document.getElementById('priceClassic').value) },
+                    { nivel: 'Gold', price: parseFloat(document.getElementById('priceGold').value) },
+                    { nivel: 'Platinum', price: parseFloat(document.getElementById('pricePlatinum').value) },
+                    { nivel: 'Black', price: parseFloat(document.getElementById('priceBlack').value) }
+                ];
+                if (prices.some(p => isNaN(p.price) || p.price < 0)) {
+                    throw new Error('Preços inválidos. Insira valores numéricos positivos.');
+                }
+                const res = await fetchWithTimeout(`/api/set-card-prices?userId=${encodeURIComponent(userId)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prices })
+                });
+                const text = await res.text();
+                Debug.log(`Resposta /api/set-card-prices: Status ${res.status}`, { response: text });
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch {
+                    throw new Error(`Resposta inválida: formato não JSON (${text.slice(0, 100)}...)`);
+                }
+                if (!res.ok) {
+                    throw new Error(data.error || `Erro ao salvar preços (Status: ${res.status})`);
+                }
+                showNotification('Preços salvos com sucesso!');
+                await loadCards(); // Atualiza a tabela de cartões
+            } catch (err) {
+                Debug.error('Erro ao salvar preços', { error: err.message });
+                errorDiv.textContent = err.message;
+                errorDiv.classList.remove('hidden');
+                showNotification(`Erro: ${err.message}`, true);
+            } finally {
+                button.disabled = false;
+                spinner.classList.add('hidden');
             }
         }
 
         function setupEventListeners() {
             Debug.log('Configurando event listeners');
             document.getElementById('logoutButton').addEventListener('click', logout);
-            document.getElementById('shopButton').addEventListener('click', () => {
-                window.location.href = 'shop.html';
+            document.getElementById('toggleDebug').addEventListener('click', () => {
+                const debugDiv = document.getElementById('debug');
+                const button = document.getElementById('toggleDebug');
+                if (debugDiv.style.display === 'none') {
+                    debugDiv.style.display = 'block';
+                    button.textContent = 'Esconder Debug';
+                    Debug.log('Debug ativado');
+                } else {
+                    debugDiv.style.display = 'none';
+                    button.textContent = 'Mostrar Debug';
+                    Debug.log('Debug desativado');
+                }
             });
+            document.getElementById('cardPricesForm').addEventListener('submit', saveCardPrices);
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -308,6 +444,7 @@
             loadUserData();
             loadUsers();
             loadCards();
+            loadCardPrices();
         });
     </script>
 </body>

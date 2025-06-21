@@ -1,28 +1,53 @@
 const Debug = {
-    log: (message, data = {}) => {
-        console.log(`[DEBUG] ${message}`, data);
-        const debugDiv = document.getElementById('debug');
-        if (debugDiv) {
-            const entry = document.createElement('div');
-            entry.className = 'debug-info';
-            entry.textContent = `[INFO] ${message}: ${JSON.stringify(data)}`;
-            debugDiv.appendChild(entry);
-            debugDiv.scrollTop = debugDiv.scrollHeight;
-        }
-    },
-    error: (message, data = {}) => {
-        console.error(`[ERROR] ${message}`, data);
-        const debugDiv = document.getElementById('debug');
-        if (debugDiv) {
-            const entry = document.createElement('div');
-            entry.className = 'debug-error';
-            entry.textContent = `[ERROR] ${message}: ${JSON.stringify(data)}`;
-            debugDiv.appendChild(entry);
-            debugDiv.scrollTop = debugDiv.scrollHeight;
-        }
+  log: (message, data = {}) => {
+    const timestamp = new Date().toLocaleTimeString('pt-BR');
+    const debugDiv = document.getElementById('debug');
+    if (debugDiv) {
+      const logEntry = document.createElement('div');
+      logEntry.className = 'debug-info';
+      logEntry.textContent = `[${timestamp}] ${message}`;
+      if (Object.keys(data).length) {
+        const dataEntry = document.createElement('pre');
+        dataEntry.textContent = JSON.stringify(data, null, 2);
+        logEntry.appendChild(dataEntry);
+      }
+      debugDiv.appendChild(logEntry);
+      debugDiv.scrollTop = debugDiv.scrollHeight;
     }
+    console.log(`[${timestamp}] ${message}`, data);
+  },
+  warn: (message, data = {}) => {
+    const timestamp = new Date().toLocaleTimeString('pt-BR');
+    const debugDiv = document.getElementById('debug');
+    if (debugDiv) {
+      const logEntry = document.createElement('div');
+      logEntry.className = 'debug-warn';
+      logEntry.textContent = `[${timestamp}] WARN: ${message}`;
+      if (Object.keys(data).length) {
+        const dataEntry = document.createElement('pre');
+        dataEntry.textContent = JSON.stringify(data, null, 2);
+        logEntry.appendChild(dataEntry);
+      }
+      debugDiv.appendChild(logEntry);
+      debugDiv.scrollTop = debugDiv.scrollHeight;
+    }
+    console.warn(`[${timestamp}] WARN: ${message}`, data);
+  },
+  error: (message, data = {}) => {
+    const timestamp = new Date().toLocaleTimeString('pt-BR');
+    const debugDiv = document.getElementById('debug');
+    if (debugDiv) {
+      const logEntry = document.createElement('div');
+      logEntry.className = 'debug-error';
+      logEntry.textContent = `[${timestamp}] ERROR: ${message}`;
+      if (Object.keys(data).length) {
+        const dataEntry = document.createElement('pre');
+        dataEntry.textContent = JSON.stringify(data, null, 2);
+        logEntry.appendChild(dataEntry);
+      }
+      debugDiv.appendChild(logEntry);
+      debugDiv.scrollTop = debugDiv.scrollHeight;
+    }
+    console.error(`[${timestamp}] ERROR: ${message}`, data);
+  }
 };
-
-document.addEventListener('DOMContentLoaded', () => {
-    Debug.log('debug.js carregado');
-});

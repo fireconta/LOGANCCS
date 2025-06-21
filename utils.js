@@ -1,5 +1,5 @@
 async function fetchWithTimeout(resource, options = {}) {
-  const { timeout = 10000 } = options;
+  const { timeout = 15000 } = options;
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   try {
@@ -11,29 +11,17 @@ async function fetchWithTimeout(resource, options = {}) {
     return response;
   } catch (error) {
     clearTimeout(id);
-    if (error.name === 'AbortError') {
-      throw new Error('Tempo de requisição excedido');
-    }
+    if (error.name === 'AbortError') throw new Error('Tempo de requisição excedido');
     throw error;
   }
 }
 
 function formatCurrency(value) {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL'
-  }).format(value);
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 }
 
 function formatDate(dateString) {
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  }).format(new Date(dateString));
+  return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(dateString));
 }
 
 function showNotification(message, isError = false) {
@@ -55,29 +43,21 @@ async function logout() {
   Debug.log('Iniciando logout');
   try {
     const userId = localStorage.getItem('userId');
-    const res = await fetchWithTimeout('/api/logout', {
+    const res = await fetchWithTimeout('/.netlify/functions/app/api/logout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId })
     });
     const text = await res.text();
-    Debug.log(`Resposta /api/logout: Status ${res.status}`, { response: text });
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      Debug.warn('Resposta de logout não é JSON', { response: text });
-    }
-    if (!res.ok) {
-      throw new Error(data?.error || `Erro ao fazer logout (Status: ${res.status})`);
-    }
+    let data = JSON.parse(text);
+    if (!res.ok) throw new Error(data.error || 'Erro ao fazer logout');
     localStorage.clear();
     showNotification('Logout realizado com sucesso!');
-    setTimeout(() => window.location.href = 'index.html', 1000);
+    setTimeout(() => window.location.href = 'Index.html', 1000);
   } catch (err) {
     Debug.error('Erro ao fazer logout', { error: err.message });
     showNotification(`Erro: ${err.message}`, true);
     localStorage.clear();
-    setTimeout(() => window.location.href = 'index.html', 1000);
+    setTimeout(() => window.location.href = 'Index.html', 1000);
   }
 }

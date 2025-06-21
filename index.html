@@ -181,7 +181,7 @@
 
         if (typeof fetchWithTimeout === 'undefined') {
             console.error('fetchWithTimeout não definido. Verifique utils.js.');
-            Debug.error('fetchWithTimeout não definido', { file: 'utils.js' });
+            Debug.error('fetchWithTimeout não definido', { file: 'utils drilling.js' });
             showNotification('Erro ao carregar dependências.', true);
         }
 
@@ -196,11 +196,14 @@
                 const data = await res.json();
                 if (res.ok && data.mongoConnected) {
                     Debug.log('MongoDB carregado corretamente', { state: data.mongooseConnectionState });
+                    showNotification('MongoDB conectado com sucesso!');
                 } else {
-                    Debug.error('MongoDB não carregado', { state: data.mongooseConnectionState });
+                    Debug.error('MongoDB não carregado', { state: data.mongooseConnectionState, error: data.error || 'Sem detalhes' });
+                    showNotification(`Erro ao conectar ao MongoDB: ${data.error || 'Verifique o servidor'}`, true);
                 }
             } catch (err) {
                 Debug.error('Erro ao verificar status do MongoDB', { error: err.message });
+                showNotification(`Erro ao verificar MongoDB: ${err.message}`, true);
             }
         }
 
@@ -349,7 +352,7 @@
                 window.location.href = localStorage.getItem('is_admin') === 'true' ? 'dashboard.html' : 'shop.html';
             }
             setupEventListeners();
-            checkMongoStatus(); // Verificar MongoDB ao carregar
+            checkMongoStatus();
         });
     </script>
 </body>

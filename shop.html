@@ -62,170 +62,83 @@
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
-        .modal {
-            display: none;
+        #debug {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        .modal.show {
-            display: flex;
-            animation: fadeIn 0.3s ease-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        .card-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 1.5rem;
-        }
-        .card {
+            bottom: 4rem;
+            left: 1rem;
             background: #1f2937;
-            padding: 1.5rem;
+            color: white;
+            padding: 1rem;
             border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-            transition: transform 0.2s, box-shadow 0.2s;
-            position: relative;
-        }
-        .card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-        }
-        .level-badge {
-            position: absolute;
-            top: -0.75rem;
-            right: 0.75rem;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
+            max-width: 400px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
             font-size: 0.75rem;
-            font-weight: 600;
         }
-        .level-classic { background: #3b82f6; }
-        .level-gold { background: gold; color: #333; }
-        .level-platinum { background: #6b7280; }
-        .level-black { background: #111827; }
-        #cardGridLoader {
-            display: none;
-            text-align: center;
-            padding: 2rem;
-        }
-        #cardGridLoader.show {
-            display: block;
+        #toggleDebug {
+            position: fixed;
+            bottom: 1rem;
+            left: 1rem;
+            background: #10b981;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            z-index: 1001;
+            cursor: pointer;
         }
         .debug-info { color: #10b981; }
         .debug-warn { color: #f59e0b; }
         .debug-error { color: #ef4444; }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        .card-item {
+            background: #1f2937;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s;
+        }
+        .card-item:hover {
+            transform: translateY(-5px);
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen">
     <div id="globalLoader" aria-hidden="true">
         <div class="spinner"></div>
     </div>
-    <div id="notifications" class="space-y-2" aria-hidden="true"></div>
+    <div id="notifications" class="space-y-2" aria-live="polite"></div>
     <header class="bg-gray-800 p-4 flex justify-between items-center">
         <h1 class="text-2xl font-bold text-green-500 flex items-center">
-            <i class="fas fa-store mr-2" aria-hidden="true"></i> LOGAN CC's - Loja
+            <i class="fas fa-shopping-cart mr-2" aria-hidden="true"></i> LOGAN CC's - Loja
         </h1>
         <div class="flex items-center space-x-4">
-            <span id="userBalance" class="text-gray-600" aria-label="true">
+            <span id="userBalance" class="text-gray-300">
                 <i class="fas fa-wallet mr-1" aria-hidden="true"></i> Saldo: Carregando...
             </span>
-            <button id="dashboardButton" class="text-gray-600 hover:bg-green-300 hidden" aria-label="true">
-                <i class="fas fa-tachometer mr-2" aria-hidden="true"></i> Dashboard
-            </button>
-            <button type="button" id="logoutButton" onclick="logout()" class="text-gray-600 hover:text-red-500 flex items-center" aria-label="Sair">
+            <button type="button" id="logoutButton" onclick="logout()" class="text-gray-300 hover:text-red-500 flex items-center" aria-label="Sair">
                 <i class="fas fa-sign-out-alt mr-2" aria-hidden="true"></i> Sair
             </button>
         </div>
-    </div>
-</header>
+    </header>
     <main class="container mx-auto p-6">
-        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-            <div class="flex flex-col md:flex-row justify-between mb-6 space-y-4 md:space-y-0 space-x-4">
-                <div class="flex-1">
-                    <label for="bandeiraFilter" class="block text-sm font-medium text-gray-300">Bandeira</label>
-                    <select id="bandeiraFilter" class="mt-1 p-2 bg-gray-700 border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" aria-label="Filtrar por bandeira">
-                        <option value="">Todas</option>
-                        <option value="Visa">Visa</option>
-                        <option value="Mastercard">Mastercard</option>
-                        <option value="Amex">Amex</option>
-                        <option value="Elo">Elo</option>
-                        <option value="Hipercard">Hipercard</option>
-                        <option value="Diners Club">Diners Club</option>
-                    </select>
-                </div>
-                <div class="flex-1">
-                    <label for="bancoFilter" class="block text-sm font-medium">Banco</label>
-                    <select id="bancoFilter" class="mt-1 p-2 bg-gray-700 border-gray-600 rounded w-full" focus:ring="true">
-                        <option value="">Todos</option>
-                        <option value="Nubank">Nubank</option>
-                        <option value="Itaú">Itauú</option>
-                        <option value="Bradesco">Bradesco</option>
-                        <option value="Santander">Santander</option>
-                        <option value="Banco do Brasil">Banco de Brasil</option>
-                        <option value="Caixa Econômica Federal">Caixa Economica Federal</option>
-                        <option value="Sicredi">Sicredi</option>
-                        <option value="Sicoob">Sicoob</option>
-                    </select>
-                </div>
-                <div class="flex-1">
-                    <label for="nivelFilter" class="block text-sm font-medium">Nível</label>
-                    <select id="NivelFilter" class="mt-1 p-2 bg-gray-700 border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" aria-label="Filtrar por nivel">
-                        <option value="">Todos</option>
-                        <option value="Classic">Classic</option>
-                        <option value="Gold">Gold</option>
-                        <option value="Platinum">Platinum</option>
-                        <option value="Black">Black</option>
-                    </select>
-                </div>
-            </div>
-            <div id="cardGridLoader" class="text-gray-500 text-center p-8 hidden" aria-hidden="true">
-                <i class="fas fa-spinner animate-spin mr-2"></i> Carregando cartões...</p>
-            </div>
-            <div id="cardGrid" class="card-grid"></div>
+        <div id="cardsLoader" class="text-gray-500 text-center p-4" aria-hidden="true">
+            <i class="fas fa-spinner animate-spin mr-2"></i> Carregando cartões...
         </div>
+        <div id="cardsGrid" class="card-grid hidden"></div>
     </main>
-    <div id="cardDetailsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="cardDetailsTitle">
-        <div class="modal-content bg-gray-800 p-6 rounded-lg max-w-md w-full">
-            <h2 id="cardDetailsTitle" class="text-xl font-semibold mb-4 flex items-center">
-                <i class="fas fa-credit-card mr-2" aria-hidden="true"></i> Detalhes do Cartão</h2>
-            </div>
-            <div id="cardDetailsContent" class="space-y-3 text-gray-300">
-                <div><p><strong>Número:</strong> <span id="cardNumber"></span></p></div>
-                <p><strong>Bandeira:</strong> <span id="cardBandeira"></span></p>
-                <p><strong>Banco:</strong> <span id="cardBanco"></span></p>
-                <p><strong>Nível:</strong>strong> <span id="cardNivel"></span></p>
-                <p><strong>Preço:</strong> <span id="cardPrice"></span></p>
-            </div>
-            <p id="cardDetailsError" class="text-red-500 text-sm mt-2 hidden" role="alert"></p>
-            <div class="flex justify-end space-x-2 mt-6">
-                <div><button type="button" id="cancelCardDetailsButton" class="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700 flex items-center" aria-label="Fechar modal">
-                    <i class="fas fa-times mr-2" aria-hidden="true"></i> Fechar</button>
-                </div>
-                <button type="button" id="buyCardButton" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center" aria-label="Comprar cartão">
-                    <span>Comprar</span>
-                    <svg id="buyCardSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                    </svg>
-                </button>
-            </div>
-        </div>
-    </div>
-    <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40 hidden" aria-live="assertive"></div>
+    <button id="toggleDebug" aria-label="Alternar visibilidade do debug">Esconder Debug</button>
+    <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40" aria-live="assertive"></div>
     <script src="debug.js"></script>
     <script src="utils.js"></script>
     <script>
         if (typeof fetchWithTimeout === 'undefined') {
             console.error('fetchWithTimeout não definido. Verifique utils.js.');
+            Debug.error('fetchWithTimeout não definido', { file: 'utils.js' });
             showNotification('Erro ao carregar dependências.', true);
         }
 
@@ -251,9 +164,6 @@
                     throw new Error(user.error || `Erro ao carregar dados (Status: ${res.status})`);
                 }
                 document.getElementById('userBalance').innerHTML = `<i class="fas fa-wallet mr-1"></i> Saldo: ${formatCurrency(user.balance)}`;
-                if (user.is_admin) {
-                    document.getElementById('dashboardButton').classList.remove('hidden');
-                }
             } catch (err) {
                 Debug.error('Erro ao carregar dados do usuário', { error: err.message });
                 showNotification(`Erro: ${err.message}`, true);
@@ -262,12 +172,13 @@
             }
         }
 
-        async function loadCards(filters = {}) {
-            Debug.log('Carregando cartões', { filters });
-            const cardGrid = document.getElementById('cardGrid');
-            const cardGridLoader = document.getElementById('cardGridLoader');
-            cardGridLoader.classList.add('show');
-            cardGrid.innerHTML = '';
+        async function loadCards() {
+            Debug.log('Carregando lista de cartões');
+            const cardsGrid = document.getElementById('cardsGrid');
+            const cardsLoader = document.getElementById('cardsLoader');
+            cardsGrid.innerHTML = '';
+            cardsLoader.classList.remove('hidden');
+            cardsGrid.classList.add('hidden');
             try {
                 const userId = localStorage.getItem('userId');
                 if (!userId) {
@@ -285,71 +196,47 @@
                 if (!res.ok) {
                     throw new Error(cards.error || `Erro ao carregar cartões (Status: ${res.status})`);
                 }
-                const filteredCards = cards.filter(card => {
-                    return (
-                        (!filters.bandeira || card.bandeira === filters.bandeira) &&
-                        (!filters.banco || card.banco === filters.banco) &&
-                        (!filters.nivel || card.nivel === filters.nivel)
-                    );
+                cardsGrid.classList.remove('hidden');
+                cards.forEach(card => {
+                    const cardDiv = document.createElement('div');
+                    cardDiv.className = 'card-item';
+                    cardDiv.innerHTML = `
+                        <h3 class="text-lg font-semibold text-green-500">${DOMPurify.sanitize(card.bandeira)} ${DOMPurify.sanitize(card.nivel)}</h3>
+                        <p class="text-gray-400">Número: ${DOMPurify.sanitize(card.numero)}</p>
+                        <p class="text-gray-400">Banco: ${DOMPurify.sanitize(card.banco)}</p>
+                        <p class="text-gray-400">Preço: ${formatCurrency(card.price)}</p>
+                        <button onclick="buyCard('${DOMPurify.sanitize(card._id)}', ${card.price})" class="mt-4 py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center" aria-label="Comprar cartão ${DOMPurify.sanitize(card.nivel)}">
+                            <span>Comprar</span>
+                            <svg class="buy-spinner hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                            </svg>
+                        </button>
+                    `;
+                    cardsGrid.appendChild(cardDiv);
                 });
-                if (filteredCards.length === 0) {
-                    cardGrid.innerHTML = '<p class="text-center text-gray-500">Nenhum cartão encontrado.</p>';
-                } else {
-                    filteredCards.forEach(card => {
-                        const cardElement = document.createElement('div');
-                        cardElement.className = 'card';
-                        cardElement.innerHTML = `
-                            <span class="level-badge level-${card.nivel.toLowerCase()}">${card.nivel}</span>
-                            <h3 class="text-lg font-semibold">${card.bandeira}</h3>
-                            <p class="text-gray-400">${card.banco}</p>
-                            <p class="text-green-500 font-bold">${formatCurrency(card.price)}</p>
-                            <button type="button" class="mt-2 py-1 px-3 bg-green-500 text-white rounded hover:bg-green-600" data-id="${card._id}" aria-label="Ver detalhes do cartão ${card.bandeira}">
-                                Ver Detalhes
-                            </button>
-                        `;
-                        cardElement.querySelector('button').addEventListener('click', () => showCardDetails(card));
-                        cardGrid.appendChild(cardElement);
-                    });
-                }
             } catch (err) {
                 Debug.error('Erro ao carregar cartões', { error: err.message });
-                cardGrid.innerHTML = '<p class="text-center text-red-500">Erro ao carregar cartões.</p>';
+                cardsGrid.innerHTML = `<p class="text-center text-red-500">Erro: ${DOMPurify.sanitize(err.message)}</p>`;
+                cardsGrid.classList.remove('hidden');
                 showNotification(`Erro: ${err.message}`, true);
             } finally {
-                cardGridLoader.classList.remove('show');
+                cardsLoader.classList.add('hidden');
             }
-        }
-
-        function showCardDetails(card) {
-            Debug.log('Exibindo detalhes do cartão', { cardId: card._id });
-            const modal = document.getElementById('cardDetailsModal');
-            document.getElementById('cardNumber').textContent = card.numero;
-            document.getElementById('cardBandeira').textContent = card.bandeira;
-            document.getElementById('cardBanco').textContent = card.banco;
-            document.getElementById('cardNivel').textContent = card.nivel;
-            document.getElementById('cardPrice').textContent = formatCurrency(card.price);
-            document.getElementById('cardDetailsError').classList.add('hidden');
-            modal.classList.add('show');
-            const buyButton = document.getElementById('buyCardButton');
-            buyButton.onclick = () => buyCard(card._id, card.price);
         }
 
         async function buyCard(cardId, price) {
-            Debug.log('Iniciando compra de cartão', { cardId, price });
-            const userId = localStorage.getItem('userId');
-            if (!userId) {
-                showNotification('Usuário não autenticado. Faça login.', true);
-                setTimeout(() => window.location.href = 'index.html', 1000);
-                return;
-            }
-            const button = document.getElementById('buyCardButton');
-            const spinner = document.getElementById('buyCardSpinner');
-            const errorDiv = document.getElementById('cardDetailsError');
+            Debug.log(`Iniciando compra do cartão: ${cardId}`);
+            const button = event.target;
+            const spinner = button.querySelector('.buy-spinner');
             button.disabled = true;
             spinner.classList.remove('hidden');
-            errorDiv.classList.add('hidden');
             try {
-                const res = await fetchWithTimeout('/api/buy-card', {
+                const userId = localStorage.getItem('userId');
+                if (!userId) {
+                    throw new Error('Usuário não autenticado. Faça login.');
+                }
+                const res = await fetchWithTimeout(`/api/buy-card`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId, cardId, price })
@@ -365,14 +252,10 @@
                 if (!res.ok) {
                     throw new Error(data.error || `Erro ao comprar cartão (Status: ${res.status})`);
                 }
-                showNotification('Compra realizada com sucesso!');
-                document.getElementById('cardDetailsModal').classList.remove('show');
-                await loadUserData();
-                await loadCards();
+                showNotification('Cartão comprado com sucesso!');
+                await Promise.all([loadUserData(), loadCards()]);
             } catch (err) {
                 Debug.error('Erro ao comprar cartão', { error: err.message });
-                errorDiv.textContent = err.message;
-                errorDiv.classList.remove('hidden');
                 showNotification(`Erro: ${err.message}`, true);
             } finally {
                 button.disabled = false;
@@ -382,24 +265,20 @@
 
         function setupEventListeners() {
             Debug.log('Configurando event listeners');
-            document.getElementById('bandeiraFilter').addEventListener('change', () => loadCards(getFilters()));
-            document.getElementById('bancoFilter').addEventListener('change', () => loadCards(getFilters()));
-            document.getElementById('nivelFilter').addEventListener('change', () => loadCards(getFilters()));
-            document.getElementById('cancelCardDetailsButton').addEventListener('click', () => {
-                document.getElementById('cardDetailsModal').classList.remove('show');
-            });
             document.getElementById('logoutButton').addEventListener('click', logout);
-            document.getElementById('dashboardButton').addEventListener('click', () => {
-                window.location.href = 'dashboard.html';
+            document.getElementById('toggleDebug').addEventListener('click', () => {
+                const debugDiv = document.getElementById('debug');
+                const button = document.getElementById('toggleDebug');
+                if (debugDiv.style.display === 'none') {
+                    debugDiv.style.display = 'block';
+                    button.textContent = 'Esconder Debug';
+                    Debug.log('Debug ativado');
+                } else {
+                    debugDiv.style.display = 'none';
+                    button.textContent = 'Mostrar Debug';
+                    Debug.log('Debug desativado');
+                }
             });
-        }
-
-        function getFilters() {
-            return {
-                bandeira: document.getElementById('bandeiraFilter').value,
-                banco: document.getElementById('bancoFilter').value,
-                nivel: document.getElementById('nivelFilter').value
-            };
         }
 
         document.addEventListener('DOMContentLoaded', () => {

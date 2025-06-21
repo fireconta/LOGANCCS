@@ -26,8 +26,8 @@ const connectMongoDB = async () => {
     cachedConnection = await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 15000,
-      socketTimeoutMS: 90000
+      serverSelectionTimeoutMS: 20000,
+      socketTimeoutMS: 120000
     });
     mongoConnected = true;
     debug('Conectado ao MongoDB Atlas');
@@ -75,6 +75,12 @@ const TransactionSchema = new mongoose.Schema({
 }, { timestamps: true });
 const Transaction = mongoose.model('Transaction', TransactionSchema);
 
+const CardPriceSchema = new mongoose.Schema({
+  nivel: { type: String, required: true, unique: true },
+  price: { type: Number, required: true }
+}, { timestamps: true });
+const CardPrice = mongoose.model('CardPrice', CardPriceSchema);
+
 app.get('/api/health', (req, res) => {
   debug('Verificando saúde do MongoDB');
   res.status(200).json({
@@ -85,12 +91,13 @@ app.get('/api/health', (req, res) => {
 });
 
 app.post('/api/register', [
-  body('username').trim().notEmpty().isLength({ min: 3, max: 20 }),
-  body('password').notEmpty().isLength({ min: 6 })
+  body('username').trim().notEmpty().isLength({ min: 3, max: 20 }).withMessage('Usuário deve ter entre 3 e 20 caracteres'),
+  body('password').notEmpty().isLength({ min: 6 }).withMessage('Senha deve ter pelo menos 6 caracteres')
 ], async (req, res) => {
   debug('Tentando registrar usuário: %s', req.body.username);
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    debug('Erros de validação: %o', errors.array());
     return res.status(400).json({ error: errors.array()[0].msg });
   }
   const { username, password } = req.body;
@@ -101,23 +108,25 @@ app.post('/api/register', [
       return res.status(400).json({ error: 'Usuário já existe' });
     }
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ username, password: hashedPassword, is_admin: username === 'admin' });
+    debug('Hash de senha gerado para %s', username);
+    const user = new User({ username, password: hashedPassword, is_admin: username === 'LVz' });
     await user.save();
     debug('Usuário registrado com sucesso: %s', username);
     res.status(201).json({ username });
   } catch (err) {
-    debug('Erro ao registrar usuário: %s', err.message);
+    debug('Erro ao registrar usuário: %s - Stack: %s', err.message, err.stack);
     res.status(500).json({ error: err.message.includes('MongoServerError') ? 'Falha na conexão com o banco' : err.message });
   }
 });
 
 app.post('/api/login', [
-  body('username').trim().notEmpty(),
-  body('password').notEmpty()
+  body('username').trim().notEmpty().withMessage('Usuário é obrigatório'),
+  body('password').notEmpty().withMessage('Senha é obrigatória')
 ], async (req, res) => {
   debug('Tentando login para usuário: %s', req.body.username);
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    debug('Erros de validação: %o', errors.array());
     return res.status(400).json({ error: errors.array()[0].msg });
   }
   const { username, password } = req.body;
@@ -125,17 +134,17 @@ app.post('/api/login', [
     const user = await User.findOne({ username });
     if (!user) {
       debug('Usuário não encontrado: %s', username);
-      return res.status(401).json({ error: 'Credenciais inválidas' });
+      return res.status(401).json({ error: 'Usuário não encontrado' });
     }
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       debug('Senha incorreta para usuário: %s', username);
-      return res.status(401).json({ error: 'Credenciais inválidas' });
+      return res.status(401).json({ error: 'Senha incorreta' });
     }
     debug('Login bem-sucedido para usuário: %s', username);
     res.status(200).json({ userId: user._id, username: user.username, is_admin: user.is_admin });
   } catch (err) {
-    debug('Erro ao fazer login: %s', err.message);
+    debug('Erro ao fazer login: %s - Stack: %s', err.message, err.stack);
     res.status(500).json({ error: err.message.includes('MongoServerError') ? 'Falha na conexão com o banco' : err.message });
   }
 });
@@ -222,48 +231,68 @@ app.post('/api/buy-card', async (req, res) => {
   }
 });
 
-app.post('/api/seed', async (req, res) => {
-  debug('Iniciando seeding do banco de dados');
+app.post('/api/set-card-prices', [
+  body('prices').isArray().notEmpty(),
+  body('prices.*.nivel').isIn(['Classic', 'Gold', 'Platinum', 'Black']),
+  body('prices.*.price').isFloat({ min: 0 })
+], async (req, res) => {
+  debug('Atualizando preços dos cartões');
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    debug('Erros de validação: %o', errors.array());
+    return res.status(400).json({ error: errors.array()[0].msg });
+  }
+  const { prices } = req.body;
+  const userId = req.query.userId;
+  try {
+    const user = await User.findById(userId);
+    if (!user || !user.is_admin) {
+      debug('Acesso negado para usuário: %s', userId);
+      return res.status(403).json({ error: 'Acesso negado' });
+    }
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      for (const { nivel, price } of prices) {
+        await CardPrice.findOneAndUpdate(
+          { nivel },
+          { price, updatedAt: new Date() },
+          { upsert: true, session }
+        );
+        await Card.updateMany(
+          { nivel, userId: null },
+          { price, updatedAt: new Date() },
+          { session }
+        );
+      }
+      await session.commitTransaction();
+      debug('Preços dos cartões atualizados com sucesso');
+      res.status(200).json({ message: 'Preços atualizados com sucesso' });
+    } catch (err) {
+      await session.abortTransaction();
+      throw err;
+    } finally {
+      session.endSession();
+    }
+  } catch (err) {
+    debug('Erro ao atualizar preços: %s - Stack: %s', err.message, err.stack);
+    res.status(500).json({ error: err.message.includes('MongoServerError') ? 'Falha na conexão com o banco' : err.message });
+  }
+});
+
+app.get('/api/get-card-prices', async (req, res) => {
+  debug('Buscando preços dos cartões');
   try {
     const userId = req.query.userId;
     const user = await User.findById(userId);
     if (!user || !user.is_admin) {
-      debug('Acesso negado para seeding: %s', userId);
-      return res.status(403).json({ error: 'Acesso negado, apenas administradores podem executar o seeding' });
+      debug('Acesso negado para usuário: %s', userId);
+      return res.status(403).json({ error: 'Acesso negado' });
     }
-
-    // Limpar coleções existentes
-    await Promise.all([
-      User.deleteMany({}),
-      Card.deleteMany({}),
-      Transaction.deleteMany({})
-    ]);
-    debug('Coleções existentes limpas');
-
-    // Inserir usuários fictícios
-    const adminPassword = await bcrypt.hash('admin123', 10);
-    const userPassword = await bcrypt.hash('user123', 10);
-    const users = [
-      { username: 'admin', password: adminPassword, is_admin: true, balance: 1000, createdAt: new Date('2025-06-21T00:00:00Z'), updatedAt: new Date('2025-06-21T00:00:00Z') },
-      { username: 'user1', password: userPassword, is_admin: false, balance: 500, createdAt: new Date('2025-06-21T00:00:00Z'), updatedAt: new Date('2025-06-21T00:00:00Z') },
-      { username: 'user2', password: userPassword, is_admin: false, balance: 300, createdAt: new Date('2025-06-21T00:00:00Z'), updatedAt: new Date('2025-06-21T00:00:00Z') }
-    ];
-    const insertedUsers = await User.insertMany(users);
-    debug('Usuários fictícios inseridos', { count: insertedUsers.length });
-
-    // Inserir cartões com BINs reais
-    const cards = [
-      { numero: '4532015112831234', bandeira: 'Visa', banco: 'Nubank', nivel: 'Classic', price: 50, userId: null, createdAt: new Date('2025-06-21T00:00:00Z'), updatedAt: new Date('2025-06-21T00:00:00Z') },
-      { numero: '5100109876543210', bandeira: 'Mastercard', banco: 'Itaú', nivel: 'Gold', price: 100, userId: null, createdAt: new Date('2025-06-21T00:00:00Z'), updatedAt: new Date('2025-06-21T00:00:00Z') },
-      { numero: '374220123456789', bandeira: 'Amex', banco: 'Bradesco', nivel: 'Platinum', price: 200, userId: null, createdAt: new Date('2025-06-21T00:00:00Z'), updatedAt: new Date('2025-06-21T00:00:00Z') },
-      { numero: '5067891234567890', bandeira: 'Elo', banco: 'Caixa Econômica Federal', nivel: 'Black', price: 300, userId: null, createdAt: new Date('2025-06-21T00:00:00Z'), updatedAt: new Date('2025-06-21T00:00:00Z') }
-    ];
-    const insertedCards = await Card.insertMany(cards);
-    debug('Cartões fictícios inseridos', { count: insertedCards.length });
-
-    res.status(200).json({ message: 'Banco de dados populado com sucesso', users: insertedUsers.length, cards: insertedCards.length });
+    const prices = await CardPrice.find();
+    res.status(200).json(prices);
   } catch (err) {
-    debug('Erro ao realizar seeding: %s', err.message);
+    debug('Erro ao buscar preços: %s', err.message);
     res.status(500).json({ error: err.message.includes('MongoServerError') ? 'Falha na conexão com o banco' : err.message });
   }
 });

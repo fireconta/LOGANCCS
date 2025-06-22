@@ -3,87 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - LOGANCCS</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.7/purify.min.js"></script>
+    <title>LOGAN CC's - Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
-        #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; visibility: hidden; }
-        .spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid #10b981; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.3s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #notifications { position: fixed; top: 1rem; right: 1rem; z-index: 1000; max-width: 320px; }
-        .notification { background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; justify-content: space-between; align-items: center; animation: slideIn 0.3s ease-out; }
-        .notification-error { background: #ef4444; }
-        .notification-success { background: #10b981; }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        #debug { position: fixed; bottom: 4rem; left: 1rem; background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; max-width: 400px; max-height: 300px; overflow-y: auto; z-index: 1000; font-size: 0.75rem; }
-        #toggleDebug { position: fixed; bottom: 1rem; left: 1rem; background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer; z-index: 1001; }
-        .debug-info { color: #10b981; }
-        .debug-warn { color: #f59e0b; }
-        .debug-error { color: #ef4444; }
-        .eye-icon { position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); cursor: pointer; }
-        .password-container { position: relative; }
+        body { background: linear-gradient(135deg, #1a202c, #2d3748); }
+        .notification { transition: opacity 0.5s; }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center">
-    <div id="globalLoader" aria-hidden="true"><div class="spinner"></div></div>
-    <div id="notifications" class="space-y-2" aria-live="polite"></div>
-    <div class="bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full">
-        <h1 class="text-2xl font-bold text-green-500 mb-6 text-center flex items-center justify-center">
-            <i class="fas fa-credit-card mr-2" aria-hidden="true"></i> LOGAN CC's
-        </h1>
+<body class="min-h-screen flex items-center justify-center text-gray-100">
+    <div class="w-full max-w-md p-8 bg-gray-800 rounded-lg shadow-lg">
+        <h1 class="text-3xl font-bold text-center mb-6">LOGAN CC's</h1>
         <div id="loginForm" class="space-y-4">
-            <h2 class="text-xl font-semibold text-center">Login</h2>
             <div>
-                <label for="loginUsername" class="block text-sm font-medium text-gray-300">Usuário</label>
-                <input type="text" id="loginUsername" name="username" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="username" required aria-required="true" aria-label="Username para login">
+                <label for="loginUsername" class="block text-sm font-medium">Usuário</label>
+                <input id="loginUsername" type="text" class="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="username">
             </div>
-            <div class="password-container">
-                <label for="loginPassword" class="block text-sm font-medium text-gray-300">Senha</label>
-                <input type="password" id="loginPassword" name="password" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="password" required aria-required="true" aria-label="Senha para login">
-                <i id="eyeIconLogin" class="fas fa-eye eye-icon" onclick="togglePassword('loginPassword')"></i>
+            <div>
+                <label for="loginPassword" class="block text-sm font-medium">Senha</label>
+                <input id="loginPassword" type="password" class="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="current-password">
             </div>
-            <p id="loginError" class="text-red-500 text-sm hidden" role="alert" aria-hidden="true"></p>
-            <button type="button" id="loginButton" onclick="login()" class="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center" aria-label="Entrar">
+            <button id="loginButton" onclick="login()" class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-md text-white font-medium flex items-center justify-center">
                 <span>Entrar</span>
-                <svg id="loginSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <svg id="loginSpinner" class="animate-spin h-5 w-5 ml-2 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                 </svg>
             </button>
-            <p class="text-center text-sm text-gray-400">
-                Não tem uma conta? <a href="#" class="cursor-pointer text-blue-500 hover:underline" onclick="toggleForm('register')" aria-label="Mudar para registro">Registre-se</a>
-            </p>
+            <p id="loginError" class="text-red-500 text-sm hidden"></p>
+            <p class="text-center text-sm">Não tem conta? <a href="#" onclick="toggleForm()" class="text-blue-400 hover:underline">Registre-se</a></p>
         </div>
         <div id="registerForm" class="space-y-4 hidden">
-            <h2 class="text-xl font-semibold text-center">Registro</h2>
             <div>
-                <label for="registerUsername" class="block text-sm font-medium text-gray-300">Usuário</label>
-                <input type="text" id="registerUsername" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-required="true" aria-label="Username para registro">
+                <label for="registerUsername" class="block text-sm font-medium">Usuário</label>
+                <input id="registerUsername" type="text" class="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="username">
             </div>
-            <div class="password-container">
-                <label for="registerPassword" class="block text-sm font-medium text-gray-300">Senha</label>
-                <input type="password" id="registerPassword" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-required="true" aria-label="Senha para registro">
-                <i id="eyeIconRegister" class="fas fa-eye eye-icon" onclick="togglePassword('registerPassword')"></i>
+            <div>
+                <label for="registerPassword" class="block text-sm font-medium">Senha</label>
+                <input id="registerPassword" type="password" class="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="new-password">
             </div>
-            <p id="registerError" class="text-red-500 text-sm hidden" role="alert"></p>
-            <button type="button" id="registerButton" onclick="register()" class="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center" aria-label="Registrar">
+            <button id="registerButton" onclick="register()" class="w-full py-2 px-4 bg-green-600 hover:bg-green-700 rounded-md text-white font-medium flex items-center justify-center">
                 <span>Registrar</span>
-                <svg id="registerSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <svg id="registerSpinner" class="animate-spin h-5 w-5 ml-2 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                 </svg>
             </button>
-            <p class="text-center text-sm text-gray-400">
-                Já tem uma conta? <a href="#" class="text-blue-500 hover:underline" onclick="toggleForm('login')" aria-label="Mudar para login">Logar</a>
-            </p>
+            <p id="registerError" class="text-red-500 text-sm hidden"></p>
+            <p class="text-center text-sm">Já tem conta? <a href="#" onclick="toggleForm()" class="text-blue-400 hover:underline">Faça login</a></p>
         </div>
     </div>
-    <button id="toggleDebug" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg fixed bottom-4 left-4" aria-label="Alternar debug">Mostrar Debug</button>
-    <div id="debug" class="hidden" aria-live="assertive"></div>
-    <script src="/debug.js"></script>
+
+    <div id="notification" class="fixed top-4 right-4 p-4 rounded-md text-white hidden"></div>
+    <div id="debugPanel" class="fixed bottom-4 left-4 right-4 bg-gray-900 p-4 rounded-md hidden max-h-96 overflow-y-auto text-sm">
+        <div class="flex justify-between">
+            <h2 class="font-bold">Painel de Debug</h2>
+            <button onclick="Debug.toggle()" class="text-red-400 hover:underline">Fechar</button>
+        </div>
+        <pre id="debugOutput" class="mt-2 text-gray-300"></pre>
+    </div>
+    <button onclick="Debug.toggle()" class="fixed bottom-4 right-4 bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">Mostrar Debug</button>
+
     <script src="/utils.js"></script>
+    <script src="/debug.js"></script>
     <script>
+        function toggleForm() {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            loginForm.classList.toggle('hidden');
+            registerForm.classList.toggle('hidden');
+            document.getElementById('loginError').classList.add('hidden');
+            document.getElementById('registerError').classList.add('hidden');
+        }
+
         async function login() {
             Debug.log('Iniciando login');
             const button = document.getElementById('loginButton');
@@ -109,12 +100,13 @@
                     body: JSON.stringify({ username, password })
                 });
                 const text = await response.text();
-                Debug.log(`Resposta /api/login: Status ${response.status}`, { response: text });
+                Debug.log(`Resposta bruta /api/login: Status ${response.status}`, { response: text });
                 let data;
                 try {
                     data = JSON.parse(text);
-                } catch {
-                    throw new Error('Resposta inválida: formato não JSON');
+                } catch (e) {
+                    Debug.error('Falha ao parsear JSON:', { response: text, error: e.message });
+                    throw new Error(`Resposta inválida: formato não JSON - ${text}`);
                 }
                 if (!response.ok) throw new Error(data.error || 'Erro ao fazer login');
                 localStorage.setItem('userId', data.userId);
@@ -152,39 +144,16 @@
                 spinner.classList.add('hidden');
                 return;
             }
-            if (username.length < 3 || username.length > 20) {
-                Debug.error('Usuário inválido');
-                errorDiv.textContent = 'Usuário: 3-20 caracteres';
-                errorDiv.classList.remove('hidden');
-                button.disabled = false;
-                spinner.classList.add('hidden');
-                return;
-            }
-            if (password.length < 6) {
-                Debug.error('Senha inválida');
-                errorDiv.textContent = 'Senha: mínimo 6 caracteres';
-                errorDiv.classList.remove('hidden');
-                button.disabled = false;
-                spinner.classList.add('hidden');
-                return;
-            }
             try {
-                const res = await fetchWithTimeout('/.netlify/functions/app/api/register', {
+                const response = await fetchWithTimeout('/.netlify/functions/app/api/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
-                const text = await res.text();
-                Debug.log(`Resposta /api/register: Status ${res.status}`, { response: text });
-                let data;
-                try {
-                    data = JSON.parse(text);
-                } catch {
-                    throw new Error('Resposta inválida: formato não JSON');
-                }
-                if (!res.ok) throw new Error(data.error || 'Erro ao registrar');
-                showNotification('Registro realizado com sucesso! Faça login.');
-                toggleForm('login');
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Erro ao registrar');
+                showNotification('Registro realizado com sucesso!');
+                setTimeout(toggleForm, 1000);
             } catch (err) {
                 Debug.error('Erro ao registrar:', { error: err.message });
                 errorDiv.textContent = err.message;
@@ -196,49 +165,15 @@
             }
         }
 
-        function toggleForm(form) {
-            Debug.log(`Alternando para ${form}`);
-            const loginForm = document.getElementById('loginForm');
-            const registerForm = document.getElementById('registerForm');
-            if (form === 'register') {
-                loginForm.classList.add('hidden');
-                registerForm.classList.remove('hidden');
-                document.getElementById('loginUsername').value = '';
-                document.getElementById('loginPassword').value = '';
-                document.getElementById('loginError').classList.add('hidden');
-            } else {
-                registerForm.classList.add('hidden');
-                loginForm.classList.remove('hidden');
-                document.getElementById('registerUsername').value = '';
-                document.getElementById('registerPassword').value = '';
-                document.getElementById('registerError').classList.add('hidden');
-            }
+        function showNotification(message, isError = false) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.remove('hidden', 'bg-green-600', 'bg-red-600');
+            notification.classList.add(isError ? 'bg-red-600' : 'bg-green-600');
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 3000);
         }
-
-        function togglePassword(inputId) {
-            const input = document.getElementById(inputId);
-            const icon = document.getElementById(`eyeIcon${inputId === 'loginPassword' ? 'Login' : 'Register'}`);
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                input.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            Debug.log('DOM carregado');
-            const debugDiv = document.getElementById('debug');
-            debugDiv.style.display = 'none';
-            document.getElementById('toggleDebug').addEventListener('click', () => {
-                debugDiv.style.display = debugDiv.style.display === 'none' ? 'block' : 'none';
-                document.getElementById('toggleDebug').textContent = debugDiv.style.display === 'none' ? 'Mostrar Debug' : 'Esconder Debug';
-                Debug.log(`Debug ${debugDiv.style.display === 'none' ? 'desativado' : 'ativado'}`);
-            });
-        });
     </script>
 </body>
 </html>

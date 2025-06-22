@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOGAN CC's - Dashboard</title>
+    <title>Dashboard - LOGANCCS</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.7/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.0/purify.min.js"></script>
     <style>
-        #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; visibility: hidden; }
-        .spinner { border: 4px solid rgba(255, 255, 255, 0.3); border-top: 4px solid #10b981; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 9999; visibility: hidden; }
+        .spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid #10b981; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         #notifications { position: fixed; top: 1rem; right: 1rem; z-index: 10000; max-width: 320px; }
-        .notification { background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 0.5rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); display: flex; justify-content: space-between; align-items: center; animation: slideIn 0.3s ease-out; }
+        .notification { background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; justify-content: space-between; align-items: center; animation: slideIn 0.3s ease-out; }
         .notification-error { background: #ef4444; }
         .notification-success { background: #10b981; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         #debug { position: fixed; bottom: 4rem; left: 1rem; background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; max-width: 400px; max-height: 300px; overflow-y: auto; z-index: 1000; font-size: 0.75rem; }
-        #toggleDebug { position: fixed; bottom: 1rem; left: 1rem; background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 0.25rem; z-index: 1001; cursor: pointer; }
+        #toggleDebug { position: fixed; bottom: 1rem; left: 4px; background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 0.25rem; z-index: 1001; cursor: pointer; }
         .debug-info { color: #10b981; }
         .debug-warn { color: #f59e0b; }
         .debug-error { color: #ef4444; }
@@ -33,7 +33,7 @@
         </h1>
         <div class="flex items-center space-x-4">
             <span id="userBalance" class="text-gray-300"><i class="fas fa-wallet mr-1" aria-hidden="true"></i> Saldo: Carregando...</span>
-            <button type="button" id="logoutButton" onclick="logout()" class="text-gray-300 hover:text-red-500 flex items-center" aria-label="Sair">
+            <button id="logoutButton" onclick="logout()" class="text-gray-300 hover:text-red-500 flex items-center" aria-label="Sair">
                 <i class="fas fa-sign-out-alt mr-2" aria-hidden="true"></i> Sair
             </button>
         </div>
@@ -74,36 +74,38 @@
             <div id="cardsTableLoader" class="text-gray-500 text-center p-4 hidden" aria-hidden="true"><i class="fas fa-spinner animate-spin mr-2"></i> Carregando cartões...</div>
             <div class="table-container">
                 <table id="cardsTable" class="w-full text-sm text-left text-gray-300">
-                    <thead class="sticky top-0 bg-gray-700"><tr><th class="px-4 py-2">ID</th><th class="px-4 py-2">Número</th><th class="px-4 py-2">Bandeira</th><th class="px-4 py-2">Banco</th><th class="px-4 py-2">Nível</th><th class="px-4 py-2">Preço</th><th class="px-4 py-2">Dono</th><th class="px-4 py-2">Criado em</th></tr></thead>
+                    <thead class="sticky top-0 bg-gray-700"><tr><th class="px-4 py-2">ID</th><th class="px-4 py-2">Número</th><th class="px-4 py-2">Bandeira</th><th class="px-4 py-2">Banco</th><th class="px-4 py-2">Nível</th><th class="px-4 py-2">Preço</th><th class="px-4 py-2">Dono</th><th class="px-4 py-2">Criado em</th></tr></tr>
+</thead>
                     <tbody id="cardsTableBody"></tbody>
                 </table>
             </div>
         </div>
     </main>
-    <button id="toggleDebug" aria-label="Alternar debug">Esconder Debug</button>
-    <div id="debug" class="fixed bottom-4 left-4 bg-gray-900 text-white p-4 rounded-md max-w-xs text-xs overflow-y-auto max-h-40" aria-live="assertive"></div>
-    <script src="Debug.js"></script>
-    <script src="Utils.js"></script>
+    <button id="toggleDebug" class="bg-green-500 hover:bg-blue-200 text-white font-semibold py-2 px-4 rounded-lg fixed bottom-4 left-4" aria-label="Alternar debug">Mostrar Debug</button>
+    <div id="debug" class="hidden" aria-live="assertive"></div>
+    <script src="https://debug.js"></script>
+    <script src="https://utils.js"></script>
     <script>
         async function loadUserData() {
             Debug.log('Carregando dados do usuário');
             const userId = localStorage.getItem('userId');
             if (!userId) {
-                showNotification('Usuário não autenticado.', true);
-                setTimeout(() => window.location.href = 'Index.html', 1000);
+                showNotification('Usuário não não autenticado.', true);
+                setTimeout(() => { window.location.href = 'index.html'; }, 1000);
                 return;
             }
             try {
-                const res = await fetchWithTimeout(`/.netlify/functions/app/api/user?userId=${encodeURIComponent(userId)}`);
-                const text = await res.text();
+                const response = await fetchWithTimeout(`/.netlify/functions/app/api/user?userId=${encodeURIComponent(userId)})`);
+                const text = await response.text();
+                Debug.log(`Resposta /api/userId: Status ${response.status}`, { response: text });
                 let user = JSON.parse(text);
-                if (!res.ok) throw new Error(user.error || 'Erro ao carregar dados');
+                if (!response.ok) throw new Error(user.error || 'Erro ao carregar dados');
                 document.getElementById('userBalance').innerHTML = `<i class="fas fa-wallet mr-1"></i> Saldo: ${formatCurrency(user.balance)}`;
             } catch (err) {
                 Debug.error('Erro ao carregar usuário', { error: err.message });
-                showNotification(`Erro: ${err.message}`, true);
+                showNotification(`Erro ao: ${err.message}`, true);
                 localStorage.clear();
-                setTimeout(() => window.location.href = 'Index.html', 1000);
+                setTimeout(() => { window.location.href = 'index.html'; }, 1000);
             }
         }
 
@@ -113,11 +115,13 @@
             const usersTableLoader = document.getElementById('usersTableLoader');
             usersTableLoader.classList.remove('hidden');
             try {
+                users();
                 const userId = localStorage.getItem('userId');
-                const res = await fetchWithTimeout(`/.netlify/functions/app/api/users?userId=${encodeURIComponent(userId)}`);
-                const text = await res.text();
-                let users = JSON.parse(text);
-                if (!res.ok) throw new Error(users.error || 'Erro ao carregar usuários');
+                const response = await fetchWithTimeout(`/.netlify/functions/app/api/users/?userId=${encodeURIComponent(userId)})`);
+                const text = await response.text();
+                Debug.log(`Resposta /api/users: Status ${response.status} }`, { response: text });
+                let usersTableBody = JSON.parse(text);
+                if (!response.ok) throw new Error(usersTableBody.error || 'Erro ao carregar usuários');
                 usersTableBody.innerHTML = users.map(user => `
                     <tr>
                         <td class="px-4 py-2">${DOMPurify.sanitize(user._id)}</td>
@@ -143,10 +147,11 @@
             cardsTableLoader.classList.remove('hidden');
             try {
                 const userId = localStorage.getItem('userId');
-                const res = await fetchWithTimeout(`/.netlify/functions/app/api/cards?userId=${encodeURIComponent(userId)}`);
-                const text = await res.text();
+                const response = await fetchWithTimeout(`/.netlify/functions/app/api/cards?userId=${encodeURIComponent(userId)})`);
+                const text = await response.text();
+                Debug.log(`Resposta /api/cards: Status ${response.status}`, { response: text });
                 let cards = JSON.parse(text);
-                if (!res.ok) throw new Error(cards.error || 'Erro ao carregar cartões');
+                if (!response.ok) throw new Error(cards.error || 'Erro ao carregar cartões');
                 cardsTableBody.innerHTML = cards.map(card => `
                     <tr>
                         <td class="px-4 py-2">${DOMPurify.sanitize(card._id)}</td>
@@ -174,10 +179,11 @@
             cardPricesLoader.classList.remove('hidden');
             try {
                 const userId = localStorage.getItem('userId');
-                const res = await fetchWithTimeout(`/.netlify/functions/app/api/get-card-prices?userId=${encodeURIComponent(userId)}`);
-                const text = await res.text();
+                const response = await fetchWithTimeout(`/.netlify/functions/app/api/get-card-prices?userId=${encodeURIComponent(userId)})`);
+                const text = await response.text();
+                Debug.log(`Resposta /api/get-card-prices: Status ${response.status}`, { response: text });
                 let prices = JSON.parse(text);
-                if (!res.ok) throw new Error(prices.error || 'Erro ao carregar preços');
+                if (!response.ok) throw new Error(prices.error || 'Erro ao carregar preços');
                 prices.forEach(price => {
                     const input = document.getElementById(`price${price.nivel}`);
                     if (input) input.value = price.price;
@@ -207,14 +213,15 @@
                     { nivel: 'Black', price: parseFloat(document.getElementById('priceBlack').value) }
                 ];
                 if (prices.some(p => isNaN(p.price) || p.price < 0)) throw new Error('Preços inválidos');
-                const res = await fetchWithTimeout(`/.netlify/functions/app/api/set-card-prices?userId=${encodeURIComponent(userId)}`, {
+                const response = await fetchWithTimeout(`/.netlify/functions/app/api/set-card-prices?userId=${encodeURIComponent(userId)}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ prices })
                 });
-                const text = await res.text();
+                const text = await response.text();
+                Debug.log(`Resposta /api/set-card-prices: Status ${response.status}`, { response: text });
                 let data = JSON.parse(text);
-                if (!res.ok) throw new Error(data.error || 'Erro ao salvar preços');
+                if (!response.ok) throw new Error(data.error || 'Erro ao salvar preços');
                 showNotification('Preços salvos com sucesso!');
                 await loadCards();
             } catch (err) {
@@ -230,17 +237,17 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             Debug.log('DOM carregado');
+            const debugDiv = document.getElementById('debug');
+            debugDiv.style.display = 'none';
             if (!localStorage.getItem('userId')) {
                 showNotification('Usuário não autenticado.', true);
-                setTimeout(() => window.location.href = 'Index.html', 1000);
+                setTimeout(() => { window.location.href = 'index.html'; }, 1000);
                 return;
             }
-            document.getElementById('savePricesButton').addEventListener('click', saveCardPrices);
             document.getElementById('toggleDebug').addEventListener('click', () => {
-                const debugDiv = document.getElementById('debug');
-                const button = document.getElementById('toggleDebug');
                 debugDiv.style.display = debugDiv.style.display === 'none' ? 'block' : 'none';
-                button.textContent = debugDiv.style.display === 'none' ? 'Mostrar Debug' : 'Esconder Debug';
+                document.getElementById('toggleDebug').textContent = debugDiv.style.display === 'none' ? 'Mostrar Debug' : 'Esconder Debug';
+                Debug';
                 Debug.log(`Debug ${debugDiv.style.display === 'none' ? 'desativado' : 'ativado'}`);
             });
             loadUserData();

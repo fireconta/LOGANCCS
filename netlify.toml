@@ -6,14 +6,16 @@
 
 [[redirects]]
   from = "/*"
-  to = "/Index.html"
+  to = "/index.html"
   status = 200
-  conditions = { "Path": ["/Index.html", "/Dashboard.html", "/Shop.html"] }
+  conditions = { "Path": ["/index.html", "/dashboard.html", "/shop.html"] }
 
 [build]
   command = "npm install"
-  functions = "netlify/functions"
   publish = "."
+
+[functions]
+  external_node_modules = ["express", "mongoose", "serverless-http", "bcryptjs", "express-validator", "cors", "debug"]
 
 [[headers]]
   for = "/*"

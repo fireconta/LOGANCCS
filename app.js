@@ -44,8 +44,15 @@ app.use(async (req, res, next) => {
     await connectMongoDB();
     next();
   } catch (err) {
+    debug('Erro no middleware MongoDB: %s', err.message);
     res.status(500).json({ error: err.message });
   }
+});
+
+// Middleware para garantir respostas JSON
+app.use((err, req, res, next) => {
+  debug('Erro não tratado: %s', err.message);
+  res.status(500).json({ error: 'Erro interno do servidor' });
 });
 
 const UserSchema = new mongoose.Schema({
@@ -83,10 +90,12 @@ const CardPriceSchema = new mongoose.Schema({
 const CardPrice = mongoose.model('CardPrice', CardPriceSchema);
 
 app.get('/api/test-endpoint', (req, res) => {
+  debug('Acessando /api/test-endpoint');
   res.status(200).json({ message: 'Servidor funcionando', env: !!process.env.MONGODB_URI });
 });
 
 app.get('/api/health', (req, res) => {
+  debug('Acessando /api/health');
   res.status(200).json({
     mongoConnected,
     mongooseConnectionState: mongoose.connection.readyState,
@@ -99,11 +108,17 @@ app.post('/api/register', [
   body('password').notEmpty().isLength({ min: 6 }).withMessage('Senha: mínimo 6 caracteres')
 ], async (req, res) => {
   const errors = validationResult(req);
-  if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
+  if (!errors.isEmpty()) {
+    debug('Erro de validação em /api/register: %O', errors.array());
+    return res.status(400).json({ error: errors.array()[0].msg });
+  }
   const { username, password } = req.body;
   try {
     const existingUser = await User.findOne({ username });
-    if (existingUser) return res.status(400).json({ error: 'Usuário já existe' });
+    if (existingUser) {
+      debug('Usuário já existe: %s', username);
+      return res.status(400).json({ error: 'Usuário já existe' });
+    }
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({ username, password: hashedPassword, isAdmin: username === 'LVz' });
     await user.save();
@@ -119,14 +134,24 @@ app.post('/api/login', [
   body('username').trim().notEmpty().withMessage('Usuário obrigatório'),
   body('password').notEmpty().withMessage('Senha obrigatória')
 ], async (req, res) => {
+  debug('Acessando /api/login com body: %O', req.body);
   const errors = validationResult(req);
-  if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
+  if (!errors.isEmpty()) {
+    debug('Erro de validação em /api/login: %O', errors.array());
+    return res.status(400).json({ error: errors.array()[0].msg });
+  }
   const { username, password } = req.body;
   try {
     const user = await User.findOne({ username });
-    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+    if (!user) {
+      debug('Usuário não encontrado: %s', username);
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ error: 'Senha incorreta' });
+    if (!isMatch) {
+      debug('Senha incorreta para usuário: %s', username);
+      return res.status(401).json({ error: 'Senha incorreta' });
+    }
     debug('Login bem-sucedido: %s', username);
     res.status(200).json({ userId: user._id.toString(), username: user.username, is_admin: user.isAdmin });
   } catch (err) {
@@ -136,9 +161,13 @@ app.post('/api/login', [
 });
 
 app.get('/api/user', async (req, res) => {
+  debug('Acessando /api/user com userId: %s', req.query.userId);
   try {
     const user = await User.findById(req.query.userId).select('-password');
-    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+    if (!user) {
+      debug('Usuário não encontrado: %s', req.query.userId);
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
     res.status(200).json(user);
   } catch (err) {
     debug('Erro ao buscar usuário: %s', err.message);
@@ -147,9 +176,13 @@ app.get('/api/user', async (req, res) => {
 });
 
 app.get('/api/users', async (req, res) => {
+  debug('Acessando /api/users com userId: %s', req.query.userId);
   try {
     const user = await User.findById(req.query.userId);
-    if (!user || !user.isAdmin) return res.status(403).json({ error: 'Acesso negado' });
+    if (!user || !user.isAdmin) {
+      debug('Acesso negado para userId: %s', req.query.userId);
+      return res.status(403).json({ error: 'Acesso negado' });
+    }
     const users = await User.find().select('-password');
     res.status(200).json(users);
   } catch (err) {
@@ -159,6 +192,7 @@ app.get('/api/users', async (req, res) => {
 });
 
 app.get('/api/cards', async (req, res) => {
+  debug('Acessando /api/cards');
   try {
     const cards = await Card.find({ userId: null });
     res.status(200).json(cards);
@@ -169,6 +203,7 @@ app.get('/api/cards', async (req, res) => {
 });
 
 app.post('/api/buy-card', async (req, res) => {
+  debug('Acessando /api/buy-card com body: %O', req.body);
   const { userId, cardId, price } = req.body;
   const session = await mongoose.startSession();
   try {
@@ -203,13 +238,20 @@ app.post('/api/set-card-prices', [
   body('prices.*.nivel').isIn(['Classic', 'Gold', 'Platinum', 'Black']),
   body('prices.*.price').isFloat({ min: 0 })
 ], async (req, res) => {
+  debug('Acessando /api/set-card-prices com body: %O', req.body);
   const errors = validationResult(req);
-  if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
+  if (!errors.isEmpty()) {
+    debug('Erro de validação em /api/set-card-prices: %O', errors.array());
+    return res.status(400).json({ error: errors.array()[0].msg });
+  }
   const { prices } = req.body;
   const userId = req.query.userId;
   try {
     const user = await User.findById(userId);
-    if (!user || !user.isAdmin) return res.status(403).json({ error: 'Acesso negado' });
+    if (!user || !user.isAdmin) {
+      debug('Acesso negado para userId: %s', userId);
+      return res.status(403).json({ error: 'Acesso negado' });
+    }
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
@@ -241,9 +283,13 @@ app.post('/api/set-card-prices', [
 });
 
 app.get('/api/get-card-prices', async (req, res) => {
+  debug('Acessando /api/get-card-prices com userId: %s', req.query.userId);
   try {
     const user = await User.findById(req.query.userId);
-    if (!user || !user.isAdmin) return res.status(403).json({ error: 'Acesso negado' });
+    if (!user || !user.isAdmin) {
+      debug('Acesso negado para userId: %s', req.query.userId);
+      return res.status(403).json({ error: 'Acesso negado' });
+    }
     const prices = await CardPrice.find();
     res.status(200).json(prices);
   } catch (err) {

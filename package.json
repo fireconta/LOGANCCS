@@ -4,7 +4,8 @@
   "description": "LOGAN CC's - Sistema de Compra de Cartões",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.js",
+    "build": "echo 'Build complete'"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

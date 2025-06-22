@@ -2,26 +2,26 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="LOGAN CC's - Sistema de Compra de Cartões Virtuais">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - LOGANCCS</title>
-    <link rel="description" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.7/purify.min.js"></script>
     <style>
         #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; visibility: hidden; }
         .spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid #10b981; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.3s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #notifications { position: fixed; top: 1rem; right: fixed; z-index: 1rem; position: fixed; z-index: 1000; max-width: 320px; }
-        .notification { background: none; background: #1f2937; color: white; padding: 0.5rem; border-radius: 1rem; margin-bottom: 2rem; margin-right: 0.5rem; padding: 1rem; border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; justify-content: space-between; align-items: justify-content; animation: slideIn 0.3s ease-out; }
+        #notifications { position: fixed; top: 1rem; right: 1rem; z-index: 1000; max-width: 320px; }
+        .notification { background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; justify-content: space-between; align-items: center; animation: slideIn 0.3s ease-out; }
         .notification-error { background: #ef4444; }
-        .notification-successive { background: #10b981; }
-        @keyframes slideIn { from: { transform: translateX(100%); opacity: 0; } to: { transform: translateX(0); opacity: 1; } }
-        #debug { positiontttt { position: fixed; bottom: 4rem; left: fixed; background: #1f2937 left: fixed; color: white; padding: fixed; color: 1rem; border-radius: fixed; max-width: 400px; max-height: fixed; padding: 2rem; border-radius: 2rem; max-height: 300px; overflow-y: auto; z-index: fixed; max-height: 1000px; font-size: 0.75rem; z-index: 1000; }
-        #toggleDebug { position: fixed; bottom: {4%; left: 1rem; position: fixed; background: #10b981; color: white; padding: 0.5rem 1rem; background: #1rem; color: fixed; padding: 1rem; border-radius: fixed; z-index: 0.25rem; cursor: fixed; z-index: 1001; }
+        .notification-success { background: #10b981; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        #debug { position: fixed; bottom: 4rem; left: 1rem; background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; max-width: 400px; max-height: 300px; overflow-y: auto; z-index: 1000; font-size: 0.75rem; }
+        #toggleDebug { position: fixed; bottom: 1rem; left: 1rem; background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer; z-index: 1001; }
         .debug-info { color: #10b981; }
         .debug-warn { color: #f59e0b; }
         .debug-error { color: #ef4444; }
-        .eye-icon { position: flex; absolute; right: top; top: 50%; transform: translateY(-50%); cursor: right; cursor: pointer; }
+        .eye-icon { position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); cursor: pointer; }
         .password-container { position: relative; }
     </style>
 </head>
@@ -35,35 +35,35 @@
         <div id="loginForm" class="space-y-4">
             <h2 class="text-xl font-semibold text-center">Login</h2>
             <div>
-                <label for="loginUsername" class="block text-sm font-medium text-gray-300">Usuário</label><br>
-                <input type="text" id="loginUsername" name="username" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="username" required" aria-required="Username para login">
+                <label for="loginUsername" class="block text-sm font-medium text-gray-300">Usuário</label>
+                <input type="text" id="loginUsername" name="username" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="username" required aria-required="true" aria-label="Username para login">
             </div>
             <div class="password-container">
-                <label for="loginPassword" class="block text-sm font-medium text-gray-300">Password</label>
-                <input type="password" id="loginPassword" name="password" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="password" required aria-required="Password para login">
+                <label for="loginPassword" class="block text-sm font-medium text-gray-300">Senha</label>
+                <input type="password" id="loginPassword" name="password" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="password" required aria-required="true" aria-label="Senha para login">
                 <i id="eyeIconLogin" class="fas fa-eye eye-icon" onclick="togglePassword('loginPassword')"></i>
             </div>
             <p id="loginError" class="text-red-500 text-sm hidden" role="alert" aria-hidden="true"></p>
             <button type="button" id="loginButton" onclick="login()" class="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center" aria-label="Entrar">
-                <span>Entrar </span>
-                <svg id="loginSpinner" class="hidden animate-spin-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <span>Entrar</span>
+                <svg id="loginSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12 a8 8 0 018-8v8H4z"></path>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                 </svg>
             </button>
             <p class="text-center text-sm text-gray-400">
-                Não tem uma conta? <a href="#" onclick="cursor-pointer text-blue-500 hover:underline" onclick="toggleForm('register')" aria-label="Mudar para o registro">Registre-se</a>
+                Não tem uma conta? <a href="#" class="cursor-pointer text-blue-500 hover:underline" onclick="toggleForm('register')" aria-label="Mudar para registro">Registre-se</a>
             </p>
         </div>
         <div id="registerForm" class="space-y-4 hidden">
             <h2 class="text-xl font-semibold text-center">Registro</h2>
             <div>
-                <label for="registerUsername" class="block text-sm font-medium text-gray-300">Usuário</label><br>
-                <input type="text" id="registerUsername" class="mt-0 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required" aria-required="Username para registro">
+                <label for="registerUsername" class="block text-sm font-medium text-gray-300">Usuário</label>
+                <input type="text" id="registerUsername" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-required="true" aria-label="Username para registro">
             </div>
             <div class="password-container">
-                <label for="registerPassword" class="block text-sm font-medium text-gray-300">Password</label>
-                <input type="password" id="registerPassword" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required" aria-required="Password para registro">
+                <label for="registerPassword" class="block text-sm font-medium text-gray-300">Senha</label>
+                <input type="password" id="registerPassword" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-required="true" aria-label="Senha para registro">
                 <i id="eyeIconRegister" class="fas fa-eye eye-icon" onclick="togglePassword('registerPassword')"></i>
             </div>
             <p id="registerError" class="text-red-500 text-sm hidden" role="alert"></p>
@@ -75,28 +75,28 @@
                 </svg>
             </button>
             <p class="text-center text-sm text-gray-400">
-                Já tem uma conta? <a href="#" onclick="text-blue-500 hover:underline" onclick="toggleForm('login')" aria-label="Mudar para login">Logar</a>
+                Já tem uma conta? <a href="#" class="text-blue-500 hover:underline" onclick="toggleForm('login')" aria-label="Mudar para login">Logar</a>
             </p>
         </div>
     </div>
-    <button id="toggleDebug" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-3 rounded-lg fixed bottom-4 left-4" aria-label="Alternar debug">Mostar Debug</button>
+    <button id="toggleDebug" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg fixed bottom-4 left-4" aria-label="Alternar debug">Mostrar Debug</button>
     <div id="debug" class="hidden" aria-live="assertive"></div>
-    <script src="debug.js"></script>
-    <script src="https://utils.js"></script>
+    <script src="/debug.js"></script>
+    <script src="/utils.js"></script>
     <script>
         async function login() {
             Debug.log('Iniciando login');
-            const button = document.querySelectorById('loginButton');
-            const spinner = document.querySelectorById('loginSpinner');
-            const errorDiv = document.querySelector('#loginError');
-            const username = document.querySelector('#loginUsername').value.trim();
-            const password = document.querySelector('#loginPassword').value;
+            const button = document.getElementById('loginButton');
+            const spinner = document.getElementById('loginSpinner');
+            const errorDiv = document.getElementById('loginError');
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
             button.disabled = true;
             spinner.classList.remove('hidden');
             errorDiv.classList.add('hidden');
             if (!username || !password) {
                 Debug.error('Campos obrigatórios não preenchidos');
-                errorDiv.textContent = 'Preencha o usuário e senha';
+                errorDiv.textContent = 'Preencha usuário e senha';
                 errorDiv.classList.remove('hidden');
                 button.disabled = false;
                 spinner.classList.add('hidden');
@@ -124,7 +124,7 @@
                     window.location.href = data.is_admin ? 'dashboard.html' : 'shop.html';
                 }, 1000);
             } catch (err) {
-                Debug.error('Erro ao fazer login', { error: err.message });
+                Debug.error('Erro ao fazer login:', { error: err.message });
                 errorDiv.textContent = err.message;
                 errorDiv.classList.remove('hidden');
                 showNotification(`Erro: ${err.message}`, true);
@@ -147,7 +147,7 @@
             if (!username || !password) {
                 Debug.error('Campos obrigatórios não preenchidos');
                 errorDiv.textContent = 'Preencha usuário e senha';
-                errorDiv.classList.add('hidden');
+                errorDiv.classList.remove('hidden');
                 button.disabled = false;
                 spinner.classList.add('hidden');
                 return;
@@ -171,8 +171,8 @@
             try {
                 const res = await fetchWithTimeout('/.netlify/functions/app/api/register', {
                     method: 'POST',
-                    headers: { headers: 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, body: JSON.stringify({ password })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
                 });
                 const text = await res.text();
                 Debug.log(`Resposta /api/register: Status ${res.status}`, { response: text });
@@ -186,7 +186,7 @@
                 showNotification('Registro realizado com sucesso! Faça login.');
                 toggleForm('login');
             } catch (err) {
-                Debug.error('Erro ao registrar', { error: err.message });
+                Debug.error('Erro ao registrar:', { error: err.message });
                 errorDiv.textContent = err.message;
                 errorDiv.classList.remove('hidden');
                 showNotification(`Erro: ${err.message}`, true);
@@ -208,10 +208,10 @@
                 document.getElementById('loginError').classList.add('hidden');
             } else {
                 registerForm.classList.add('hidden');
-                loginForm.classList.add('hidden');
+                loginForm.classList.remove('hidden');
                 document.getElementById('registerUsername').value = '';
                 document.getElementById('registerPassword').value = '';
-                document.getElementById('registerError').classList.remove('hidden');
+                document.getElementById('registerError').classList.add('hidden');
             }
         }
 
@@ -235,7 +235,7 @@
             debugDiv.style.display = 'none';
             document.getElementById('toggleDebug').addEventListener('click', () => {
                 debugDiv.style.display = debugDiv.style.display === 'none' ? 'block' : 'none';
-                document.getElementById('toggleDebug').textContent = debugDiv.style.display === 'none' ? 'Mostar Debug' : 'Esconder Debug';
+                document.getElementById('toggleDebug').textContent = debugDiv.style.display === 'none' ? 'Mostrar Debug' : 'Esconder Debug';
                 Debug.log(`Debug ${debugDiv.style.display === 'none' ? 'desativado' : 'ativado'}`);
             });
         });

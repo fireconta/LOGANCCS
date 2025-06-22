@@ -7,8 +7,12 @@ const { body, validationResult } = require('express-validator');
 const cors = require('cors');
 
 const app = express();
-app.use(cors({ origin: 'https://loganccs.netlify.app' }));
-app.use(express.json());
+app.use(cors({ 
+  origin: 'https://loganccs.netlify.app', 
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type']
+}));
+app.use(express.json({ limit: '50kb' }));
 
 let mongoConnected = false;
 let cachedConnection = null;
@@ -81,7 +85,8 @@ const CardPrice = mongoose.model('CardPrice', CardPriceSchema);
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     mongoConnected,
-    mongooseConnectionState: mongoose.connection.readyState
+    mongooseConnectionState: mongoose.connection.readyState,
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -98,6 +103,7 @@ app.post('/api/register', [
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({ username, password: hashedPassword, is_admin: username === 'LVz' });
     await user.save();
+    debug('Usuário registrado: %s', username);
     res.status(201).json({ username });
   } catch (err) {
     debug('Erro ao registrar: %s', err.message);
@@ -117,6 +123,7 @@ app.post('/api/login', [
     if (!user) return res.status(401).json({ error: 'Usuário não encontrado' });
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ error: 'Senha incorreta' });
+    debug('Login bem-sucedido: %s', username);
     res.status(200).json({ userId: user._id, username: user.username, is_admin: user.is_admin });
   } catch (err) {
     debug('Erro ao logar: %s', err.message);
@@ -130,6 +137,7 @@ app.get('/api/user', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
     res.status(200).json(user);
   } catch (err) {
+    debug('Erro ao buscar usuário: %s', err.message);
     res.status(500).json({ error: 'Falha no servidor' });
   }
 });
@@ -141,6 +149,7 @@ app.get('/api/users', async (req, res) => {
     const users = await User.find().select('-password');
     res.status(200).json(users);
   } catch (err) {
+    debug('Erro ao listar usuários: %s', err.message);
     res.status(500).json({ error: 'Falha no servidor' });
   }
 });
@@ -150,6 +159,7 @@ app.get('/api/cards', async (req, res) => {
     const cards = await Card.find({ userId: null });
     res.status(200).json(cards);
   } catch (err) {
+    debug('Erro ao listar cartões: %s', err.message);
     res.status(500).json({ error: 'Falha no servidor' });
   }
 });
@@ -173,9 +183,11 @@ app.post('/api/buy-card', async (req, res) => {
       transaction.save({ session })
     ]);
     await session.commitTransaction();
+    debug('Compra realizada: cartão %s por usuário %s', cardId, userId);
     res.status(200).json({ message: 'Compra realizada' });
   } catch (err) {
     await session.abortTransaction();
+    debug('Erro ao comprar cartão: %s', err.message);
     res.status(400).json({ error: err.message });
   } finally {
     session.endSession();
@@ -210,6 +222,7 @@ app.post('/api/set-card-prices', [
         );
       }
       await session.commitTransaction();
+      debug('Preços atualizados por usuário %s', userId);
       res.status(200).json({ message: 'Preços atualizados' });
     } catch (err) {
       await session.abortTransaction();
@@ -218,6 +231,7 @@ app.post('/api/set-card-prices', [
       session.endSession();
     }
   } catch (err) {
+    debug('Erro ao atualizar preços: %s', err.message);
     res.status(500).json({ error: 'Falha no servidor' });
   }
 });
@@ -229,11 +243,13 @@ app.get('/api/get-card-prices', async (req, res) => {
     const prices = await CardPrice.find();
     res.status(200).json(prices);
   } catch (err) {
+    debug('Erro ao listar preços: %s', err.message);
     res.status(500).json({ error: 'Falha no servidor' });
   }
 });
 
 app.post('/api/logout', (req, res) => {
+  debug('Logout solicitado');
   res.status(200).json({ message: 'Logout realizado' });
 });
 

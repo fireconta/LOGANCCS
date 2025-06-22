@@ -3,229 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - LOGANCCS</title>
+    <title>Login - LOGANCCS</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.0/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.7/purify.min.js"></script>
     <style>
-        #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 9999; visibility: hidden; }
-        .spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid #10b981; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; visibility: hidden; }
+        .spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid #10b981; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.3s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #notifications { position: fixed; top: 1rem; right: 1rem; z-index: 10000; max-width: 320px; }
+        #notifications { position: fixed; top: 1rem; right: 1rem; z-index: 1000; max-width: 320px; }
         .notification { background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; justify-content: space-between; align-items: center; animation: slideIn 0.3s ease-out; }
         .notification-error { background: #ef4444; }
         .notification-success { background: #10b981; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         #debug { position: fixed; bottom: 4rem; left: 1rem; background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; max-width: 400px; max-height: 300px; overflow-y: auto; z-index: 1000; font-size: 0.75rem; }
-        #toggleDebug { position: fixed; bottom: 1rem; left: 4px; background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 0.25rem; z-index: 1001; cursor: pointer; }
+        #toggleDebug { position: fixed; bottom: 1rem; left: 1rem; background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer; z-index: 1001; }
         .debug-info { color: #10b981; }
         .debug-warn { color: #f59e0b; }
         .debug-error { color: #ef4444; }
-        .table-container { max-height: 400px; overflow-y: auto; }
+        .eye-icon { position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); cursor: pointer; }
+        .password-container { position: relative; }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen">
+<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center">
     <div id="globalLoader" aria-hidden="true"><div class="spinner"></div></div>
     <div id="notifications" class="space-y-2" aria-live="polite"></div>
-    <header class="bg-gray-800 p-4 flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-green-500 flex items-center">
-            <i class="fas fa-tachometer-alt mr-2" aria-hidden="true"></i> LOGAN CC's - Dashboard
+    <div class="bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full">
+        <h1 class="text-2xl font-bold text-green-500 mb-6 text-center flex items-center justify-center">
+            <i class="fas fa-credit-card mr-2" aria-hidden="true"></i> LOGAN CC's
         </h1>
-        <div class="flex items-center space-x-4">
-            <span id="userBalance" class="text-gray-300"><i class="fas fa-wallet mr-1" aria-hidden="true"></i> Saldo: Carregando...</span>
-            <button id="logoutButton" onclick="logout()" class="text-gray-300 hover:text-red-500 flex items-center" aria-label="Sair">
-                <i class="fas fa-sign-out-alt mr-2" aria-hidden="true"></i> Sair
+        <div id="loginForm" class="space-y-4">
+            <h2 class="text-xl font-semibold text-center">Login</h2>
+            <div>
+                <label for="loginUsername" class="block text-sm font-medium text-gray-300">Usuário</label>
+                <input type="text" id="loginUsername" name="username" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="username" required aria-required="true" aria-label="Username para login">
+            </div>
+            <div class="password-container">
+                <label for="loginPassword" class="block text-sm font-medium text-gray-300">Senha</label>
+                <input type="password" id="loginPassword" name="password" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="password" required aria-required="true" aria-label="Senha para login">
+                <i id="eyeIconLogin" class="fas fa-eye eye-icon" onclick="togglePassword('loginPassword')"></i>
+            </div>
+            <p id="loginError" class="text-red-500 text-sm hidden" role="alert" aria-hidden="true"></p>
+            <button type="button" id="loginButton" onclick="login()" class="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center" aria-label="Entrar">
+                <span>Entrar</span>
+                <svg id="loginSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
             </button>
+            <p class="text-center text-sm text-gray-400">
+                Não tem uma conta? <a href="#" class="cursor-pointer text-blue-500 hover:underline" onclick="toggleForm('register')" aria-label="Mudar para registro">Registre-se</a>
+            </p>
         </div>
-    </header>
-    <main class="container mx-auto p-6">
-        <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
-            <h2 class="text-xl font-semibold mb-4 flex items-center"><i class="fas fa-money-bill-wave mr-2" aria-hidden="true"></i> Configurar Preços</h2>
-            <div id="cardPricesLoader" class="text-gray-500 text-center p-4 hidden" aria-hidden="true"><i class="fas fa-spinner animate-spin mr-2"></i> Carregando preços...</div>
-            <div id="cardPricesForm" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label for="priceClassic" class="block text-sm font-medium text-gray-300">Classic</label><input type="number" id="priceClassic" min="0" step="0.01" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-label="Preço Classic"></div>
-                    <div><label for="priceGold" class="block text-sm font-medium text-gray-300">Gold</label><input type="number" id="priceGold" min="0" step="0.01" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-label="Preço Gold"></div>
-                    <div><label for="pricePlatinum" class="block text-sm font-medium text-gray-300">Platinum</label><input type="number" id="pricePlatinum" min="0" step="0.01" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-label="Preço Platinum"></div>
-                    <div><label for="priceBlack" class="block text-sm font-medium text-gray-300">Black</label><input type="number" id="priceBlack" min="0" step="0.01" class="mt-1 p-2 bg-gray-700 border border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-label="Preço Black"></div>
-                </div>
-                <p id="cardPricesError" class="text-red-500 text-sm hidden" role="alert"></p>
-                <button type="button" id="savePricesButton" onclick="saveCardPrices()" class="py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center" aria-label="Salvar preços">
-                    <span>Salvar Preços</span>
-                    <svg id="savePricesSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                    </svg>
-                </button>
+        <div id="registerForm" class="space-y-4 hidden">
+            <h2 class="text-xl font-semibold text-center">Registro</h2>
+            <div>
+                <label for="registerUsername" class="block text-sm font-medium text-gray-300">Usuário</label>
+                <input type="text" id="registerUsername" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-required="true" aria-label="Username para registro">
             </div>
-        </div>
-        <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
-            <h2 class="text-xl font-semibold mb-4 flex items-center"><i class="fas fa-users mr-2" aria-hidden="true"></i> Usuários</h2>
-            <div id="usersTableLoader" class="text-gray-500 text-center p-4 hidden" aria-hidden="true"><i class="fas fa-spinner animate-spin mr-2"></i> Carregando usuários...</div>
-            <div class="table-container">
-                <table id="usersTable" class="w-full text-sm text-left text-gray-300">
-                    <thead class="sticky top-0 bg-gray-700"><tr><th class="px-4 py-2">ID</th><th class="px-4 py-2">Usuário</th><th class="px-4 py-2">Admin</th><th class="px-4 py-2">Saldo</th><th class="px-4 py-2">Criado em</th></tr></thead>
-                    <tbody id="usersTableBody"></tbody>
-                </table>
+            <div class="password-container">
+                <label for="registerPassword" class="block text-sm font-medium text-gray-300">Senha</label>
+                <input type="password" id="registerPassword" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-required="true" aria-label="Senha para registro">
+                <i id="eyeIconRegister" class="fas fa-eye eye-icon" onclick="togglePassword('registerPassword')"></i>
             </div>
+            <p id="registerError" class="text-red-500 text-sm hidden" role="alert"></p>
+            <button type="button" id="registerButton" onclick="register()" class="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center" aria-label="Registrar">
+                <span>Registrar</span>
+                <svg id="registerSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+            </button>
+            <p class="text-center text-sm text-gray-400">
+                Já tem uma conta? <a href="#" class="text-blue-500 hover:underline" onclick="toggleForm('login')" aria-label="Mudar para login">Logar</a>
+            </p>
         </div>
-        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-            <h2 class="text-xl font-semibold mb-4 flex items-center"><i class="fas fa-credit-card mr-2" aria-hidden="true"></i> Cartões</h2>
-            <div id="cardsTableLoader" class="text-gray-500 text-center p-4 hidden" aria-hidden="true"><i class="fas fa-spinner animate-spin mr-2"></i> Carregando cartões...</div>
-            <div class="table-container">
-                <table id="cardsTable" class="w-full text-sm text-left text-gray-300">
-                    <thead class="sticky top-0 bg-gray-700"><tr><th class="px-4 py-2">ID</th><th class="px-4 py-2">Número</th><th class="px-4 py-2">Bandeira</th><th class="px-4 py-2">Banco</th><th class="px-4 py-2">Nível</th><th class="px-4 py-2">Preço</th><th class="px-4 py-2">Dono</th><th class="px-4 py-2">Criado em</th></tr></tr>
-</thead>
-                    <tbody id="cardsTableBody"></tbody>
-                </table>
-            </div>
-        </div>
-    </main>
-    <button id="toggleDebug" class="bg-green-500 hover:bg-blue-200 text-white font-semibold py-2 px-4 rounded-lg fixed bottom-4 left-4" aria-label="Alternar debug">Mostrar Debug</button>
+    </div>
+    <button id="toggleDebug" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg fixed bottom-4 left-4" aria-label="Alternar debug">Mostrar Debug</button>
     <div id="debug" class="hidden" aria-live="assertive"></div>
-    <script src="https://debug.js"></script>
-    <script src="https://utils.js"></script>
+    <script src="/debug.js"></script>
+    <script src="/utils.js"></script>
     <script>
-        async function loadUserData() {
-            Debug.log('Carregando dados do usuário');
-            const userId = localStorage.getItem('userId');
-            if (!userId) {
-                showNotification('Usuário não não autenticado.', true);
-                setTimeout(() => { window.location.href = 'index.html'; }, 1000);
-                return;
-            }
-            try {
-                const response = await fetchWithTimeout(`/.netlify/functions/app/api/user?userId=${encodeURIComponent(userId)})`);
-                const text = await response.text();
-                Debug.log(`Resposta /api/userId: Status ${response.status}`, { response: text });
-                let user = JSON.parse(text);
-                if (!response.ok) throw new Error(user.error || 'Erro ao carregar dados');
-                document.getElementById('userBalance').innerHTML = `<i class="fas fa-wallet mr-1"></i> Saldo: ${formatCurrency(user.balance)}`;
-            } catch (err) {
-                Debug.error('Erro ao carregar usuário', { error: err.message });
-                showNotification(`Erro ao: ${err.message}`, true);
-                localStorage.clear();
-                setTimeout(() => { window.location.href = 'index.html'; }, 1000);
-            }
-        }
-
-        async function loadUsers() {
-            Debug.log('Carregando usuários');
-            const usersTableBody = document.getElementById('usersTableBody');
-            const usersTableLoader = document.getElementById('usersTableLoader');
-            usersTableLoader.classList.remove('hidden');
-            try {
-                users();
-                const userId = localStorage.getItem('userId');
-                const response = await fetchWithTimeout(`/.netlify/functions/app/api/users/?userId=${encodeURIComponent(userId)})`);
-                const text = await response.text();
-                Debug.log(`Resposta /api/users: Status ${response.status} }`, { response: text });
-                let usersTableBody = JSON.parse(text);
-                if (!response.ok) throw new Error(usersTableBody.error || 'Erro ao carregar usuários');
-                usersTableBody.innerHTML = users.map(user => `
-                    <tr>
-                        <td class="px-4 py-2">${DOMPurify.sanitize(user._id)}</td>
-                        <td class="px-4 py-2">${DOMPurify.sanitize(user.username)}</td>
-                        <td class="px-4 py-2">${user.is_admin ? 'Sim' : 'Não'}</td>
-                        <td class="px-4 py-2">${formatCurrency(user.balance)}</td>
-                        <td class="px-4 py-2">${formatDate(user.createdAt)}</td>
-                    </tr>
-                `).join('');
-            } catch (err) {
-                Debug.error('Erro ao carregar usuários', { error: err.message });
-                usersTableBody.innerHTML = `<tr><td colspan="5" class="text-center text-red-500">Erro: ${DOMPurify.sanitize(err.message)}</td></tr>`;
-                showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                usersTableLoader.classList.add('hidden');
-            }
-        }
-
-        async function loadCards() {
-            Debug.log('Carregando cartões');
-            const cardsTableBody = document.getElementById('cardsTableBody');
-            const cardsTableLoader = document.getElementById('cardsTableLoader');
-            cardsTableLoader.classList.remove('hidden');
-            try {
-                const userId = localStorage.getItem('userId');
-                const response = await fetchWithTimeout(`/.netlify/functions/app/api/cards?userId=${encodeURIComponent(userId)})`);
-                const text = await response.text();
-                Debug.log(`Resposta /api/cards: Status ${response.status}`, { response: text });
-                let cards = JSON.parse(text);
-                if (!response.ok) throw new Error(cards.error || 'Erro ao carregar cartões');
-                cardsTableBody.innerHTML = cards.map(card => `
-                    <tr>
-                        <td class="px-4 py-2">${DOMPurify.sanitize(card._id)}</td>
-                        <td class="px-4 py-2">${DOMPurify.sanitize(card.numero)}</td>
-                        <td class="px-4 py-2">${DOMPurify.sanitize(card.bandeira)}</td>
-                        <td class="px-4 py-2">${DOMPurify.sanitize(card.banco)}</td>
-                        <td class="px-4 py-2">${DOMPurify.sanitize(card.nivel)}</td>
-                        <td class="px-4 py-2">${formatCurrency(card.price)}</td>
-                        <td class="px-4 py-2">${card.userId ? DOMPurify.sanitize(card.userId) : 'Nenhum'}</td>
-                        <td class="px-4 py-2">${formatDate(card.createdAt)}</td>
-                    </tr>
-                `).join('');
-            } catch (err) {
-                Debug.error('Erro ao carregar cartões', { error: err.message });
-                cardsTableBody.innerHTML = `<tr><td colspan="8" class="text-center text-red-500">Erro: ${DOMPurify.sanitize(err.message)}</td></tr>`;
-                showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                cardsTableLoader.classList.add('hidden');
-            }
-        }
-
-        async function loadCardPrices() {
-            Debug.log('Carregando preços');
-            const cardPricesLoader = document.getElementById('cardPricesLoader');
-            cardPricesLoader.classList.remove('hidden');
-            try {
-                const userId = localStorage.getItem('userId');
-                const response = await fetchWithTimeout(`/.netlify/functions/app/api/get-card-prices?userId=${encodeURIComponent(userId)})`);
-                const text = await response.text();
-                Debug.log(`Resposta /api/get-card-prices: Status ${response.status}`, { response: text });
-                let prices = JSON.parse(text);
-                if (!response.ok) throw new Error(prices.error || 'Erro ao carregar preços');
-                prices.forEach(price => {
-                    const input = document.getElementById(`price${price.nivel}`);
-                    if (input) input.value = price.price;
-                });
-            } catch (err) {
-                Debug.error('Erro ao carregar preços', { error: err.message });
-                showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                cardPricesLoader.classList.add('hidden');
-            }
-        }
-
-        async function saveCardPrices() {
-            Debug.log('Salvando preços');
-            const button = document.getElementById('savePricesButton');
-            const spinner = document.getElementById('savePricesSpinner');
-            const errorDiv = document.getElementById('cardPricesError');
+        async function login() {
+            Debug.log('Iniciando login');
+            const button = document.getElementById('loginButton');
+            const spinner = document.getElementById('loginSpinner');
+            const errorDiv = document.getElementById('loginError');
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
             button.disabled = true;
             spinner.classList.remove('hidden');
             errorDiv.classList.add('hidden');
+            if (!username || !password) {
+                Debug.error('Campos obrigatórios não preenchidos');
+                errorDiv.textContent = 'Preencha usuário e senha';
+                errorDiv.classList.remove('hidden');
+                button.disabled = false;
+                spinner.classList.add('hidden');
+                return;
+            }
             try {
-                const userId = localStorage.getItem('userId');
-                const prices = [
-                    { nivel: 'Classic', price: parseFloat(document.getElementById('priceClassic').value) },
-                    { nivel: 'Gold', price: parseFloat(document.getElementById('priceGold').value) },
-                    { nivel: 'Platinum', price: parseFloat(document.getElementById('pricePlatinum').value) },
-                    { nivel: 'Black', price: parseFloat(document.getElementById('priceBlack').value) }
-                ];
-                if (prices.some(p => isNaN(p.price) || p.price < 0)) throw new Error('Preços inválidos');
-                const response = await fetchWithTimeout(`/.netlify/functions/app/api/set-card-prices?userId=${encodeURIComponent(userId)}`, {
+                const response = await fetchWithTimeout('/.netlify/functions/app/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prices })
+                    body: JSON.stringify({ username, password })
                 });
                 const text = await response.text();
-                Debug.log(`Resposta /api/set-card-prices: Status ${response.status}`, { response: text });
-                let data = JSON.parse(text);
-                if (!response.ok) throw new Error(data.error || 'Erro ao salvar preços');
-                showNotification('Preços salvos com sucesso!');
-                await loadCards();
+                Debug.log(`Resposta /api/login: Status ${response.status}`, { response: text });
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch {
+                    throw new Error('Resposta inválida: formato não JSON');
+                }
+                if (!response.ok) throw new Error(data.error || 'Erro ao fazer login');
+                localStorage.setItem('userId', data.userId);
+                localStorage.setItem('username', data.username);
+                showNotification('Login realizado com sucesso!');
+                setTimeout(() => {
+                    window.location.href = data.is_admin ? 'dashboard.html' : 'shop.html';
+                }, 1000);
             } catch (err) {
-                Debug.error('Erro ao salvar preços', { error: err.message });
+                Debug.error('Erro ao fazer login:', { error: err.message });
                 errorDiv.textContent = err.message;
                 errorDiv.classList.remove('hidden');
                 showNotification(`Erro: ${err.message}`, true);
@@ -235,25 +134,110 @@
             }
         }
 
+        async function register() {
+            Debug.log('Iniciando registro');
+            const button = document.getElementById('registerButton');
+            const spinner = document.getElementById('registerSpinner');
+            const errorDiv = document.getElementById('registerError');
+            const username = document.getElementById('registerUsername').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            button.disabled = true;
+            spinner.classList.remove('hidden');
+            errorDiv.classList.add('hidden');
+            if (!username || !password) {
+                Debug.error('Campos obrigatórios não preenchidos');
+                errorDiv.textContent = 'Preencha usuário e senha';
+                errorDiv.classList.remove('hidden');
+                button.disabled = false;
+                spinner.classList.add('hidden');
+                return;
+            }
+            if (username.length < 3 || username.length > 20) {
+                Debug.error('Usuário inválido');
+                errorDiv.textContent = 'Usuário: 3-20 caracteres';
+                errorDiv.classList.remove('hidden');
+                button.disabled = false;
+                spinner.classList.add('hidden');
+                return;
+            }
+            if (password.length < 6) {
+                Debug.error('Senha inválida');
+                errorDiv.textContent = 'Senha: mínimo 6 caracteres';
+                errorDiv.classList.remove('hidden');
+                button.disabled = false;
+                spinner.classList.add('hidden');
+                return;
+            }
+            try {
+                const res = await fetchWithTimeout('/.netlify/functions/app/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const text = await res.text();
+                Debug.log(`Resposta /api/register: Status ${res.status}`, { response: text });
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch {
+                    throw new Error('Resposta inválida: formato não JSON');
+                }
+                if (!res.ok) throw new Error(data.error || 'Erro ao registrar');
+                showNotification('Registro realizado com sucesso! Faça login.');
+                toggleForm('login');
+            } catch (err) {
+                Debug.error('Erro ao registrar:', { error: err.message });
+                errorDiv.textContent = err.message;
+                errorDiv.classList.remove('hidden');
+                showNotification(`Erro: ${err.message}`, true);
+            } finally {
+                button.disabled = false;
+                spinner.classList.add('hidden');
+            }
+        }
+
+        function toggleForm(form) {
+            Debug.log(`Alternando para ${form}`);
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            if (form === 'register') {
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+                document.getElementById('loginUsername').value = '';
+                document.getElementById('loginPassword').value = '';
+                document.getElementById('loginError').classList.add('hidden');
+            } else {
+                registerForm.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+                document.getElementById('registerUsername').value = '';
+                document.getElementById('registerPassword').value = '';
+                document.getElementById('registerError').classList.add('hidden');
+            }
+        }
+
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(`eyeIcon${inputId === 'loginPassword' ? 'Login' : 'Register'}`);
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             Debug.log('DOM carregado');
             const debugDiv = document.getElementById('debug');
             debugDiv.style.display = 'none';
-            if (!localStorage.getItem('userId')) {
-                showNotification('Usuário não autenticado.', true);
-                setTimeout(() => { window.location.href = 'index.html'; }, 1000);
-                return;
-            }
             document.getElementById('toggleDebug').addEventListener('click', () => {
                 debugDiv.style.display = debugDiv.style.display === 'none' ? 'block' : 'none';
                 document.getElementById('toggleDebug').textContent = debugDiv.style.display === 'none' ? 'Mostrar Debug' : 'Esconder Debug';
-                Debug';
                 Debug.log(`Debug ${debugDiv.style.display === 'none' ? 'desativado' : 'ativado'}`);
             });
-            loadUserData();
-            loadUsers();
-            loadCards();
-            loadCardPrices();
         });
     </script>
 </body>

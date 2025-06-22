@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const serverless = require('serverless-http');
-const debug = require('debug')('app');
+const debug = require('debug')('app') || console.log;
 const bcrypt = require('bcryptjs');
 const { body, validationResult } = require('express-validator');
 const cors = require('cors');
@@ -27,7 +27,7 @@ const connectMongoDB = async () => {
     cachedConnection = await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 30000,
+      serverSelectionTimeoutMS: 60000,
       socketTimeoutMS: 180000
     });
     mongoConnected = true;
@@ -51,7 +51,7 @@ app.use(async (req, res, next) => {
 const UserSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  is_admin: { type: Boolean, default: false },
+  isAdmin: { type: Boolean, default: false },
   balance: { type: Number, default: 0 }
 }, { timestamps: true });
 UserSchema.index({ username: 1 });
@@ -82,6 +82,10 @@ const CardPriceSchema = new mongoose.Schema({
 }, { timestamps: true });
 const CardPrice = mongoose.model('CardPrice', CardPriceSchema);
 
+app.get('/api/test-endpoint', (req, res) => {
+  res.status(200).json({ message: 'Servidor funcionando', env: !!process.env.MONGODB_URI });
+});
+
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     mongoConnected,
@@ -101,7 +105,7 @@ app.post('/api/register', [
     const existingUser = await User.findOne({ username });
     if (existingUser) return res.status(400).json({ error: 'Usuário já existe' });
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ username, password: hashedPassword, is_admin: username === 'LVz' });
+    const user = new User({ username, password: hashedPassword, isAdmin: username === 'LVz' });
     await user.save();
     debug('Usuário registrado: %s', username);
     res.status(201).json({ username });
@@ -120,11 +124,11 @@ app.post('/api/login', [
   const { username, password } = req.body;
   try {
     const user = await User.findOne({ username });
-    if (!user) return res.status(401).json({ error: 'Usuário não encontrado' });
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ error: 'Senha incorreta' });
     debug('Login bem-sucedido: %s', username);
-    res.status(200).json({ userId: user._id, username: user.username, is_admin: user.is_admin });
+    res.status(200).json({ userId: user._id.toString(), username: user.username, is_admin: user.isAdmin });
   } catch (err) {
     debug('Erro ao logar: %s', err.message);
     res.status(500).json({ error: 'Falha no servidor' });
@@ -145,7 +149,7 @@ app.get('/api/user', async (req, res) => {
 app.get('/api/users', async (req, res) => {
   try {
     const user = await User.findById(req.query.userId);
-    if (!user || !user.is_admin) return res.status(403).json({ error: 'Acesso negado' });
+    if (!user || !user.isAdmin) return res.status(403).json({ error: 'Acesso negado' });
     const users = await User.find().select('-password');
     res.status(200).json(users);
   } catch (err) {
@@ -205,7 +209,7 @@ app.post('/api/set-card-prices', [
   const userId = req.query.userId;
   try {
     const user = await User.findById(userId);
-    if (!user || !user.is_admin) return res.status(403).json({ error: 'Acesso negado' });
+    if (!user || !user.isAdmin) return res.status(403).json({ error: 'Acesso negado' });
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
@@ -239,7 +243,7 @@ app.post('/api/set-card-prices', [
 app.get('/api/get-card-prices', async (req, res) => {
   try {
     const user = await User.findById(req.query.userId);
-    if (!user || !user.is_admin) return res.status(403).json({ error: 'Acesso negado' });
+    if (!user || !user.isAdmin) return res.status(403).json({ error: 'Acesso negado' });
     const prices = await CardPrice.find();
     res.status(200).json(prices);
   } catch (err) {

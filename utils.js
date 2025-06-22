@@ -43,21 +43,22 @@ async function logout() {
   Debug.log('Iniciando logout');
   try {
     const userId = localStorage.getItem('userId');
-    const res = await fetchWithTimeout('/.netlify/functions/app/api/logout', {
+    const response = await fetchWithTimeout('/.netlify/functions/app/api/logout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId })
     });
-    const text = await res.text();
+    const text = await response.text();
+    Debug.log(`Resposta /api/logout: Status ${response.status}`, { response: text });
     let data = JSON.parse(text);
-    if (!res.ok) throw new Error(data.error || 'Erro ao fazer logout');
+    if (!response.ok) throw new Error(data.error || 'Erro ao fazer logout');
     localStorage.clear();
     showNotification('Logout realizado com sucesso!');
-    setTimeout(() => window.location.href = 'Index.html', 1000);
+    setTimeout(() => { window.location.href = 'index.html'; }, 1000);
   } catch (err) {
     Debug.error('Erro ao fazer logout', { error: err.message });
     showNotification(`Erro: ${err.message}`, true);
     localStorage.clear();
-    setTimeout(() => window.location.href = 'Index.html', 1000);
+    setTimeout(() => { window.location.href = 'index.html'; }, 1000);
   }
 }

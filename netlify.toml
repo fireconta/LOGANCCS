@@ -1,3 +1,11 @@
+[build]
+  command = "npm install && npm run build"
+  publish = "."
+
+[functions]
+  node_bundler = "esbuild"
+  max_duration = 30
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/app/:splat"
@@ -8,14 +16,6 @@
   from = "/*"
   to = "/index.html"
   status = 200
-  conditions = { "Path": ["/index.html", "/dashboard.html", "/shop.html"] }
-
-[build]
-  command = "npm install"
-  publish = "."
-
-[functions]
-  external_node_modules = ["express", "mongoose", "serverless-http", "bcryptjs", "express-validator", "cors", "debug"]
 
 [[headers]]
   for = "/*"

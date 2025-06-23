@@ -42,6 +42,10 @@ const connectMongoDB = async () => {
       socketTimeoutMS: 180000
     });
     mongoConnected = true;
+    if (mongoose.connection.name !== 'loganccs') {
+      debug('[ERRO] Banco incorreto: %s (esperado: loganccs)', mongoose.connection.name);
+      throw new Error(`Banco incorreto: ${mongoose.connection.name}`);
+    }
     debug('[INFO] Conexão MongoDB OK (estado: %s, banco: %s)', mongoose.connection.readyState, mongoose.connection.name);
   } catch (err) {
     mongoConnected = false;
@@ -121,6 +125,53 @@ app.get('/api/health', (req, res) => {
     database: mongoose.connection.name,
     timestamp: new Date().toISOString()
   });
+});
+
+app.get('/api/test-all', async (req, res) => {
+  debug('[INFO] Endpoint /api/test-all');
+  const results = {};
+  try {
+    // Teste /api/health
+    results.health = await fetch(`${req.protocol}://${req.get('host')}/api/health`).then(r => r.json());
+    
+    // Teste /api/register (simula usuário temporário)
+    const tempUser = `test${Date.now()}`;
+    const registerRes = await fetch(`${req.protocol}://${req.get('host')}/api/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: tempUser, password: 'test123456' })
+    });
+    results.register = await registerRes.json();
+    
+    // Teste /api/login
+    const loginRes = await fetch(`${req.protocol}://${req.get('host')}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: tempUser, password: 'test123456' })
+    });
+    results.login = await loginRes.json();
+    
+    // Teste /api/user (usando userId do login)
+    const userRes = await fetch(`${req.protocol}://${req.get('host')}/api/user?userId=${results.login.userId}`);
+    results.user = await userRes.json();
+    
+    // Teste /api/cards
+    const cardsRes = await fetch(`${req.protocol}://${req.get('host')}/api/cards`);
+    results.cards = await cardsRes.json();
+    
+    // Teste /api/logout
+    const logoutRes = await fetch(`${req.protocol}://${req.get('host')}/api/logout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    results.logout = await logoutRes.json();
+    
+    debug('[INFO] Teste de APIs concluído: %O', results);
+    res.status(200).json({ message: 'Teste de APIs OK', results });
+  } catch (err) {
+    debug('[ERRO] Falha no teste de APIs: %s - %O', err.message, err);
+    res.status(500).json({ error: 'Erro no teste de APIs', details: err.message, results });
+  }
 });
 
 app.post('/api/register', [

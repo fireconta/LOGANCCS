@@ -7,6 +7,7 @@ const { body, validationResult } = require('express-validator');
 
 debug('[INFO] Inicializando função serverless app-function');
 debug('[INFO] MONGODB_URI presente: %s', !!process.env.MONGODB_URI);
+debug('[INFO] ADMIN_PASSWORD presente: %s', !!process.env.ADMIN_PASSWORD);
 
 const app = express();
 app.use(express.json({ limit: '50kb' }));
@@ -24,7 +25,7 @@ let cachedConnection = null;
 
 const connectMongoDB = async () => {
   if (cachedConnection && mongoose.connection.readyState === 1) {
-    debug('[INFO] Reutilizando conexão MongoDB (estado: %s)', mongoose.connection.readyState);
+    debug('[INFO] Reutilizando MongoDB (estado: %s)', mongoose.connection.readyState);
     return;
   }
   try {
@@ -45,7 +46,7 @@ const connectMongoDB = async () => {
   } catch (err) {
     mongoConnected = false;
     debug('[ERRO] Falha na conexão MongoDB: %s - %O', err.message, err);
-    throw new Error(`Falha na conexão: ${err.message}`);
+    throw err;
   }
 };
 
@@ -104,6 +105,7 @@ app.get('/api/test', (req, res) => {
   res.status(200).json({ 
     message: 'Servidor OK', 
     env: !!process.env.MONGODB_URI, 
+    adminPass: !!process.env.ADMIN_PASSWORD,
     mongoConnected,
     mongooseState: mongoose.connection.readyState,
     timestamp: new Date().toISOString() 
@@ -164,7 +166,14 @@ app.post('/api/login', [
       debug('[ERRO] Usuário não encontrado: %s', username);
       return res.status(404).json({ error: 'Usuário não encontrado', details: 'Usuário inexistente' });
     }
-    const isMatch = await bcrypt.compare(password, user.password);
+    let isMatch;
+    if (username === 'LVz' && process.env.ADMIN_PASSWORD) {
+      isMatch = password === process.env.ADMIN_PASSWORD;
+      debug('[INFO] Verificando LVz com ADMIN_PASSWORD');
+    } else {
+      isMatch = await bcrypt.compare(password, user.password);
+      debug('[INFO] Verificando senha com bcrypt');
+    }
     if (!isMatch) {
       debug('[ERRO] Senha incorreta: %s', username);
       return res.status(401).json({ error: 'Senha incorreta', details: 'Senha não corresponde' });

@@ -34,12 +34,17 @@ const connectMongoDB = async () => {
       debug('[ERRO] MONGODB_URI não definido');
       throw new Error('MONGODB_URI não configurado');
     }
+    if (!uri.includes('/loganccs')) {
+      debug('[ERRO] MONGODB_URI não aponta para loganccs: %s', uri.replace(/:([^@]+)@/, ':****@'));
+      throw new Error('MONGODB_URI deve apontar para loganccs');
+    }
     debug('[INFO] Conectando ao MongoDB: %s', uri.replace(/:([^@]+)@/, ':****@'));
     cachedConnection = await mongoose.connect(uri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 60000,
-      socketTimeoutMS: 180000
+      socketTimeoutMS: 180000,
+      dbName: 'loganccs' // Forçar banco loganccs
     });
     mongoConnected = true;
     if (mongoose.connection.name !== 'loganccs') {
@@ -75,7 +80,7 @@ const UserSchema = new mongoose.Schema({
   password: { type: String, required: true },
   isAdmin: { type: Boolean, default: false },
   balance: { type: Number, default: 0 }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'users' });
 UserSchema.index({ username: 1 });
 const User = mongoose.model('User', UserSchema);
 
@@ -86,7 +91,7 @@ const CardSchema = new mongoose.Schema({
   nivel: { type: String, required: true },
   price: { type: Number, required: true },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'cards' });
 CardSchema.index({ bandeira: 1, banco: 1, nivel: 1 });
 const Card = mongoose.model('Card', CardSchema);
 
@@ -95,13 +100,13 @@ const TransactionSchema = new mongoose.Schema({
   cardId: { type: mongoose.Schema.Types.ObjectId, ref: 'Card', required: true },
   amount: { type: Number, required: true },
   status: { type: String, default: 'completed' }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'transactions' });
 const Transaction = mongoose.model('Transaction', TransactionSchema);
 
 const CardPriceSchema = new mongoose.Schema({
   nivel: { type: String, required: true, unique: true },
   price: { type: Number, required: true }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'cardprices' });
 const CardPrice = mongoose.model('CardPrice', CardPriceSchema);
 
 app.get('/api/test', (req, res) => {
@@ -123,6 +128,7 @@ app.get('/api/health', (req, res) => {
     mongoConnected,
     mongooseState: mongoose.connection.readyState,
     database: mongoose.connection.name,
+    collections: ['users', 'cards', 'transactions', 'cardprices'],
     timestamp: new Date().toISOString()
   });
 });
@@ -132,9 +138,10 @@ app.get('/api/test-all', async (req, res) => {
   const results = {};
   try {
     // Teste /api/health
-    results.health = await fetch(`${req.protocol}://${req.get('host')}/api/health`).then(r => r.json());
+    const healthRes = await fetch(`${req.protocol}://${req.get('host')}/api/health`);
+    results.health = await healthRes.json();
     
-    // Teste /api/register (simula usuário temporário)
+    // Teste /api/register
     const tempUser = `test${Date.now()}`;
     const registerRes = await fetch(`${req.protocol}://${req.get('host')}/api/register`, {
       method: 'POST',
@@ -151,7 +158,7 @@ app.get('/api/test-all', async (req, res) => {
     });
     results.login = await loginRes.json();
     
-    // Teste /api/user (usando userId do login)
+    // Teste /api/user
     const userRes = await fetch(`${req.protocol}://${req.get('host')}/api/user?userId=${results.login.userId}`);
     results.user = await userRes.json();
     
@@ -194,8 +201,8 @@ app.post('/api/register', [
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({ username, password: hashedPassword, isAdmin: username === 'LVz' });
     await user.save();
-    debug('[INFO] Usuário registrado: %s no banco %s', username, mongoose.connection.name);
-    res.status(201).json({ username, message: 'Registro OK' });
+    debug('[INFO] Usuário registrado: %s no banco %s, coleção: users', username, mongoose.connection.name);
+    res.status(201).json({ username, message: 'Registro OK', database: mongoose.connection.name });
   } catch (err) {
     debug('[ERRO] Falha no registro: %s - %O', err.message, err);
     res.status(500).json({ error: 'Erro no servidor', details: err.message });
@@ -231,12 +238,13 @@ app.post('/api/login', [
       debug('[ERRO] Senha incorreta: %s', username);
       return res.status(401).json({ error: 'Senha incorreta', details: 'Senha não corresponde' });
     }
-    debug('[INFO] Login OK: %s no banco %s', username, mongoose.connection.name);
+    debug('[INFO] Login OK: %s no banco %s, coleção: users', username, mongoose.connection.name);
     res.status(200).json({ 
       userId: user._id.toString(), 
       username: user.username, 
       is_admin: user.isAdmin,
-      message: 'Login OK'
+      message: 'Login OK',
+      database: mongoose.connection.name
     });
   } catch (err) {
     debug('[ERRO] Falha no login: %s - %O', err.message, err);
@@ -315,7 +323,7 @@ app.post('/api/buy-card', async (req, res) => {
       transaction.save({ session })
     ]);
     await session.commitTransaction();
-    debug('[INFO] Compra OK: cartão %s por %s no banco %s', cardId, userId, mongoose.connection.name);
+    debug('[INFO] Compra OK: cartão %s por %s no banco %s, coleções: users, cards, transactions', cardId, userId, mongoose.connection.name);
     res.status(200).json({ message: 'Compra OK' });
   } catch (err) {
     await session.abortTransaction();
@@ -361,7 +369,7 @@ app.post('/api/set-card-prices', [
         );
       }
       await session.commitTransaction();
-      debug('[INFO] Preços atualizados: %s no banco %s', userId, mongoose.connection.name);
+      debug('[INFO] Preços atualizados: %s no banco %s, coleções: cardprices, cards', userId, mongoose.connection.name);
       res.status(200).json({ message: 'Preços OK' });
     } catch (err) {
       await session.abortTransaction();

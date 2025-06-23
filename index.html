@@ -1,237 +1,148 @@
 <!DOCTYPE html>
-   <html lang="pt-BR">
-   <head>
-       <meta charset="UTF-8">
-       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-       <title>LOGAN CC's - Login</title>
-       <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-       <style>
-           body { background: linear-gradient(135deg, #1a202c, #2d3748); }
-           .notification { transition: opacity 0.5s; }
-           #debugPanel { z-index: 1000; }
-       </style>
-   </head>
-   <body class="min-h-screen flex items-center justify-center text-gray-100">
-       <div class="w-full max-w-md p-8 bg-gray-800 rounded-lg shadow-lg">
-           <h1 class="text-3xl font-bold text-center mb-6">LOGAN CC's</h1>
-           <div id="loginForm" class="space-y-4">
-               <div>
-                   <label for="loginUsername" class="block text-sm font-medium">Usuário</label>
-                   <input id="loginUsername" type="text" class="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="username">
-               </div>
-               <div>
-                   <label for="loginPassword" class="block text-sm font-medium">Senha</label>
-                   <input id="loginPassword" type="password" class="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="current-password">
-               </div>
-               <button id="loginButton" onclick="login()" class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-md text-white font-medium flex items-center justify-center">
-                   <span>Entrar</span>
-                   <svg id="loginSpinner" class="animate-spin h-5 w-5 ml-2 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                   </svg>
-               </button>
-               <p id="loginError" class="text-red-500 text-sm hidden"></p>
-               <p class="text-center text-sm">Não tem conta? <a href="#" onclick="toggleForm()" class="text-blue-400 hover:underline">Registre-se</a></p>
-           </div>
-           <div id="registerForm" class="space-y-4 hidden">
-               <div>
-                   <label for="registerUsername" class="block text-sm font-medium">Usuário</label>
-                   <input id="registerUsername" type="text" class="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="username">
-               </div>
-               <div>
-                   <label for="registerPassword" class="block text-sm font-medium">Senha</label>
-                   <input id="registerPassword" type="password" class="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="new-password">
-               </div>
-               <button id="registerButton" onclick="register()" class="w-full py-2 px-4 bg-green-600 hover:bg-green-700 rounded-md text-white font-medium flex items-center justify-center">
-                   <span>Registrar</span>
-                   <svg id="registerSpinner" class="animate-spin h-5 w-5 ml-2 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                   </svg>
-               </button>
-               <p id="registerError" class="text-red-500 text-sm hidden"></p>
-               <p class="text-center text-sm">Já tem conta? <a href="#" onclick="toggleForm()" class="text-blue-400 hover:underline">Faça login</a></p>
-           </div>
-       </div>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LOGAN CC's</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="min-h-screen flex items-center justify-center text-gray-100 bg-gray-900">
+  <div class="w-full max-w-md p-8 bg-gray-800 rounded-lg shadow-lg">
+    <h1 class="text-3xl font-bold text-center mb-6">LOGAN CC's</h1>
+    <div id="login-form">
+      <h2 class="text-xl font-semibold mb-4">Login</h2>
+      <div class="mb-4">
+        <label for="login-username" class="block text-sm font-medium mb-1">Usuário</label>
+        <input id="login-username" type="text" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite seu usuário">
+      </div>
+      <div class="mb-6">
+        <label for="login-password" class="block text-sm font-medium mb-1">Senha</label>
+        <input id="login-password" type="password" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite sua senha">
+      </div>
+      <button onclick="login()" class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-md text-white mb-4">Entrar</button>
+      <p class="text-center text-sm">Não tem uma conta? <a href="#" onclick="showRegisterForm()" class="text-blue-400 hover:underline">Registre-se</a></p>
+    </div>
+    <div id="register-form" class="hidden">
+      <h2 class="text-xl font-semibold mb-4">Registro</h2>
+      <div class="mb-4">
+        <label for="register-username" class="block text-sm font-medium mb-1">Usuário</label>
+        <input id="register-username" type="text" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Escolha um usuário">
+      </div>
+      <div class="mb-6">
+        <label for="register-password" class="block text-sm font-medium mb-1">Senha</label>
+        <input id="register-password" type="password" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Escolha uma senha">
+      </div>
+      <button onclick="register()" class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-md text-white mb-4">Registrar</button>
+      <p class="text-center text-sm">Já tem uma conta? <a href="#" onclick="showLoginForm()" class="text-blue-400 hover:underline">Faça login</a></p>
+    </div>
+  </div>
+  <div id="debug-panel" class="fixed bottom-4 right-4 bg-gray-800 text-white p-4 rounded-lg shadow-lg max-h-96 overflow-y-auto hidden">
+    <h3 class="text-lg font-bold mb-2">Debug</h3>
+    <div id="debug-logs"></div>
+    <button onclick="Debug.clear()" class="mt-2 py-1 px-2 bg-red-600 hover:bg-red-700 rounded-md text-sm">Limpar</button>
+  </div>
+  <script src="/utils.js"></script>
+  <script src="/debug.js"></script>
+  <script>
+    function showRegisterForm() {
+      document.getElementById('login-form').classList.add('hidden');
+      document.getElementById('register-form').classList.remove('hidden');
+    }
 
-       <div id="notification" class="fixed top-4 right-4 p-4 rounded-md text-white hidden"></div>
-       <div id="debugPanel" class="fixed bottom-4 left-4 right-4 bg-gray-900 p-4 rounded-md hidden max-h-96 overflow-y-auto text-sm">
-           <div class="flex justify-between">
-               <h2 class="font-bold">Painel de Debug</h2>
-               <button onclick="Debug.toggle()" class="text-red-400 hover:underline">Fechar</button>
-           </div>
-           <pre id="debugOutput" class="mt-2 text-gray-300"></pre>
-       </div>
-       <button id="debugToggleButton" onclick="Debug.toggle()" class="fixed bottom-4 right-4 bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">Mostrar Debug</button>
+    function showLoginForm() {
+      document.getElementById('register-form').classList.add('hidden');
+      document.getElementById('login-form').classList.remove('hidden');
+    }
 
-       <script src="/utils.js"></script>
-       <script src="/debug.js"></script>
-       <script>
-           function toggleForm() {
-               const loginForm = document.getElementById('loginForm');
-               const registerForm = document.getElementById('registerForm');
-               loginForm.classList.toggle('hidden');
-               registerForm.classList.toggle('hidden');
-               document.getElementById('loginError').classList.add('hidden');
-               document.getElementById('registerError').classList.add('hidden');
-           }
+    async function register() {
+      const username = document.getElementById('register-username').value;
+      const password = document.getElementById('register-password').value;
+      Debug.log('[INFO] Iniciando registro: %s', username);
+      try {
+        const response = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          Debug.error('[ERRO] Falha no registro: %s', data.error);
+          alert(data.error);
+          return;
+        }
+        Debug.log('[INFO] Registro OK: %s no banco %s', data.username, data.database || 'desconhecido');
+        alert('Registro bem-sucedido! Faça login.');
+        showLoginForm();
+      } catch (err) {
+        Debug.error('[ERRO] Erro na requisição de registro: %s', err.message);
+        alert('Erro ao registrar. Veja os logs de debug.');
+      }
+    }
 
-           async function login() {
-               Debug.log('[INFO] Iniciando login');
-               console.log('[INFO] Iniciando login');
-               const button = document.getElementById('loginButton');
-               const spinner = document.getElementById('loginSpinner');
-               const errorDiv = document.getElementById('loginError');
-               const username = document.getElementById('loginUsername').value.trim();
-               const password = document.getElementById('loginPassword').value;
-               button.disabled = true;
-               spinner.classList.remove('hidden');
-               errorDiv.classList.add('hidden');
-               if (!username || !password) {
-                   Debug.error('[ERRO] Campos vazios: usuário ou senha');
-                   console.error('[ERRO] Campos vazios');
-                   errorDiv.textContent = 'Preencha usuário e senha';
-                   errorDiv.classList.remove('hidden');
-                   button.disabled = false;
-                   spinner.classList.add('hidden');
-                   return;
-               }
-               try {
-                   Debug.log('[INFO] Enviando OPTIONS para /api/login');
-                   console.log('[INFO] Enviando OPTIONS');
-                   await fetchWithTimeout('/api/login', {
-                       method: 'OPTIONS',
-                       headers: { 'Content-Type': 'application/json' }
-                   }).catch(err => {
-                       Debug.warn('[AVISO] OPTIONS falhou: %s', err.message);
-                       console.warn('[AVISO] OPTIONS falhou:', err.message);
-                   });
+    async function login() {
+      const username = document.getElementById('login-username').value;
+      const password = document.getElementById('login-password').value;
+      Debug.log('[INFO] Iniciando login: %s', username);
+      try {
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          Debug.error('[ERRO] Falha no login: %s', data.error);
+          alert(data.error);
+          return;
+        }
+        Debug.log('[INFO] Login OK: %s', data.username);
+        localStorage.setItem('userId', data.userId);
+        localStorage.setItem('username', data.username);
+        const redirect = data.is_admin ? '/dashboard.html' : '/shop.html';
+        Debug.log('[INFO] Redirecionando para %s', redirect);
+        window.location.href = redirect;
+      } catch (err) {
+        Debug.error('[ERRO] Erro na requisição de login: %s', err.message);
+        alert('Erro ao logar. Veja os logs de debug.');
+      }
+    }
 
-                   Debug.log('[INFO] POST /api/login:', { username });
-                   console.log('[INFO] POST /api/login:', { username });
-                   const response = await fetchWithTimeout('/api/login', {
-                       method: 'POST',
-                       headers: { 'Content-Type': 'application/json' },
-                       body: JSON.stringify({ username, password })
-                   });
-                   const headers = Object.fromEntries(response.headers.entries());
-                   const text = await response.text();
-                   Debug.log(`[INFO] Resposta /api/login: Status ${response.status}`, { headers, response: text });
-                   console.log(`[INFO] Resposta /api/login: Status ${response.status}`, { headers });
-                   let data;
-                   try {
-                       data = JSON.parse(text);
-                   } catch (e) {
-                       Debug.error('[ERRO] Falha no parse JSON:', { response: text, error: e.message });
-                       console.error('[ERRO] Falha no parse JSON:', e.message);
-                       throw new Error(`Resposta inválida: não JSON - ${text.substring(0, 100)}...`);
-                   }
-                   if (!response.ok) {
-                       Debug.error('[ERRO] Status não OK:', { status: response.status, data });
-                       console.error('[ERRO] Status não OK:', response.status);
-                       throw new Error(data.error || `Erro no login (Status ${response.status})`);
-                   }
-                   localStorage.setItem('userId', data.userId);
-                   localStorage.setItem('username', data.username);
-                   Debug.log('[INFO] Login OK, redirecionando:', data.is_admin ? 'dashboard.html' : 'shop.html');
-                   console.log('[INFO] Login OK');
-                   showNotification('Login OK!');
-                   setTimeout(() => {
-                       window.location.href = data.is_admin ? 'dashboard.html' : 'shop.html';
-                   }, 1000);
-               } catch (err) {
-                   Debug.error('[ERRO] Falha no login:', { error: err.message });
-                   console.error('[ERRO] Falha no login:', err.message);
-                   errorDiv.textContent = err.message;
-                   errorDiv.classList.remove('hidden');
-                   showNotification(`Erro: ${err.message}`, true);
-               } finally {
-                   button.disabled = false;
-                   spinner.classList.add('hidden');
-               }
-           }
+    async function checkSystem() {
+      Debug.log('[INFO] Verificando status do sistema');
+      try {
+        // Verificar MongoDB e banco loganccs
+        const healthRes = await fetch('/api/health');
+        const healthData = await healthRes.json();
+        if (healthRes.ok && healthData.mongoConnected && healthData.database === 'loganccs') {
+          Debug.log('✅ MongoDB conectado, banco: %s', healthData.database);
+        } else {
+          Debug.error('❌ MongoDB desconectado ou banco errado: %s', healthData.database || 'desconhecido');
+        }
+        
+        // Verificar todas as APIs
+        const testAllRes = await fetch('/api/test-all');
+        const testAllData = await testAllRes.json();
+        if (testAllRes.ok) {
+          Debug.log('✅ Teste de APIs OK');
+          Object.entries(testAllData.results).forEach(([api, result]) => {
+            if (result.message && result.message.includes('OK')) {
+              Debug.log('  ✅ %s: OK', api);
+            } else {
+              Debug.error('  ❌ %s: %s', api, result.error || 'Falhou');
+            }
+          });
+        } else {
+          Debug.error('❌ Falha no teste de APIs: %s', testAllData.error);
+        }
+      } catch (err) {
+        Debug.error('[ERRO] Erro na verificação do sistema: %s', err.message);
+      }
+    }
 
-           async function register() {
-               Debug.log('[INFO] Iniciando registro');
-               console.log('[INFO] Iniciando registro');
-               const button = document.getElementById('registerButton');
-               const spinner = document.getElementById('registerSpinner');
-               const errorDiv = document.getElementById('registerError');
-               const username = document.getElementById('registerUsername').value.trim();
-               const password = document.getElementById('registerPassword').value;
-               button.disabled = true;
-               spinner.classList.remove('hidden');
-               errorDiv.classList.add('hidden');
-               if (!username || !password) {
-                   Debug.error('[ERRO] Campos vazios: usuário ou senha');
-                   console.error('[ERRO] Campos vazios');
-                   errorDiv.textContent = 'Preencha usuário e senha';
-                   errorDiv.classList.remove('hidden');
-                   button.disabled = false;
-                   spinner.classList.add('hidden');
-                   return;
-               }
-               try {
-                   Debug.log('[INFO] POST /api/register:', { username });
-                   console.log('[INFO] POST /api/register:', { username });
-                   const response = await fetchWithTimeout('/api/register', {
-                       method: 'POST',
-                       headers: { 'Content-Type': 'application/json' },
-                       body: JSON.stringify({ username, password })
-                   });
-                   const text = await response.text();
-                   let data;
-                   try {
-                       data = JSON.parse(text);
-                   } catch (e) {
-                       Debug.error('[ERRO] Falha no parse JSON:', { response: text, error: e.message });
-                       console.error('[ERRO] Falha no parse JSON:', e.message);
-                       throw new Error(`Resposta inválida: não JSON - ${text.substring(0, 100)}...`);
-                   }
-                   if (!response.ok) {
-                       Debug.error('[ERRO] Status não OK:', { status: response.status, data });
-                       console.error('[ERRO] Status não OK:', response.status);
-                       throw new Error(data.error || `Erro no registro (Status ${response.status})`);
-                   }
-                   Debug.log('[INFO] Registro OK:', data.username);
-                   console.log('[INFO] Registro OK');
-                   showNotification('Registro OK!');
-                   setTimeout(toggleForm, 1000);
-               } catch (err) {
-                   Debug.error('[ERRO] Falha no registro:', { error: err.message });
-                   console.error('[ERRO] Falha no registro:', err.message);
-                   errorDiv.textContent = err.message;
-                   errorDiv.classList.remove('hidden');
-                   showNotification(`Erro: ${err.message}`, true);
-               } finally {
-                   button.disabled = false;
-                   spinner.classList.add('hidden');
-               }
-           }
-
-           function showNotification(message, isError = false) {
-               Debug.log(`[INFO] Notificação: ${message}`, { isError });
-               console.log(`[INFO] Notificação: ${message}`);
-               const notification = document.getElementById('notification');
-               notification.textContent = message;
-               notification.classList.remove('hidden', 'bg-green-600', 'bg-red-600');
-               notification.classList.add(isError ? 'bg-red-600' : 'bg-green-600');
-               setTimeout(() => {
-                   notification.classList.add('hidden');
-               }, 3000);
-           }
-
-           document.addEventListener('DOMContentLoaded', () => {
-               try {
-                   Debug.log('[INFO] Página carregada');
-                   console.log('[INFO] Página carregada');
-                   const debugPanel = document.getElementById('debugPanel');
-                   if (!debugPanel) throw new Error('debugPanel não encontrado');
-                   debugPanel.classList.add('hidden');
-               } catch (err) {
-                   console.error('[ERRO] Falha no debug:', err.message);
-               }
-           });
-       </script>
-   </body>
-   </html>
+    document.addEventListener('DOMContentLoaded', () => {
+      Debug.log('[INFO] Página index carregada');
+      checkSystem();
+    });
+  </script>
+</body>
+</html>

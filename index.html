@@ -1,238 +1,237 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOGAN CC's - Login</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <style>
-        body { background: linear-gradient(135deg, #1a202c, #2d3748); }
-        .notification { transition: opacity 0.5s; }
-        #debugPanel { z-index: 1000; }
-    </style>
-</head>
-<body class="min-h-screen flex items-center justify-center text-gray-100">
-    <div class="w-full max-w-md p-8 bg-gray-800 rounded-lg shadow-lg">
-        <h1 class="text-3xl font-bold text-center mb-6">LOGAN CC's</h1>
-        <div id="loginForm" class="space-y-4">
-            <div>
-                <label for="loginUsername" class="block text-sm font-medium">Usuário</label>
-                <input id="loginUsername" type="text" class="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="username">
-            </div>
-            <div>
-                <label for="loginPassword" class="block text-sm font-medium">Senha</label>
-                <input id="loginPassword" type="password" class="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="current-password">
-            </div>
-            <button id="loginButton" onclick="login()" class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-md text-white font-medium flex items-center justify-center">
-                <span>Entrar</span>
-                <svg id="loginSpinner" class="animate-spin h-5 w-5 ml-2 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                </svg>
-            </button>
-            <p id="loginError" class="text-red-500 text-sm hidden"></p>
-            <p class="text-center text-sm">Não tem conta? <a href="#" onclick="toggleForm()" class="text-blue-400 hover:underline">Registre-se</a></p>
-        </div>
-        <div id="registerForm" class="space-y-4 hidden">
-            <div>
-                <label for="registerUsername" class="block text-sm font-medium">Usuário</label>
-                <input id="registerUsername" type="text" class="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="username">
-            </div>
-            <div>
-                <label for="registerPassword" class="block text-sm font-medium">Senha</label>
-                <input id="registerPassword" type="password" class="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="new-password">
-            </div>
-            <button id="registerButton" onclick="register()" class="w-full py-2 px-4 bg-green-600 hover:bg-green-700 rounded-md text-white font-medium flex items-center justify-center">
-                <span>Registrar</span>
-                <svg id="registerSpinner" class="animate-spin h-5 w-5 ml-2 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                </svg>
-            </button>
-            <p id="registerError" class="text-red-500 text-sm hidden"></p>
-            <p class="text-center text-sm">Já tem conta? <a href="#" onclick="toggleForm()" class="text-blue-400 hover:underline">Faça login</a></p>
-        </div>
-    </div>
+   <html lang="pt-BR">
+   <head>
+       <meta charset="UTF-8">
+       <meta name="viewport" content="width=device-width, initial-scale=1.0">
+       <title>LOGAN CC's - Login</title>
+       <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+       <style>
+           body { background: linear-gradient(135deg, #1a202c, #2d3748); }
+           .notification { transition: opacity 0.5s; }
+           #debugPanel { z-index: 1000; }
+       </style>
+   </head>
+   <body class="min-h-screen flex items-center justify-center text-gray-100">
+       <div class="w-full max-w-md p-8 bg-gray-800 rounded-lg shadow-lg">
+           <h1 class="text-3xl font-bold text-center mb-6">LOGAN CC's</h1>
+           <div id="loginForm" class="space-y-4">
+               <div>
+                   <label for="loginUsername" class="block text-sm font-medium">Usuário</label>
+                   <input id="loginUsername" type="text" class="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="username">
+               </div>
+               <div>
+                   <label for="loginPassword" class="block text-sm font-medium">Senha</label>
+                   <input id="loginPassword" type="password" class="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="current-password">
+               </div>
+               <button id="loginButton" onclick="login()" class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-md text-white font-medium flex items-center justify-center">
+                   <span>Entrar</span>
+                   <svg id="loginSpinner" class="animate-spin h-5 w-5 ml-2 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                   </svg>
+               </button>
+               <p id="loginError" class="text-red-500 text-sm hidden"></p>
+               <p class="text-center text-sm">Não tem conta? <a href="#" onclick="toggleForm()" class="text-blue-400 hover:underline">Registre-se</a></p>
+           </div>
+           <div id="registerForm" class="space-y-4 hidden">
+               <div>
+                   <label for="registerUsername" class="block text-sm font-medium">Usuário</label>
+                   <input id="registerUsername" type="text" class="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="username">
+               </div>
+               <div>
+                   <label for="registerPassword" class="block text-sm font-medium">Senha</label>
+                   <input id="registerPassword" type="password" class="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="new-password">
+               </div>
+               <button id="registerButton" onclick="register()" class="w-full py-2 px-4 bg-green-600 hover:bg-green-700 rounded-md text-white font-medium flex items-center justify-center">
+                   <span>Registrar</span>
+                   <svg id="registerSpinner" class="animate-spin h-5 w-5 ml-2 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                   </svg>
+               </button>
+               <p id="registerError" class="text-red-500 text-sm hidden"></p>
+               <p class="text-center text-sm">Já tem conta? <a href="#" onclick="toggleForm()" class="text-blue-400 hover:underline">Faça login</a></p>
+           </div>
+       </div>
 
-    <div id="notification" class="fixed top-4 right-4 p-4 rounded-md text-white hidden"></div>
-    <div id="debugPanel" class="fixed bottom-4 left-4 right-4 bg-gray-900 p-4 rounded-md hidden max-h-96 overflow-y-auto text-sm">
-        <div class="flex justify-between">
-            <h2 class="font-bold">Painel de Debug</h2>
-            <button onclick="Debug.toggle()" class="text-red-400 hover:underline">Fechar</button>
-        </div>
-        <pre id="debugOutput" class="mt-2 text-gray-300"></pre>
-    </div>
-    <button id="debugToggleButton" onclick="Debug.toggle()" class="fixed bottom-4 right-4 bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">Mostrar Debug</button>
+       <div id="notification" class="fixed top-4 right-4 p-4 rounded-md text-white hidden"></div>
+       <div id="debugPanel" class="fixed bottom-4 left-4 right-4 bg-gray-900 p-4 rounded-md hidden max-h-96 overflow-y-auto text-sm">
+           <div class="flex justify-between">
+               <h2 class="font-bold">Painel de Debug</h2>
+               <button onclick="Debug.toggle()" class="text-red-400 hover:underline">Fechar</button>
+           </div>
+           <pre id="debugOutput" class="mt-2 text-gray-300"></pre>
+       </div>
+       <button id="debugToggleButton" onclick="Debug.toggle()" class="fixed bottom-4 right-4 bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">Mostrar Debug</button>
 
-    <script src="/utils.js"></script>
-    <script src="/debug.js"></script>
-    <script>
-        function toggleForm() {
-            const loginForm = document.getElementById('loginForm');
-            const registerForm = document.getElementById('registerForm');
-            loginForm.classList.toggle('hidden');
-            registerForm.classList.toggle('hidden');
-            document.getElementById('loginError').classList.add('hidden');
-            document.getElementById('registerError').classList.add('hidden');
-        }
+       <script src="/utils.js"></script>
+       <script src="/debug.js"></script>
+       <script>
+           function toggleForm() {
+               const loginForm = document.getElementById('loginForm');
+               const registerForm = document.getElementById('registerForm');
+               loginForm.classList.toggle('hidden');
+               registerForm.classList.toggle('hidden');
+               document.getElementById('loginError').classList.add('hidden');
+               document.getElementById('registerError').classList.add('hidden');
+           }
 
-        async function login() {
-            Debug.log('[INFO] Iniciando tentativa de login');
-            console.log('[INFO] Iniciando tentativa de login'); // Fallback console
-            const button = document.getElementById('loginButton');
-            const spinner = document.getElementById('loginSpinner');
-            const errorDiv = document.getElementById('loginError');
-            const username = document.getElementById('loginUsername').value.trim();
-            const password = document.getElementById('loginPassword').value;
-            button.disabled = true;
-            spinner.classList.remove('hidden');
-            errorDiv.classList.add('hidden');
-            if (!username || !password) {
-                Debug.error('[ERRO] Campos obrigatórios não preenchidos: usuário ou senha vazios');
-                console.error('[ERRO] Campos obrigatórios não preenchidos');
-                errorDiv.textContent = 'Preencha usuário e senha';
-                errorDiv.classList.remove('hidden');
-                button.disabled = false;
-                spinner.classList.add('hidden');
-                return;
-            }
-            try {
-                Debug.log('[INFO] Enviando requisição OPTIONS para /api/login');
-                console.log('[INFO] Enviando requisição OPTIONS');
-                await fetchWithTimeout('/.netlify/functions/app/api/login', {
-                    method: 'OPTIONS',
-                    headers: { 'Content-Type': 'application/json' }
-                }).catch(err => {
-                    Debug.warn('[AVISO] Requisição OPTIONS falhou: %s', err.message);
-                    console.warn('[AVISO] Requisição OPTIONS falhou:', err.message);
-                });
+           async function login() {
+               Debug.log('[INFO] Iniciando login');
+               console.log('[INFO] Iniciando login');
+               const button = document.getElementById('loginButton');
+               const spinner = document.getElementById('loginSpinner');
+               const errorDiv = document.getElementById('loginError');
+               const username = document.getElementById('loginUsername').value.trim();
+               const password = document.getElementById('loginPassword').value;
+               button.disabled = true;
+               spinner.classList.remove('hidden');
+               errorDiv.classList.add('hidden');
+               if (!username || !password) {
+                   Debug.error('[ERRO] Campos vazios: usuário ou senha');
+                   console.error('[ERRO] Campos vazios');
+                   errorDiv.textContent = 'Preencha usuário e senha';
+                   errorDiv.classList.remove('hidden');
+                   button.disabled = false;
+                   spinner.classList.add('hidden');
+                   return;
+               }
+               try {
+                   Debug.log('[INFO] Enviando OPTIONS para /api/login');
+                   console.log('[INFO] Enviando OPTIONS');
+                   await fetchWithTimeout('/api/login', {
+                       method: 'OPTIONS',
+                       headers: { 'Content-Type': 'application/json' }
+                   }).catch(err => {
+                       Debug.warn('[AVISO] OPTIONS falhou: %s', err.message);
+                       console.warn('[AVISO] OPTIONS falhou:', err.message);
+                   });
 
-                Debug.log('[INFO] Enviando POST para /api/login com body:', { username, password });
-                console.log('[INFO] Enviando POST para /api/login:', { username });
-                const response = await fetchWithTimeout('/.netlify/functions/app/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-                const headers = Object.fromEntries(response.headers.entries());
-                const text = await response.text();
-                Debug.log(`[INFO] Resposta recebida de /api/login: Status ${response.status}`, { headers, response: text });
-                console.log(`[INFO] Resposta /api/login: Status ${response.status}`, { headers });
-                let data;
-                try {
-                    data = JSON.parse(text);
-                } catch (e) {
-                    Debug.error('[ERRO] Falha ao parsear resposta como JSON:', { response: text, error: e.message });
-                    console.error('[ERRO] Falha ao parsear JSON:', e.message);
-                    throw new Error(`Resposta inválida: formato não JSON - ${text.substring(0, 100)}...`);
-                }
-                if (!response.ok) {
-                    Debug.error('[ERRO] Resposta com status não OK:', { status: response.status, data });
-                    console.error('[ERRO] Status não OK:', response.status);
-                    throw new Error(data.error || `Erro ao fazer login (Status ${response.status})`);
-                }
-                localStorage.setItem('userId', data.userId);
-                localStorage.setItem('username', data.username);
-                Debug.log('[INFO] Login bem-sucedido, redirecionando para:', data.is_admin ? 'dashboard.html' : 'shop.html');
-                console.log('[INFO] Login bem-sucedido');
-                showNotification('Login realizado com sucesso!');
-                setTimeout(() => {
-                    window.location.href = data.is_admin ? 'dashboard.html' : 'shop.html';
-                }, 1000);
-            } catch (err) {
-                Debug.error('[ERRO] Falha ao fazer login:', { error: err.message });
-                console.error('[ERRO] Falha ao fazer login:', err.message);
-                errorDiv.textContent = err.message;
-                errorDiv.classList.remove('hidden');
-                showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                button.disabled = false;
-                spinner.classList.add('hidden');
-            }
-        }
+                   Debug.log('[INFO] POST /api/login:', { username });
+                   console.log('[INFO] POST /api/login:', { username });
+                   const response = await fetchWithTimeout('/api/login', {
+                       method: 'POST',
+                       headers: { 'Content-Type': 'application/json' },
+                       body: JSON.stringify({ username, password })
+                   });
+                   const headers = Object.fromEntries(response.headers.entries());
+                   const text = await response.text();
+                   Debug.log(`[INFO] Resposta /api/login: Status ${response.status}`, { headers, response: text });
+                   console.log(`[INFO] Resposta /api/login: Status ${response.status}`, { headers });
+                   let data;
+                   try {
+                       data = JSON.parse(text);
+                   } catch (e) {
+                       Debug.error('[ERRO] Falha no parse JSON:', { response: text, error: e.message });
+                       console.error('[ERRO] Falha no parse JSON:', e.message);
+                       throw new Error(`Resposta inválida: não JSON - ${text.substring(0, 100)}...`);
+                   }
+                   if (!response.ok) {
+                       Debug.error('[ERRO] Status não OK:', { status: response.status, data });
+                       console.error('[ERRO] Status não OK:', response.status);
+                       throw new Error(data.error || `Erro no login (Status ${response.status})`);
+                   }
+                   localStorage.setItem('userId', data.userId);
+                   localStorage.setItem('username', data.username);
+                   Debug.log('[INFO] Login OK, redirecionando:', data.is_admin ? 'dashboard.html' : 'shop.html');
+                   console.log('[INFO] Login OK');
+                   showNotification('Login OK!');
+                   setTimeout(() => {
+                       window.location.href = data.is_admin ? 'dashboard.html' : 'shop.html';
+                   }, 1000);
+               } catch (err) {
+                   Debug.error('[ERRO] Falha no login:', { error: err.message });
+                   console.error('[ERRO] Falha no login:', err.message);
+                   errorDiv.textContent = err.message;
+                   errorDiv.classList.remove('hidden');
+                   showNotification(`Erro: ${err.message}`, true);
+               } finally {
+                   button.disabled = false;
+                   spinner.classList.add('hidden');
+               }
+           }
 
-        async function register() {
-            Debug.log('[INFO] Iniciando tentativa de registro');
-            console.log('[INFO] Iniciando tentativa de registro');
-            const button = document.getElementById('registerButton');
-            const spinner = document.getElementById('registerSpinner');
-            const errorDiv = document.getElementById('registerError');
-            const username = document.getElementById('registerUsername').value.trim();
-            const password = document.getElementById('registerPassword').value;
-            button.disabled = true;
-            spinner.classList.remove('hidden');
-            errorDiv.classList.add('hidden');
-            if (!username || !password) {
-                Debug.error('[ERRO] Campos obrigatórios não preenchidos: usuário ou senha vazios');
-                console.error('[ERRO] Campos obrigatórios não preenchidos');
-                errorDiv.textContent = 'Preencha usuário e senha';
-                errorDiv.classList.remove('hidden');
-                button.disabled = false;
-                spinner.classList.add('hidden');
-                return;
-            }
-            try {
-                Debug.log('[INFO] Enviando POST para /api/register com body:', { username, password });
-                console.log('[INFO] Enviando POST para /api/register:', { username });
-                const response = await fetchWithTimeout('/.netlify/functions/app/api/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-                const text = await response.text();
-                let data;
-                try {
-                    data = JSON.parse(text);
-                } catch (e) {
-                    Debug.error('[ERRO] Falha ao parsear resposta como JSON:', { response: text, error: e.message });
-                    console.error('[ERRO] Falha ao parsear JSON:', e.message);
-                    throw new Error(`Resposta inválida: formato não JSON - ${text.substring(0, 100)}...`);
-                }
-                if (!response.ok) {
-                    Debug.error('[ERRO] Resposta com status não OK:', { status: response.status, data });
-                    console.error('[ERRO] Status não OK:', response.status);
-                    throw new Error(data.error || `Erro ao registrar (Status ${response.status})`);
-                }
-                Debug.log('[INFO] Registro bem-sucedido para usuário:', data.username);
-                console.log('[INFO] Registro bem-sucedido');
-                showNotification('Registro realizado com sucesso!');
-                setTimeout(toggleForm, 1000);
-            } catch (err) {
-                Debug.error('[ERRO] Falha ao registrar:', { error: err.message });
-                console.error('[ERRO] Falha ao registrar:', err.message);
-                errorDiv.textContent = err.message;
-                errorDiv.classList.remove('hidden');
-                showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                button.disabled = false;
-                spinner.classList.add('hidden');
-            }
-        }
+           async function register() {
+               Debug.log('[INFO] Iniciando registro');
+               console.log('[INFO] Iniciando registro');
+               const button = document.getElementById('registerButton');
+               const spinner = document.getElementById('registerSpinner');
+               const errorDiv = document.getElementById('registerError');
+               const username = document.getElementById('registerUsername').value.trim();
+               const password = document.getElementById('registerPassword').value;
+               button.disabled = true;
+               spinner.classList.remove('hidden');
+               errorDiv.classList.add('hidden');
+               if (!username || !password) {
+                   Debug.error('[ERRO] Campos vazios: usuário ou senha');
+                   console.error('[ERRO] Campos vazios');
+                   errorDiv.textContent = 'Preencha usuário e senha';
+                   errorDiv.classList.remove('hidden');
+                   button.disabled = false;
+                   spinner.classList.add('hidden');
+                   return;
+               }
+               try {
+                   Debug.log('[INFO] POST /api/register:', { username });
+                   console.log('[INFO] POST /api/register:', { username });
+                   const response = await fetchWithTimeout('/api/register', {
+                       method: 'POST',
+                       headers: { 'Content-Type': 'application/json' },
+                       body: JSON.stringify({ username, password })
+                   });
+                   const text = await response.text();
+                   let data;
+                   try {
+                       data = JSON.parse(text);
+                   } catch (e) {
+                       Debug.error('[ERRO] Falha no parse JSON:', { response: text, error: e.message });
+                       console.error('[ERRO] Falha no parse JSON:', e.message);
+                       throw new Error(`Resposta inválida: não JSON - ${text.substring(0, 100)}...`);
+                   }
+                   if (!response.ok) {
+                       Debug.error('[ERRO] Status não OK:', { status: response.status, data });
+                       console.error('[ERRO] Status não OK:', response.status);
+                       throw new Error(data.error || `Erro no registro (Status ${response.status})`);
+                   }
+                   Debug.log('[INFO] Registro OK:', data.username);
+                   console.log('[INFO] Registro OK');
+                   showNotification('Registro OK!');
+                   setTimeout(toggleForm, 1000);
+               } catch (err) {
+                   Debug.error('[ERRO] Falha no registro:', { error: err.message });
+                   console.error('[ERRO] Falha no registro:', err.message);
+                   errorDiv.textContent = err.message;
+                   errorDiv.classList.remove('hidden');
+                   showNotification(`Erro: ${err.message}`, true);
+               } finally {
+                   button.disabled = false;
+                   spinner.classList.add('hidden');
+               }
+           }
 
-        function showNotification(message, isError = false) {
-            Debug.log(`[INFO] Exibindo notificação: ${message}`, { isError });
-            console.log(`[INFO] Notificação: ${message}`);
-            const notification = document.getElementById('notification');
-            notification.textContent = message;
-            notification.classList.remove('hidden', 'bg-green-600', 'bg-red-600');
-            notification.classList.add(isError ? 'bg-red-600' : 'bg-green-600');
-            setTimeout(() => {
-                notification.classList.add('hidden');
-            }, 3000);
-        }
+           function showNotification(message, isError = false) {
+               Debug.log(`[INFO] Notificação: ${message}`, { isError });
+               console.log(`[INFO] Notificação: ${message}`);
+               const notification = document.getElementById('notification');
+               notification.textContent = message;
+               notification.classList.remove('hidden', 'bg-green-600', 'bg-red-600');
+               notification.classList.add(isError ? 'bg-red-600' : 'bg-green-600');
+               setTimeout(() => {
+                   notification.classList.add('hidden');
+               }, 3000);
+           }
 
-        // Inicializar painel de debug
-        document.addEventListener('DOMContentLoaded', () => {
-            try {
-                Debug.log('[INFO] Página carregada, inicializando painel de debug');
-                console.log('[INFO] Página carregada');
-                const debugPanel = document.getElementById('debugPanel');
-                if (!debugPanel) throw new Error('Elemento debugPanel não encontrado');
-                debugPanel.classList.add('hidden'); // Garantir que comece escondido
-            } catch (err) {
-                console.error('[ERRO] Falha ao inicializar debug:', err.message);
-            }
-        });
-    </script>
-</body>
-</html>
+           document.addEventListener('DOMContentLoaded', () => {
+               try {
+                   Debug.log('[INFO] Página carregada');
+                   console.log('[INFO] Página carregada');
+                   const debugPanel = document.getElementById('debugPanel');
+                   if (!debugPanel) throw new Error('debugPanel não encontrado');
+                   debugPanel.classList.add('hidden');
+               } catch (err) {
+                   console.error('[ERRO] Falha no debug:', err.message);
+               }
+           });
+       </script>
+   </body>
+   </html>

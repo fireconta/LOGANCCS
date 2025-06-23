@@ -70,7 +70,7 @@
           alert(data.error);
           return;
         }
-        Debug.log('[INFO] Registro OK: %s no banco %s', data.username, data.database || 'desconhecido');
+        Debug.log('✅ Registro OK: %s no banco %s, coleção: users', data.username, data.database);
         alert('Registro bem-sucedido! Faça login.');
         showLoginForm();
       } catch (err) {
@@ -95,7 +95,7 @@
           alert(data.error);
           return;
         }
-        Debug.log('[INFO] Login OK: %s', data.username);
+        Debug.log('✅ Login OK: %s no banco %s, coleção: users', data.username, data.database);
         localStorage.setItem('userId', data.userId);
         localStorage.setItem('username', data.username);
         const redirect = data.is_admin ? '/dashboard.html' : '/shop.html';
@@ -114,7 +114,7 @@
         const healthRes = await fetch('/api/health');
         const healthData = await healthRes.json();
         if (healthRes.ok && healthData.mongoConnected && healthData.database === 'loganccs') {
-          Debug.log('✅ MongoDB conectado, banco: %s', healthData.database);
+          Debug.log('✅ MongoDB conectado, banco: %s, coleções: %O', healthData.database, healthData.collections);
         } else {
           Debug.error('❌ MongoDB desconectado ou banco errado: %s', healthData.database || 'desconhecido');
         }

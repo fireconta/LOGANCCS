@@ -25,7 +25,7 @@ let cachedConnection = null;
 
 const connectMongoDB = async () => {
   if (cachedConnection && mongoose.connection.readyState === 1) {
-    debug('[INFO] Reutilizando MongoDB (estado: %s)', mongoose.connection.readyState);
+    debug('[INFO] Reutilizando MongoDB (estado: %s, banco: %s)', mongoose.connection.readyState, mongoose.connection.name);
     return;
   }
   try {
@@ -42,18 +42,18 @@ const connectMongoDB = async () => {
       socketTimeoutMS: 180000
     });
     mongoConnected = true;
-    debug('[INFO] Conexão MongoDB OK (estado: %s)', mongoose.connection.readyState);
+    debug('[INFO] Conexão MongoDB OK (estado: %s, banco: %s)', mongoose.connection.readyState, mongoose.connection.name);
   } catch (err) {
     mongoConnected = false;
     debug('[ERRO] Falha na conexão MongoDB: %s - %O', err.message, err);
-    throw err;
+    throw new Error(`Falha na conexão: ${err.message}`);
   }
 };
 
 app.use(async (req, res, next) => {
   try {
     await connectMongoDB();
-    debug('[INFO] MongoDB conectado para requisição: %s %s', req.method, req.originalUrl);
+    debug('[INFO] MongoDB conectado para requisição: %s %s (banco: %s)', req.method, req.originalUrl, mongoose.connection.name);
     next();
   } catch (err) {
     debug('[ERRO] Middleware MongoDB falhou: %s', err.message);
@@ -108,6 +108,7 @@ app.get('/api/test', (req, res) => {
     adminPass: !!process.env.ADMIN_PASSWORD,
     mongoConnected,
     mongooseState: mongoose.connection.readyState,
+    database: mongoose.connection.name,
     timestamp: new Date().toISOString() 
   });
 });
@@ -117,6 +118,7 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({
     mongoConnected,
     mongooseState: mongoose.connection.readyState,
+    database: mongoose.connection.name,
     timestamp: new Date().toISOString()
   });
 });
@@ -141,7 +143,7 @@ app.post('/api/register', [
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({ username, password: hashedPassword, isAdmin: username === 'LVz' });
     await user.save();
-    debug('[INFO] Usuário registrado: %s', username);
+    debug('[INFO] Usuário registrado: %s no banco %s', username, mongoose.connection.name);
     res.status(201).json({ username, message: 'Registro OK' });
   } catch (err) {
     debug('[ERRO] Falha no registro: %s - %O', err.message, err);
@@ -178,7 +180,7 @@ app.post('/api/login', [
       debug('[ERRO] Senha incorreta: %s', username);
       return res.status(401).json({ error: 'Senha incorreta', details: 'Senha não corresponde' });
     }
-    debug('[INFO] Login OK: %s', username);
+    debug('[INFO] Login OK: %s no banco %s', username, mongoose.connection.name);
     res.status(200).json({ 
       userId: user._id.toString(), 
       username: user.username, 
@@ -262,7 +264,7 @@ app.post('/api/buy-card', async (req, res) => {
       transaction.save({ session })
     ]);
     await session.commitTransaction();
-    debug('[INFO] Compra OK: cartão %s por %s', cardId, userId);
+    debug('[INFO] Compra OK: cartão %s por %s no banco %s', cardId, userId, mongoose.connection.name);
     res.status(200).json({ message: 'Compra OK' });
   } catch (err) {
     await session.abortTransaction();
@@ -308,7 +310,7 @@ app.post('/api/set-card-prices', [
         );
       }
       await session.commitTransaction();
-      debug('[INFO] Preços atualizados: %s', userId);
+      debug('[INFO] Preços atualizados: %s no banco %s', userId, mongoose.connection.name);
       res.status(200).json({ message: 'Preços OK' });
     } catch (err) {
       await session.abortTransaction();

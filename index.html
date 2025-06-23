@@ -8,6 +8,7 @@
     <style>
         body { background: linear-gradient(135deg, #1a202c, #2d3748); }
         .notification { transition: opacity 0.5s; }
+        #debugPanel { z-index: 1000; }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center text-gray-100">
@@ -61,7 +62,7 @@
         </div>
         <pre id="debugOutput" class="mt-2 text-gray-300"></pre>
     </div>
-    <button onclick="Debug.toggle()" class="fixed bottom-4 right-4 bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">Mostrar Debug</button>
+    <button id="debugToggleButton" onclick="Debug.toggle()" class="fixed bottom-4 right-4 bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600">Mostrar Debug</button>
 
     <script src="/utils.js"></script>
     <script src="/debug.js"></script>
@@ -76,7 +77,8 @@
         }
 
         async function login() {
-            Debug.log('Iniciando login');
+            Debug.log('[INFO] Iniciando tentativa de login');
+            console.log('[INFO] Iniciando tentativa de login'); // Fallback console
             const button = document.getElementById('loginButton');
             const spinner = document.getElementById('loginSpinner');
             const errorDiv = document.getElementById('loginError');
@@ -86,7 +88,8 @@
             spinner.classList.remove('hidden');
             errorDiv.classList.add('hidden');
             if (!username || !password) {
-                Debug.error('Campos obrigatórios não preenchidos');
+                Debug.error('[ERRO] Campos obrigatórios não preenchidos: usuário ou senha vazios');
+                console.error('[ERRO] Campos obrigatórios não preenchidos');
                 errorDiv.textContent = 'Preencha usuário e senha';
                 errorDiv.classList.remove('hidden');
                 button.disabled = false;
@@ -94,29 +97,51 @@
                 return;
             }
             try {
+                Debug.log('[INFO] Enviando requisição OPTIONS para /api/login');
+                console.log('[INFO] Enviando requisição OPTIONS');
+                await fetchWithTimeout('/.netlify/functions/app/api/login', {
+                    method: 'OPTIONS',
+                    headers: { 'Content-Type': 'application/json' }
+                }).catch(err => {
+                    Debug.warn('[AVISO] Requisição OPTIONS falhou: %s', err.message);
+                    console.warn('[AVISO] Requisição OPTIONS falhou:', err.message);
+                });
+
+                Debug.log('[INFO] Enviando POST para /api/login com body:', { username, password });
+                console.log('[INFO] Enviando POST para /api/login:', { username });
                 const response = await fetchWithTimeout('/.netlify/functions/app/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
+                const headers = Object.fromEntries(response.headers.entries());
                 const text = await response.text();
-                Debug.log(`Resposta bruta /api/login: Status ${response.status}`, { response: text });
+                Debug.log(`[INFO] Resposta recebida de /api/login: Status ${response.status}`, { headers, response: text });
+                console.log(`[INFO] Resposta /api/login: Status ${response.status}`, { headers });
                 let data;
                 try {
                     data = JSON.parse(text);
                 } catch (e) {
-                    Debug.error('Falha ao parsear JSON:', { response: text, error: e.message });
-                    throw new Error(`Resposta inválida: formato não JSON - ${text}`);
+                    Debug.error('[ERRO] Falha ao parsear resposta como JSON:', { response: text, error: e.message });
+                    console.error('[ERRO] Falha ao parsear JSON:', e.message);
+                    throw new Error(`Resposta inválida: formato não JSON - ${text.substring(0, 100)}...`);
                 }
-                if (!response.ok) throw new Error(data.error || 'Erro ao fazer login');
+                if (!response.ok) {
+                    Debug.error('[ERRO] Resposta com status não OK:', { status: response.status, data });
+                    console.error('[ERRO] Status não OK:', response.status);
+                    throw new Error(data.error || `Erro ao fazer login (Status ${response.status})`);
+                }
                 localStorage.setItem('userId', data.userId);
                 localStorage.setItem('username', data.username);
+                Debug.log('[INFO] Login bem-sucedido, redirecionando para:', data.is_admin ? 'dashboard.html' : 'shop.html');
+                console.log('[INFO] Login bem-sucedido');
                 showNotification('Login realizado com sucesso!');
                 setTimeout(() => {
                     window.location.href = data.is_admin ? 'dashboard.html' : 'shop.html';
                 }, 1000);
             } catch (err) {
-                Debug.error('Erro ao fazer login:', { error: err.message });
+                Debug.error('[ERRO] Falha ao fazer login:', { error: err.message });
+                console.error('[ERRO] Falha ao fazer login:', err.message);
                 errorDiv.textContent = err.message;
                 errorDiv.classList.remove('hidden');
                 showNotification(`Erro: ${err.message}`, true);
@@ -127,7 +152,8 @@
         }
 
         async function register() {
-            Debug.log('Iniciando registro');
+            Debug.log('[INFO] Iniciando tentativa de registro');
+            console.log('[INFO] Iniciando tentativa de registro');
             const button = document.getElementById('registerButton');
             const spinner = document.getElementById('registerSpinner');
             const errorDiv = document.getElementById('registerError');
@@ -137,7 +163,8 @@
             spinner.classList.remove('hidden');
             errorDiv.classList.add('hidden');
             if (!username || !password) {
-                Debug.error('Campos obrigatórios não preenchidos');
+                Debug.error('[ERRO] Campos obrigatórios não preenchidos: usuário ou senha vazios');
+                console.error('[ERRO] Campos obrigatórios não preenchidos');
                 errorDiv.textContent = 'Preencha usuário e senha';
                 errorDiv.classList.remove('hidden');
                 button.disabled = false;
@@ -145,17 +172,34 @@
                 return;
             }
             try {
+                Debug.log('[INFO] Enviando POST para /api/register com body:', { username, password });
+                console.log('[INFO] Enviando POST para /api/register:', { username });
                 const response = await fetchWithTimeout('/.netlify/functions/app/api/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || 'Erro ao registrar');
+                const text = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    Debug.error('[ERRO] Falha ao parsear resposta como JSON:', { response: text, error: e.message });
+                    console.error('[ERRO] Falha ao parsear JSON:', e.message);
+                    throw new Error(`Resposta inválida: formato não JSON - ${text.substring(0, 100)}...`);
+                }
+                if (!response.ok) {
+                    Debug.error('[ERRO] Resposta com status não OK:', { status: response.status, data });
+                    console.error('[ERRO] Status não OK:', response.status);
+                    throw new Error(data.error || `Erro ao registrar (Status ${response.status})`);
+                }
+                Debug.log('[INFO] Registro bem-sucedido para usuário:', data.username);
+                console.log('[INFO] Registro bem-sucedido');
                 showNotification('Registro realizado com sucesso!');
                 setTimeout(toggleForm, 1000);
             } catch (err) {
-                Debug.error('Erro ao registrar:', { error: err.message });
+                Debug.error('[ERRO] Falha ao registrar:', { error: err.message });
+                console.error('[ERRO] Falha ao registrar:', err.message);
                 errorDiv.textContent = err.message;
                 errorDiv.classList.remove('hidden');
                 showNotification(`Erro: ${err.message}`, true);
@@ -166,6 +210,8 @@
         }
 
         function showNotification(message, isError = false) {
+            Debug.log(`[INFO] Exibindo notificação: ${message}`, { isError });
+            console.log(`[INFO] Notificação: ${message}`);
             const notification = document.getElementById('notification');
             notification.textContent = message;
             notification.classList.remove('hidden', 'bg-green-600', 'bg-red-600');
@@ -174,6 +220,19 @@
                 notification.classList.add('hidden');
             }, 3000);
         }
+
+        // Inicializar painel de debug
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                Debug.log('[INFO] Página carregada, inicializando painel de debug');
+                console.log('[INFO] Página carregada');
+                const debugPanel = document.getElementById('debugPanel');
+                if (!debugPanel) throw new Error('Elemento debugPanel não encontrado');
+                debugPanel.classList.add('hidden'); // Garantir que comece escondido
+            } catch (err) {
+                console.error('[ERRO] Falha ao inicializar debug:', err.message);
+            }
+        });
     </script>
 </body>
 </html>

@@ -1,53 +1,70 @@
 const Debug = {
-    log: function (message, data) {
-        const debugOutput = document.getElementById('debug-output');
-        if (!debugOutput) return;
-        const timestamp = new Date().toLocaleTimeString('pt-BR');
-        const formattedMessage = `[${timestamp}] LOG: ${message}`;
-        const logEntry = document.createElement('div');
-        logEntry.className = 'debug-info';
-        logEntry.textContent = formattedMessage;
+    log: function(message, data = null) {
+        const output = document.getElementById('debug-output');
+        if (!output) return;
+        const timestamp = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        const logDiv = document.createElement('div');
+        logDiv.className = 'debug-info';
+        logDiv.textContent = `[${timestamp}] INFO: ${message}`;
         if (data) {
-            const dataEntry = document.createElement('pre');
-            dataEntry.className = 'debug-info';
-            dataEntry.textContent = JSON.stringify(data, null, 2);
-            logEntry.appendChild(dataEntry);
+            const dataDiv = document.createElement('div');
+            dataDiv.textContent = JSON.stringify(data, null, 2);
+            dataDiv.style.marginLeft = '1rem';
+            dataDiv.style.fontFamily = 'monospace';
+            logDiv.appendChild(dataDiv);
         }
-        debugOutput.appendChild(logEntry);
-        debugOutput.scrollTop = debugOutput.scrollHeight;
+        output.appendChild(logDiv);
+        output.scrollTop = output.scrollHeight;
     },
-    warn: function (message) {
-        const debugOutput = document.getElementById('debug-output');
-        if (!debugOutput) return;
-        const timestamp = new Date().toLocaleTimeString('pt-BR');
-        const logEntry = document.createElement('div');
-        logEntry.className = 'debug-warn';
-        logEntry.textContent = `[${timestamp}] WARN: ${message}`;
-        debugOutput.appendChild(logEntry);
-        debugOutput.scrollTop = debugOutput.scrollHeight;
+    warn: function(message, data = null) {
+        const output = document.getElementById('debug-output');
+        if (!output) return;
+        const timestamp = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        const logDiv = document.createElement('div');
+        logDiv.className = 'debug-warn';
+        logDiv.textContent = `[${timestamp}] WARN: ${message}`;
+        if (data) {
+            const dataDiv = document.createElement('div');
+            dataDiv.textContent = JSON.stringify(data, null, 2);
+            dataDiv.style.marginLeft = '1rem';
+            dataDiv.style.fontFamily = 'monospace';
+            logDiv.appendChild(dataDiv);
+        }
+        output.appendChild(logDiv);
+        output.scrollTop = output.scrollHeight;
     },
-    error: function (message) {
-        const debugOutput = document.getElementById('debug-output');
-        if (!debugOutput) return;
-        const timestamp = new Date().toLocaleTimeString('pt-BR');
-        const logEntry = document.createElement('div');
-        logEntry.className = 'debug-error';
-        logEntry.textContent = `[${timestamp}] ERROR: ${message}`;
-        debugOutput.appendChild(logEntry);
-        debugOutput.scrollTop = debugOutput.scrollHeight;
+    error: function(message, data = null) {
+        const output = document.getElementById('debug-output');
+        if (!output) return;
+        const timestamp = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        const logDiv = document.createElement('div');
+        logDiv.className = 'debug-error';
+        logDiv.textContent = `[${timestamp}] ERROR: ${message}`;
+        if (data) {
+            const dataDiv = document.createElement('div');
+            dataDiv.textContent = JSON.stringify(data, null, 2);
+            dataDiv.style.marginLeft = '1rem';
+            dataDiv.style.fontFamily = 'monospace';
+            logDiv.appendChild(dataDiv);
+        }
+        output.appendChild(logDiv);
+        output.scrollTop = output.scrollHeight;
     },
-    success: function (message) {
-        const debugOutput = document.getElementById('debug-output');
-        if (!debugOutput) return;
-        const timestamp = new Date().toLocaleTimeString('pt-BR');
-        const logEntry = document.createElement('div');
-        logEntry.className = 'debug-success';
-        logEntry.textContent = `[${timestamp}] SUCCESS: ${message}`;
-        debugOutput.appendChild(logEntry);
-        debugOutput.scrollTop = debugOutput.scrollHeight;
-    },
-    clear: function () {
-        const debugOutput = document.getElementById('debug-output');
-        if (debugOutput) debugOutput.innerHTML = '';
+    success: function(message, data = null) {
+        const output = document.getElementById('debug-output');
+        if (!output) return;
+        const timestamp = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        const logDiv = document.createElement('div');
+        logDiv.className = 'debug-success';
+        logDiv.textContent = `[${timestamp}] SUCCESS: ${message}`;
+        if (data) {
+            const dataDiv = document.createElement('div');
+            dataDiv.textContent = JSON.stringify(data, null, 2);
+            dataDiv.style.marginLeft = '1rem';
+            dataDiv.style.fontFamily = 'monospace';
+            logDiv.appendChild(dataDiv);
+        }
+        output.appendChild(logDiv);
+        output.scrollTop = output.scrollHeight;
     }
 };

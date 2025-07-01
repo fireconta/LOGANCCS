@@ -41,25 +41,28 @@
         <section class="mb-8">
             <h2 class="text-xl font-semibold mb-4">Gerenciar Preços de Cartões</h2>
             <div id="pricesForm" class="bg-gray-800 p-4 rounded-lg">
-                <div class="mb-4">
-                    <label for="classicPrice" class="block text-sm font-medium text-gray-300">Classic</label>
-                    <input type="number" id="classicPrice" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Preço Classic" min="0.01" step="0.01">
-                </div>
-                <div class="mb-4">
-                    <label for="goldPrice" class="block text-sm font-medium text-gray-300">Gold</label>
-                    <input type="number" id="goldPrice" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Preço Gold" min="0.01" step="0.01">
-                </div>
-                <div class="mb-4">
-                    <label for="platinumPrice" class="block text-sm font-medium text-gray-300">Platinum</label>
-                    <input type="number" id="platinumPrice" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Preço Platinum" min="0.01" step="0.01">
-                </div>
-                <div class="mb-4">
-                    <label for="blackPrice" class="block text-sm font-medium text-gray-300">Black</label>
-                    <input type="number" id="blackPrice" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Preço Black" min="0.01" step="0.01">
-                </div>
+                <div id="existingPrices" class="space-y-4 mb-4"></div>
                 <button id="pricesButton" onclick="updatePrices()" class="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center" aria-label="Atualizar preços">
                     <span>Atualizar Preços</span>
                     <svg id="pricesSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="bg-gray-800 p-4 rounded-lg mt-4">
+                <h3 class="text-lg font-semibold mb-2">Adicionar Novo Nível</h3>
+                <div class="mb-4">
+                    <label for="newLevelName" class="block text-sm font-medium text-gray-300">Nome do Nível</label>
+                    <input type="text" id="newLevelName" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Ex.: Diamond" oninput="restrictLevelInput(this)">
+                </div>
+                <div class="mb-4">
+                    <label for="newLevelPrice" class="block text-sm font-medium text-gray-300">Preço</label>
+                    <input type="number" id="newLevelPrice" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Ex.: 1200" min="0.01" step="0.01">
+                </div>
+                <button onclick="addNewLevel()" class="w-full py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center" aria-label="Adicionar nível">
+                    <span>Adicionar Nível</span>
+                    <svg id="addLevelSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                     </svg>
@@ -76,6 +79,11 @@
     <script src="/debug.js"></script>
     <script src="/utils.js"></script>
     <script>
+        function restrictLevelInput(input) {
+            input.value = input.value.replace(/[^a-zA-Z0-9]/g, '');
+            if (input.value.length > 20) input.value = input.value.slice(0, 20);
+        }
+
         async function checkEnvironment() {
             Debug.log('Verificando ambiente e conexão com MongoDB');
             try {
@@ -100,7 +108,7 @@
                 }
             } catch (err) {
                 Debug.error(`Erro ao verificar ambiente: ${err.message}`);
-                showDebugNotification(`Erro: ${err.message}`, true);
+                showDebugNotification(`Erro ao verificar ambiente: ${err.message}. Verifique a conexão de rede e o Netlify Functions log.`, true);
             }
         }
 
@@ -175,6 +183,7 @@
                 let data = JSON.parse(text);
                 if (!response.ok) throw new Error(data.error || 'Erro ao excluir usuário');
                 showNotification('Usuário excluído com sucesso!');
+                Debug.success(`Usuário ${userId} excluído com sucesso`);
                 loadUsers();
             } catch (err) {
                 Debug.error('Erro ao excluir usuário: %s', err.message);
@@ -184,18 +193,32 @@
 
         async function loadPrices() {
             Debug.log('Carregando preços de cartões');
+            const existingPrices = document.getElementById('existingPrices');
+            existingPrices.innerHTML = '<p class="text-gray-500 text-center"><i class="fas fa-spinner animate-spin mr-2"></i> Carregando...</p>';
             try {
                 const response = await fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(localStorage.getItem('userId'))}`);
                 const text = await response.text();
                 Debug.log(`Resposta /api/get-card-prices: Status ${response.status}`, { response: text });
                 let prices = JSON.parse(text);
                 if (!response.ok) throw new Error(prices.error || 'Erro ao carregar preços');
+                existingPrices.innerHTML = '';
                 prices.forEach(price => {
-                    const input = document.getElementById(`${price.nivel.toLowerCase()}Price`);
-                    if (input) input.value = price.price;
+                    Debug.log(`Preço carregado para ${price.nivel}: ${price.price}`);
+                    const priceDiv = document.createElement('div');
+                    priceDiv.className = 'mb-4';
+                    priceDiv.innerHTML = `
+                        <label for="price-${price.nivel.toLowerCase()}" class="block text-sm font-medium text-gray-300">${DOMPurify.sanitize(price.nivel)}</label>
+                        <input type="number" id="price-${price.nivel.toLowerCase()}" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" value="${price.price}" min="0.01" step="0.01">
+                    `;
+                    existingPrices.appendChild(priceDiv);
                 });
+                if (prices.length === 0) {
+                    existingPrices.innerHTML = '<p class="text-center text-yellow-500">Nenhum nível de cartão encontrado.</p>';
+                    Debug.warn('Nenhum nível de cartão encontrado');
+                }
             } catch (err) {
                 Debug.error('Erro ao carregar preços: %s', err.message);
+                existingPrices.innerHTML = `<p class="text-center text-red-500">Erro: ${DOMPurify.sanitize(err.message)}</p>`;
                 showNotification(`Erro: ${err.message}`, true);
             }
         }
@@ -207,12 +230,18 @@
             button.disabled = true;
             spinner.classList.remove('hidden');
             try {
-                const prices = [
-                    { nivel: 'Classic', price: parseFloat(document.getElementById('classicPrice').value) || 0 },
-                    { nivel: 'Gold', price: parseFloat(document.getElementById('goldPrice').value) || 0 },
-                    { nivel: 'Platinum', price: parseFloat(document.getElementById('platinumPrice').value) || 0 },
-                    { nivel: 'Black', price: parseFloat(document.getElementById('blackPrice').value) || 0 }
-                ];
+                const prices = [];
+                const priceInputs = document.querySelectorAll('#existingPrices input[type="number"]');
+                priceInputs.forEach(input => {
+                    const nivel = input.id.replace('price-', '').replace(/(^\w|\s\w)/g, letter => letter.toUpperCase());
+                    const price = parseFloat(input.value);
+                    if (price >= 0.01) {
+                        prices.push({ nivel, price });
+                    }
+                });
+                if (prices.length === 0) {
+                    throw new Error('Nenhum preço válido fornecido');
+                }
                 if (prices.some(p => p.price < 0.01)) {
                     throw new Error('Preços devem ser pelo menos 0.01');
                 }
@@ -226,8 +255,48 @@
                 let data = JSON.parse(text);
                 if (!response.ok) throw new Error(data.error || 'Erro ao atualizar preços');
                 showNotification('Preços atualizados com sucesso!');
+                Debug.success('Preços atualizados com sucesso');
+                await loadPrices();
             } catch (err) {
                 Debug.error('Erro ao atualizar preços: %s', err.message);
+                showNotification(`Erro: ${err.message}`, true);
+            } finally {
+                button.disabled = false;
+                spinner.classList.add('hidden');
+            }
+        }
+
+        async function addNewLevel() {
+            Debug.log('Tentando adicionar novo nível de cartão');
+            const button = document.querySelector('button[aria-label="Adicionar nível"]');
+            const spinner = document.getElementById('addLevelSpinner');
+            button.disabled = true;
+            spinner.classList.remove('hidden');
+            try {
+                const nivel = document.getElementById('newLevelName').value.trim();
+                const price = parseFloat(document.getElementById('newLevelPrice').value);
+                if (!nivel || nivel.length < 3 || nivel.length > 20 || !/^[a-zA-Z0-9]+$/.test(nivel)) {
+                    throw new Error('Nome do nível deve ter 3-20 caracteres alfanuméricos');
+                }
+                if (isNaN(price) || price < 0.01) {
+                    throw new Error('Preço deve ser pelo menos 0.01');
+                }
+                const response = await fetchWithTimeout(`/api/set-card-prices?userId=${encodeURIComponent(localStorage.getItem('userId'))}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prices: [{ nivel, price }] })
+                });
+                const text = await response.text();
+                Debug.log(`Resposta /api/set-card-prices (novo nível): Status ${response.status}`, { response: text });
+                let data = JSON.parse(text);
+                if (!response.ok) throw new Error(data.error || 'Erro ao adicionar nível');
+                showNotification(`Nível ${nivel} adicionado com sucesso!`);
+                Debug.success(`Nível ${nivel} adicionado com preço ${price}`);
+                document.getElementById('newLevelName').value = '';
+                document.getElementById('newLevelPrice').value = '';
+                await loadPrices();
+            } catch (err) {
+                Debug.error('Erro ao adicionar nível: %s', err.message);
                 showNotification(`Erro: ${err.message}`, true);
             } finally {
                 button.disabled = false;

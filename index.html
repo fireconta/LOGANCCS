@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LOGAN CC's</title>
+  <title>LOGAN CC's - Login</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
 <body class="min-h-screen flex items-center justify-center text-gray-100 bg-gray-900">
@@ -13,12 +13,13 @@
       <h2 class="text-xl font-semibold mb-4">Login</h2>
       <div class="mb-4">
         <label for="login-username" class="block text-sm font-medium mb-1">Usuário</label>
-        <input id="login-username" type="text" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite seu usuário">
+        <input id="login-username" type="text" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite seu usuário" oninput="restrictInput(this)">
       </div>
       <div class="mb-6">
         <label for="login-password" class="block text-sm font-medium mb-1">Senha</label>
         <input id="login-password" type="password" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite sua senha">
       </div>
+      <p id="login-error" class="text-red-500 text-sm hidden" role="alert"></p>
       <button onclick="login()" class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-md text-white mb-4">Entrar</button>
       <p class="text-center text-sm">Não tem uma conta? <a href="#" onclick="showRegisterForm()" class="text-blue-400 hover:underline">Registre-se</a></p>
     </div>
@@ -26,38 +27,55 @@
       <h2 class="text-xl font-semibold mb-4">Registro</h2>
       <div class="mb-4">
         <label for="register-username" class="block text-sm font-medium mb-1">Usuário</label>
-        <input id="register-username" type="text" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Escolha um usuário">
+        <input id="register-username" type="text" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Escolha um usuário" oninput="restrictInput(this)">
       </div>
       <div class="mb-6">
         <label for="register-password" class="block text-sm font-medium mb-1">Senha</label>
         <input id="register-password" type="password" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Escolha uma senha">
       </div>
+      <p id="register-error" class="text-red-500 text-sm hidden" role="alert"></p>
       <button onclick="register()" class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-md text-white mb-4">Registrar</button>
       <p class="text-center text-sm">Já tem uma conta? <a href="#" onclick="showLoginForm()" class="text-blue-400 hover:underline">Faça login</a></p>
     </div>
   </div>
-  <div id="debug-panel" class="fixed bottom-4 right-4 bg-gray-800 text-white p-4 rounded-lg shadow-lg max-h-96 overflow-y-auto hidden">
-    <h3 class="text-lg font-bold mb-2">Debug</h3>
-    <div id="debug-logs"></div>
-    <button onclick="Debug.clear()" class="mt-2 py-1 px-2 bg-red-600 hover:bg-red-700 rounded-md text-sm">Limpar</button>
-  </div>
   <script src="/utils.js"></script>
-  <script src="/debug.js"></script>
   <script>
     function showRegisterForm() {
       document.getElementById('login-form').classList.add('hidden');
       document.getElementById('register-form').classList.remove('hidden');
+      document.getElementById('login-error').classList.add('hidden');
+      document.getElementById('login-username').value = '';
+      document.getElementById('login-password').value = '';
     }
 
     function showLoginForm() {
       document.getElementById('register-form').classList.add('hidden');
       document.getElementById('login-form').classList.remove('hidden');
+      document.getElementById('register-error').classList.add('hidden');
+      document.getElementById('register-username').value = '';
+      document.getElementById('register-password').value = '';
     }
 
     async function register() {
-      const username = document.getElementById('register-username').value;
+      const username = document.getElementById('register-username').value.trim();
       const password = document.getElementById('register-password').value;
-      Debug.log('[INFO] Iniciando registro: %s', username);
+      const errorDiv = document.getElementById('register-error');
+      errorDiv.classList.add('hidden');
+      if (!username || username.length < 3 || username.length > 20) {
+        errorDiv.textContent = 'Usuário: 3-20 caracteres alfanuméricos';
+        errorDiv.classList.remove('hidden');
+        return;
+      }
+      if (!/^[a-zA-Z0-9]+$/.test(username)) {
+        errorDiv.textContent = 'Usuário: apenas letras e números';
+        errorDiv.classList.remove('hidden');
+        return;
+      }
+      if (!password || password.length < 6) {
+        errorDiv.textContent = 'Senha: mínimo 6 caracteres';
+        errorDiv.classList.remove('hidden');
+        return;
+      }
       try {
         const response = await fetch('/api/register', {
           method: 'POST',
@@ -66,23 +84,28 @@
         });
         const data = await response.json();
         if (!response.ok) {
-          Debug.error('[ERRO] Falha no registro: %s', data.error);
-          alert(data.error);
+          errorDiv.textContent = data.error;
+          errorDiv.classList.remove('hidden');
           return;
         }
-        Debug.log('✅ Registro OK: %s no banco %s, coleção: users', data.username, data.database);
         alert('Registro bem-sucedido! Faça login.');
         showLoginForm();
       } catch (err) {
-        Debug.error('[ERRO] Erro na requisição de registro: %s', err.message);
-        alert('Erro ao registrar. Veja os logs de debug.');
+        errorDiv.textContent = 'Erro ao registrar.';
+        errorDiv.classList.remove('hidden');
       }
     }
 
     async function login() {
-      const username = document.getElementById('login-username').value;
+      const username = document.getElementById('login-username').value.trim();
       const password = document.getElementById('login-password').value;
-      Debug.log('[INFO] Iniciando login: %s', username);
+      const errorDiv = document.getElementById('login-error');
+      errorDiv.classList.add('hidden');
+      if (!username || !password) {
+        errorDiv.textContent = 'Preencha usuário e senha';
+        errorDiv.classList.remove('hidden');
+        return;
+      }
       try {
         const response = await fetch('/api/login', {
           method: 'POST',
@@ -91,58 +114,19 @@
         });
         const data = await response.json();
         if (!response.ok) {
-          Debug.error('[ERRO] Falha no login: %s', data.error);
-          alert(data.error);
+          errorDiv.textContent = data.error;
+          errorDiv.classList.remove('hidden');
           return;
         }
-        Debug.log('✅ Login OK: %s no banco %s, coleção: users', data.username, data.database);
         localStorage.setItem('userId', data.userId);
         localStorage.setItem('username', data.username);
-        const redirect = data.is_admin ? '/dashboard.html' : '/shop.html';
-        Debug.log('[INFO] Redirecionando para %s', redirect);
+        const redirect = data.is_admin ? '/dashboard' : '/shop';
         window.location.href = redirect;
       } catch (err) {
-        Debug.error('[ERRO] Erro na requisição de login: %s', err.message);
-        alert('Erro ao logar. Veja os logs de debug.');
+        errorDiv.textContent = 'Erro ao logar.';
+        errorDiv.classList.remove('hidden');
       }
     }
-
-    async function checkSystem() {
-      Debug.log('[INFO] Verificando status do sistema');
-      try {
-        // Verificar MongoDB e banco loganccs
-        const healthRes = await fetch('/api/health');
-        const healthData = await healthRes.json();
-        if (healthRes.ok && healthData.mongoConnected && healthData.database === 'loganccs') {
-          Debug.log('✅ MongoDB conectado, banco: %s, coleções: %O', healthData.database, healthData.collections);
-        } else {
-          Debug.error('❌ MongoDB desconectado ou banco errado: %s', healthData.database || 'desconhecido');
-        }
-        
-        // Verificar todas as APIs
-        const testAllRes = await fetch('/api/test-all');
-        const testAllData = await testAllRes.json();
-        if (testAllRes.ok) {
-          Debug.log('✅ Teste de APIs OK');
-          Object.entries(testAllData.results).forEach(([api, result]) => {
-            if (result.message && result.message.includes('OK')) {
-              Debug.log('  ✅ %s: OK', api);
-            } else {
-              Debug.error('  ❌ %s: %s', api, result.error || 'Falhou');
-            }
-          });
-        } else {
-          Debug.error('❌ Falha no teste de APIs: %s', testAllData.error);
-        }
-      } catch (err) {
-        Debug.error('[ERRO] Erro na verificação do sistema: %s', err.message);
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      Debug.log('[INFO] Página index carregada');
-      checkSystem();
-    });
   </script>
 </body>
 </html>

@@ -36,6 +36,16 @@ const Debug = {
         debugOutput.appendChild(logEntry);
         debugOutput.scrollTop = debugOutput.scrollHeight;
     },
+    success: function (message) {
+        const debugOutput = document.getElementById('debug-output');
+        if (!debugOutput) return;
+        const timestamp = new Date().toLocaleTimeString('pt-BR');
+        const logEntry = document.createElement('div');
+        logEntry.className = 'debug-success';
+        logEntry.textContent = `[${timestamp}] SUCCESS: ${message}`;
+        debugOutput.appendChild(logEntry);
+        debugOutput.scrollTop = debugOutput.scrollHeight;
+    },
     clear: function () {
         const debugOutput = document.getElementById('debug-output');
         if (debugOutput) debugOutput.innerHTML = '';

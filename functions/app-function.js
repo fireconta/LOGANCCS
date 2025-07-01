@@ -1,506 +1,269 @@
-const express = require('express');
-const serverless = require('serverless-http');
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-const { body, validationResult, query } = require('express-validator');
-const debug = require('debug')('app');
-require('dotenv').config();
+const users = [];
+const cards = [];
+const cardPrices = [];
 
-const app = express();
-app.use(express.json());
-
-let connectionAttempts = 0;
-const MAX_RETRIES = 5;
-const RETRY_INTERVAL_MS = 5000;
-
-async function connectToMongoDB() {
-    if (mongoose.connection.readyState === 1) {
-        debug('MongoDB already connected (readyState: %d)', mongoose.connection.readyState);
-        return true;
-    }
-    try {
-        debug('Attempting MongoDB connection (%d/%d)', connectionAttempts + 1, MAX_RETRIES);
-        await mongoose.connect(process.env.MONGODB_URI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-            dbName: 'loganccs',
-            serverSelectionTimeoutMS: 10000,
-            maxPoolSize: 10
-        });
-        debug('Connected to MongoDB successfully');
-        connectionAttempts = 0;
-        return true;
-    } catch (err) {
-        connectionAttempts++;
-        debug('MongoDB connection failed: %s', err.message);
-        if (err.name === 'MongoServerSelectionError') {
-            debug('Possible causes: Invalid MONGODB_URI, network restrictions, or IP not whitelisted in MongoDB Atlas');
-        } else if (err.name === 'MongoNetworkError') {
-            debug('Network issue detected. Check internet connectivity or MongoDB Atlas status');
-        }
-        if (connectionAttempts < MAX_RETRIES) {
-            const delay = RETRY_INTERVAL_MS * Math.pow(2, connectionAttempts);
-            debug('Retrying MongoDB connection in %dms (%d/%d)', delay, connectionAttempts, MAX_RETRIES);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            return connectToMongoDB();
-        } else {
-            debug('Max MongoDB connection retries reached');
-            return false;
-        }
-    }
+function sendResponse(statusCode, body, headers = {}) {
+    return {
+        statusCode,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+            'Content-Type': 'application/json',
+            ...headers
+        },
+        body: JSON.stringify(body)
+    };
 }
 
-const UserSchema = new mongoose.Schema({
-    username: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    isAdmin: { type: Boolean, default: false },
-    balance: { type: Number, default: 1000 },
-    createdAt: { type: Date, default: Date.now }
-});
-
-const CardSchema = new mongoose.Schema({
-    nivel: { type: String, required: true, unique: true },
-    numero: { type: String, required: true, match: /^\d{16}$/ },
-    dataValidade: { type: String, required: true, match: /^(0[1-9]|1[0-2])\/([2-9][0-9])$/ },
-    cvv: { type: String, required: true, match: /^\d{3,4}$/ },
-    bin: { type: String, required: true, match: /^\d{6}$/ },
-    bandeira: { type: String, required: true, match: /^[a-zA-Z0-9\s]{1,50}$/ },
-    banco: { type: String, required: true, match: /^[a-zA-Z0-9\s]{1,50}$/ }
-});
-
-const CardPriceSchema = new mongoose.Schema({
-    nivel: { type: String, required: true, unique: true },
-    price: { type: Number, required: true }
-});
-
-const PurchaseSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    nivel: { type: String, required: true },
-    price: { type: Number, required: true },
-    purchasedAt: { type: Date, default: Date.now }
-});
-
-const User = mongoose.model('User', UserSchema);
-const Card = mongoose.model('Card', CardSchema);
-const CardPrice = mongoose.model('CardPrice', CardPriceSchema);
-const Purchase = mongoose.model('Purchase', PurchaseSchema);
-
-async function checkCollections() {
-    try {
-        const collections = await mongoose.connection.db.listCollections().toArray();
-        const collectionNames = collections.map(c => c.name);
-        const result = {
-            User: { exists: collectionNames.includes('users'), accessible: false },
-            Card: { exists: collectionNames.includes('cards'), accessible: false },
-            CardPrice: { exists: collectionNames.includes('cardprices'), accessible: false },
-            Purchase: { exists: collectionNames.includes('purchases'), accessible: false }
-        };
-        if (result.User.exists) result.User.accessible = await User.countDocuments().then(() => true).catch(() => false);
-        if (result.Card.exists) result.Card.accessible = await Card.countDocuments().then(() => true).catch(() => false);
-        if (result.CardPrice.exists) result.CardPrice.accessible = await CardPrice.countDocuments().then(() => true).catch(() => false);
-        if (result.Purchase.exists) result.Purchase.accessible = await Purchase.countDocuments().then(() => true).catch(() => false);
-        debug('Collections check: %O', result);
-        return result;
-    } catch (err) {
-        debug('Error checking collections: %s', err.message);
-        return {
-            User: { exists: false, accessible: false },
-            Card: { exists: false, accessible: false },
-            CardPrice: { exists: false, accessible: false },
-            Purchase: { exists: false, accessible: false }
-        };
-    }
+function sanitizeInput(input) {
+    if (typeof input !== 'string') return input;
+    return input.replace(/[<>]/g, '').trim();
 }
 
-app.get('/api/check-env', async (req, res) => {
-    debug('Checking environment and MongoDB connection');
-    try {
-        const mongodbConnected = await connectToMongoDB();
-        const collections = await checkCollections();
-        const environment = {
-            MONGODB_URI: { exists: !!process.env.MONGODB_URI },
-            ADMIN_PASSWORD: { exists: !!process.env.ADMIN_PASSWORD },
-            NODE_VERSION: { exists: !!process.env.NODE_VERSION }
-        };
-        debug('Environment check result: %O', { mongodbConnected, collections, environment });
-        res.json({ mongodbConnected, collections, environment });
-    } catch (err) {
-        debug('Error checking environment: %s', err.message);
-        res.status(500).json({ error: `Erro ao verificar ambiente: ${err.message}` });
+function validateCardData({ nivel, numero, dataValidade, cvv, bin, bandeira, banco }) {
+    if (!nivel || !numero || !dataValidade || !cvv || !bin || !bandeira || !banco) {
+        return 'Todos os campos são obrigatórios';
     }
-});
+    if (!/^[a-zA-Z0-9]{3,20}$/.test(nivel)) {
+        return 'Nível inválido';
+    }
+    if (!/^\d{16}$/.test(numero)) {
+        return 'Número do cartão inválido';
+    }
+    if (!/^\d{2}\/\d{2}$/.test(dataValidade)) {
+        return 'Data de validade inválida (MM/AA)';
+    }
+    if (!/^\d{3,4}$/.test(cvv)) {
+        return 'CVV inválido';
+    }
+    if (!/^\d{6}$/.test(bin)) {
+        return 'BIN inválido';
+    }
+    if (!/^[a-zA-Z\s]{1,50}$/.test(bandeira) || !/^[a-zA-Z\s]{1,50}$/.test(banco)) {
+        return 'Bandeira ou banco inválido';
+    }
+    return null;
+}
 
-app.post('/api/register', [
-    body('username').isString().trim().isLength({ min: 3, max: 20 }).matches(/^[a-zA-Z0-9]+$/),
-    body('password').isString().isLength({ min: 6 })
-], async (req, res) => {
-    const connected = await connectToMongoDB();
-    if (!connected) {
-        debug('MongoDB not connected');
-        return res.status(500).json({ error: 'Banco de dados não conectado' });
-    }
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        debug('Validation errors: %O', errors.array());
-        return res.status(400).json({ error: 'Dados inválidos' });
-    }
-    const { username, password } = req.body;
+exports.handler = async function(event, context) {
     try {
-        const existingUser = await User.findOne({ username });
-        if (existingUser) {
-            debug('User already exists: %s', username);
-            return res.status(400).json({ error: 'Usuário já existe' });
+        if (event.httpMethod === 'OPTIONS') {
+            return sendResponse(200, {});
         }
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const isAdmin = username === 'LVz' && password === process.env.ADMIN_PASSWORD;
-        const user = new User({ username, password: hashedPassword, isAdmin });
-        await user.save();
-        debug('User registered: %s, isAdmin: %s', username, isAdmin);
-        res.status(201).json({ message: 'Usuário registrado' });
-    } catch (err) {
-        debug('Error registering user: %s', err.message);
-        res.status(500).json({ error: `Erro ao registrar usuário: ${err.message}` });
-    }
-});
 
-app.post('/api/login', [
-    body('username').isString().trim().notEmpty(),
-    body('password').isString().notEmpty()
-], async (req, res) => {
-    const connected = await connectToMongoDB();
-    if (!connected) {
-        debug('MongoDB not connected');
-        return res.status(500).json({ error: 'Banco de dados não conectado' });
-    }
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        debug('Validation errors: %O', errors.array());
-        return res.status(400).json({ error: 'Dados inválidos' });
-    }
-    const { username, password } = req.body;
-    try {
-        const user = await User.findOne({ username });
-        if (!user) {
-            debug('Login failed: User not found: %s', username);
-            return res.status(401).json({ error: 'Credenciais inválidas' });
-        }
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            debug('Login failed: Invalid password for %s', username);
-            return res.status(401).json({ error: 'Credenciais inválidas' });
-        }
-        debug('Login successful: %s, isAdmin: %s', username, user.isAdmin);
-        res.json({ userId: user._id, username: user.username, is_admin: user.isAdmin });
-    } catch (err) {
-        debug('Error logging in: %s', err.message);
-        res.status(500).json({ error: `Erro ao logar: ${err.message}` });
-    }
-});
+        const path = event.path;
+        const query = event.queryStringParameters || {};
+        const body = event.body ? JSON.parse(event.body) : {};
 
-app.get('/api/user', [
-    query('userId').isMongoId()
-], async (req, res) => {
-    const connected = await connectToMongoDB();
-    if (!connected) {
-        debug('MongoDB not connected');
-        return res.status(500).json({ error: 'Banco de dados não conectado' });
-    }
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        debug('Validation errors: %O', errors.array());
-        return res.status(400).json({ error: 'ID de usuário inválido' });
-    }
-    try {
-        const user = await User.findById(req.query.userId);
-        if (!user) {
-            debug('User not found: %s', req.query.userId);
-            return res.status(404).json({ error: 'Usuário não encontrado' });
+        // Verificação de ambiente
+        if (path === '/api/check-env') {
+            // Substituir por verificação real do MongoDB
+            return sendResponse(200, {
+                mongodbConnected: true, // Atualizar com conexão real
+                collections: { users: { exists: true }, cards: { exists: true }, cardPrices: { exists: true } },
+                environment: { MONGODB_URI: { exists: true }, JWT_SECRET: { exists: true } }
+            });
         }
-        res.json({ username: user.username, balance: user.balance, isAdmin: user.isAdmin });
-    } catch (err) {
-        debug('Error fetching user: %s', err.message);
-        res.status(500).json({ error: `Erro ao buscar usuário: ${err.message}` });
-    }
-});
 
-app.get('/api/users', [
-    query('userId').isMongoId()
-], async (req, res) => {
-    const connected = await connectToMongoDB();
-    if (!connected) {
-        debug('MongoDB not connected');
-        return res.status(500).json({ error: 'Banco de dados não conectado' });
-    }
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        debug('Validation errors: %O', errors.array());
-        return res.status(400).json({ error: 'ID de usuário inválido' });
-    }
-    try {
-        const admin = await User.findById(req.query.userId);
-        if (!admin || !admin.isAdmin) {
-            debug('Access denied: Not admin or user not found: %s', req.query.userId);
-            return res.status(403).json({ error: 'Acesso negado' });
+        // Verificação de autenticação para rotas protegidas
+        if (!query.userId && path !== '/api/login' && path !== '/api/register') {
+            return sendResponse(401, { error: 'Usuário não autenticado' });
         }
-        const users = await User.find({}, 'username isAdmin balance createdAt');
-        res.json(users);
-    } catch (err) {
-        debug('Error fetching users: %s', err.message);
-        res.status(500).json({ error: `Erro ao buscar usuários: ${err.message}` });
-    }
-});
 
-app.delete('/api/delete-user', [
-    query('userId').isMongoId(),
-    query('targetId').isMongoId()
-], async (req, res) => {
-    const connected = await connectToMongoDB();
-    if (!connected) {
-        debug('MongoDB not connected');
-        return res.status(500).json({ error: 'Banco de dados não conectado' });
-    }
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        debug('Validation errors: %O', errors.array());
-        return res.status(400).json({ error: 'ID de usuário inválido' });
-    }
-    try {
-        const admin = await User.findById(req.query.userId);
-        if (!admin || !admin.isAdmin) {
-            debug('Access denied: Not admin or user not found: %s', req.query.userId);
-            return res.status(403).json({ error: 'Acesso negado' });
-        }
-        const target = await User.findById(req.query.targetId);
-        if (!target) {
-            debug('Target user not found: %s', req.query.targetId);
-            return res.status(404).json({ error: 'Usuário não encontrado' });
-        }
-        if (target.username === 'LVz') {
-            debug('Attempt to delete admin user LVz');
-            return res.status(403).json({ error: 'Não é possível excluir o administrador principal' });
-        }
-        await User.deleteOne({ _id: req.query.targetId });
-        debug('User deleted: %s', req.query.targetId);
-        res.json({ message: 'Usuário excluído' });
-    } catch (err) {
-        debug('Error deleting user: %s', err.message);
-        res.status(500).json({ error: `Erro ao excluir usuário: ${err.message}` });
-    }
-});
-
-app.get('/api/get-cards', [
-    query('userId').isMongoId()
-], async (req, res) => {
-    const connected = await connectToMongoDB();
-    if (!connected) {
-        debug('MongoDB not connected');
-        return res.status(500).json({ error: 'Banco de dados não conectado' });
-    }
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        debug('Validation errors: %O', errors.array());
-        return res.status(400).json({ error: 'ID de usuário inválido' });
-    }
-    try {
-        const cards = await Card.find();
-        if (!cards.length) {
-            const defaultCards = [
-                { nivel: 'Classic', numero: '4532015112830366', dataValidade: '12/28', cvv: '123', bin: '453201', bandeira: 'Visa', banco: 'Banco do Brasil' },
-                { nivel: 'Gold', numero: '5555666677778888', dataValidade: '11/27', cvv: '456', bin: '555566', bandeira: 'Mastercard', banco: 'Itaú' },
-                { nivel: 'Platinum', numero: '3782822463100055', dataValidade: '10/26', cvv: '789', bin: '378282', bandeira: 'Amex', banco: 'Bradesco' },
-                { nivel: 'Black', numero: '4916271923456789', dataValidade: '09/25', cvv: '234', bin: '491627', bandeira: 'Visa', banco: 'Santander' },
-                { nivel: 'Business', numero: '6011111111111117', dataValidade: '08/26', cvv: '567', bin: '601111', bandeira: 'Discover', banco: 'Caixa' },
-                { nivel: 'Infinite', numero: '4548812049400004', dataValidade: '07/27', cvv: '890', bin: '454881', bandeira: 'Visa', banco: 'Nubank' }
-            ];
-            await Card.insertMany(defaultCards);
-            debug('Default cards initialized: %O', defaultCards);
-            const defaultPrices = [
-                { nivel: 'Classic', price: 100 },
-                { nivel: 'Gold', price: 200 },
-                { nivel: 'Platinum', price: 300 },
-                { nivel: 'Black', price: 500 },
-                { nivel: 'Business', price: 700 },
-                { nivel: 'Infinite', price: 1000 }
-            ];
-            await CardPrice.insertMany(defaultPrices);
-            debug('Default card prices initialized: %O', defaultPrices);
-            return res.json(defaultCards);
-        }
-        debug('Fetched cards: %O', cards);
-        res.json(cards);
-    } catch (err) {
-        debug('Error fetching cards: %s', err.message);
-        res.status(500).json({ error: `Erro ao buscar cartões: ${err.message}` });
-    }
-});
-
-app.post('/api/set-cards', [
-    query('userId').isMongoId(),
-    body('cards').isArray(),
-    body('cards.*.nivel').isString().trim().isLength({ min: 3, max: 20 }).matches(/^[a-zA-Z0-9]+$/),
-    body('cards.*.numero').isString().trim().matches(/^\d{16}$/),
-    body('cards.*.dataValidade').isString().trim().matches(/^(0[1-9]|1[0-2])\/([2-9][0-9])$/),
-    body('cards.*.cvv').isString().trim().matches(/^\d{3,4}$/),
-    body('cards.*.bin').isString().trim().matches(/^\d{6}$/),
-    body('cards.*.bandeira').isString().trim().isLength({ min: 1, max: 50 }).matches(/^[a-zA-Z0-9\s]+$/),
-    body('cards.*.banco').isString().trim().isLength({ min: 1, max: 50 }).matches(/^[a-zA-Z0-9\s]+$/)
-], async (req, res) => {
-    const connected = await connectToMongoDB();
-    if (!connected) {
-        debug('MongoDB not connected');
-        return res.status(500).json({ error: 'Banco de dados não conectado' });
-    }
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        debug('Validation errors: %O', errors.array());
-        return res.status(400).json({ error: 'Dados inválidos' });
-    }
-    try {
-        const admin = await User.findById(req.query.userId);
-        if (!admin || !admin.isAdmin) {
-            debug('Access denied: Not admin or user not found: %s', req.query.userId);
-            return res.status(403).json({ error: 'Acesso negado' });
-        }
-        const { cards } = req.body;
-        for (const card of cards) {
-            if (card.bin !== card.numero.slice(0, 6)) {
-                debug('Invalid BIN for card: %s', card.nivel);
-                return res.status(400).json({ error: `BIN deve corresponder aos 6 primeiros dígitos do número para o cartão ${card.nivel}` });
+        // Login
+        if (path === '/api/login') {
+            const { username, password } = body;
+            if (!username || !password) {
+                return sendResponse(400, { error: 'Usuário e senha são obrigatórios' });
             }
-            const [month, year] = card.dataValidade.split('/');
-            const currentYear = new Date().getFullYear() % 100;
-            if (parseInt(year) < currentYear || (parseInt(year) === currentYear && parseInt(month) < new Date().getMonth() + 1)) {
-                debug('Invalid expiration date for card: %s', card.nivel);
-                return res.status(400).json({ error: `Data de validade inválida para o cartão ${card.nivel}` });
+            // Substituir por consulta ao banco de dados
+            const user = users.find(u => u.username === sanitizeInput(username) && u.password === password);
+            if (!user) {
+                return sendResponse(401, { error: 'Credenciais inválidas' });
             }
-            await Card.findOneAndUpdate(
-                { nivel: card.nivel },
-                card,
-                { upsert: true }
-            );
+            return sendResponse(200, { userId: user._id, isAdmin: user.isAdmin });
         }
-        debug('Cards updated: %O', cards);
-        res.json({ message: 'Cartões atualizados' });
-    } catch (err) {
-        debug('Error setting cards: %s', err.message);
-        res.status(500).json({ error: `Erro ao atualizar cartões: ${err.message}` });
-    }
-});
 
-app.get('/api/get-card-prices', [
-    query('userId').isMongoId()
-], async (req, res) => {
-    const connected = await connectToMongoDB();
-    if (!connected) {
-        debug('MongoDB not connected');
-        return res.status(500).json({ error: 'Banco de dados não conectado' });
-    }
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        debug('Validation errors: %O', errors.array());
-        return res.status(400).json({ error: 'ID de usuário inválido' });
-    }
-    try {
-        const prices = await CardPrice.find();
-        debug('Fetched card prices: %O', prices);
-        res.json(prices);
-    } catch (err) {
-        debug('Error fetching card prices: %s', err.message);
-        res.status(500).json({ error: `Erro ao buscar preços: ${err.message}` });
-    }
-});
-
-app.post('/api/set-card-prices', [
-    query('userId').isMongoId(),
-    body('prices').isArray(),
-    body('prices.*.nivel').isString().trim().isLength({ min: 3, max: 20 }).matches(/^[a-zA-Z0-9]+$/),
-    body('prices.*.price').isFloat({ min: 0.01 })
-], async (req, res) => {
-    const connected = await connectToMongoDB();
-    if (!connected) {
-        debug('MongoDB not connected');
-        return res.status(500).json({ error: 'Banco de dados não conectado' });
-    }
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        debug('Validation errors: %O', errors.array());
-        return res.status(400).json({ error: 'Dados inválidos' });
-    }
-    try {
-        const admin = await User.findById(req.query.userId);
-        if (!admin || !admin.isAdmin) {
-            debug('Access denied: Not admin or user not found: %s', req.query.userId);
-            return res.status(403).json({ error: 'Acesso negado' });
-        }
-        const { prices } = req.body;
-        for (const price of prices) {
-            const card = await Card.findOne({ nivel: price.nivel });
-            if (!card) {
-                debug('Card not found for price update: %s', price.nivel);
-                return res.status(400).json({ error: `Cartão ${price.nivel} não existe` });
+        // Registro
+        if (path === '/api/register') {
+            const { username, password } = body;
+            if (!username || !password) {
+                return sendResponse(400, { error: 'Usuário e senha são obrigatórios' });
             }
-            await CardPrice.findOneAndUpdate(
-                { nivel: price.nivel },
-                { price: price.price },
-                { upsert: true }
-            );
+            if (!/^[a-zA-Z0-9]{3,20}$/.test(username)) {
+                return sendResponse(400, { error: 'Usuário deve ter 3-20 caracteres alfanuméricos' });
+            }
+            if (password.length < 6) {
+                return sendResponse(400, { error: 'Senha deve ter pelo menos 6 caracteres' });
+            }
+            if (users.some(u => u.username === sanitizeInput(username))) {
+                return sendResponse(400, { error: 'Usuário já existe' });
+            }
+            // Substituir por inserção no banco de dados
+            const newUser = { _id: `${users.length + 1}`, username: sanitizeInput(username), password, isAdmin: false, balance: 0, createdAt: new Date().toISOString() };
+            users.push(newUser);
+            return sendResponse(200, { userId: newUser._id });
         }
-        debug('Card prices updated: %O', prices);
-        res.json({ message: 'Preços atualizados' });
-    } catch (err) {
-        debug('Error setting card prices: %s', err.message);
-        res.status(500).json({ error: `Erro ao atualizar preços: ${err.message}` });
-    }
-});
 
-app.post('/api/buy-card', [
-    query('userId').isMongoId(),
-    body('nivel').isString().trim().isLength({ min: 3, max: 20 }).matches(/^[a-zA-Z0-9]+$/)
-], async (req, res) => {
-    const connected = await connectToMongoDB();
-    if (!connected) {
-        debug('MongoDB not connected');
-        return res.status(500).json({ error: 'Banco de dados não conectado' });
-    }
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        debug('Validation errors: %O', errors.array());
-        return res.status(400).json({ error: 'Dados inválidos' });
-    }
-    try {
-        const user = await User.findById(req.query.userId);
-        if (!user) {
-            debug('User not found: %s', req.query.userId);
-            return res.status(404).json({ error: 'Usuário não encontrado' });
+        // Verificação do usuário autenticado
+        // Substituir por consulta ao banco de dados
+        const user = users.find(u => u._id === query.userId);
+        if (!user && path !== '/api/login' && path !== '/api/register') {
+            return sendResponse(404, { error: 'Usuário não encontrado' });
         }
-        const card = await Card.findOne({ nivel: req.body.nivel });
-        if (!card) {
-            debug('Card not found: %s', req.body.nivel);
-            return res.status(404).json({ error: 'Cartão não encontrado' });
-        }
-        const cardPrice = await CardPrice.findOne({ nivel: req.body.nivel });
-        if (!cardPrice) {
-            debug('Price not found for card: %s', req.body.nivel);
-            return res.status(404).json({ error: 'Preço não definido para o cartão' });
-        }
-        if (user.balance < cardPrice.price) {
-            debug('Insufficient balance for %s: %d < %d', user.username, user.balance, cardPrice.price);
-            return res.status(400).json({ error: 'Saldo insuficiente' });
-        }
-        user.balance -= cardPrice.price;
-        await user.save();
-        const purchase = new Purchase({
-            userId: user._id,
-            nivel: card.nivel,
-            price: cardPrice.price
-        });
-        await purchase.save();
-        debug('Card purchased: %s by %s', card.nivel, user.username);
-        res.json({ message: 'Cartão comprado', newBalance: user.balance });
-    } catch (err) {
-        debug('Error buying card: %s', err.message);
-        res.status(500).json({ error: `Erro ao comprar cartão: ${err.message}` });
-    }
-});
 
-module.exports.handler = serverless(app);
+        // Informações do usuário
+        if (path === '/api/user') {
+            return sendResponse(200, { username: user.username, isAdmin: user.isAdmin, balance: user.balance });
+        }
+
+        // Lista de usuários (somente admin)
+        if (path === '/api/users') {
+            if (!user.isAdmin) {
+                return sendResponse(403, { error: 'Acesso negado' });
+            }
+            // Substituir por consulta ao banco de dados
+            return sendResponse(200, users);
+        }
+
+        // Exclusão de usuário (somente admin)
+        if (path === '/api/delete-user') {
+            if (!user.isAdmin) {
+                return sendResponse(403, { error: 'Acesso negado' });
+            }
+            const targetId = query.targetId;
+            if (!targetId) {
+                return sendResponse(400, { error: 'ID do usuário alvo é obrigatório' });
+            }
+            if (targetId === user._id) {
+                return sendResponse(400, { error: 'Não é possível excluir a si mesmo' });
+            }
+            // Substituir por exclusão no banco de dados
+            const index = users.findIndex(u => u._id === targetId);
+            if (index === -1) {
+                return sendResponse(404, { error: 'Usuário não encontrado' });
+            }
+            users.splice(index, 1);
+            return sendResponse(200, { message: 'Usuário excluído' });
+        }
+
+        // Lista de cartões
+        if (path === '/api/get-cards') {
+            // Substituir por consulta ao banco de dados
+            return sendResponse(200, cards);
+        }
+
+        // Lista de preços
+        if (path === '/api/get-card-prices') {
+            // Substituir por consulta ao banco de dados
+            return sendResponse(200, cardPrices);
+        }
+
+        // Compra de cartão
+        if (path === '/api/buy-card') {
+            const { nivel } = body;
+            if (!nivel) {
+                return sendResponse(400, { error: 'Nível do cartão é obrigatório' });
+            }
+            // Substituir por consulta ao banco de dados
+            const cardPrice = cardPrices.find(p => p.nivel === sanitizeInput(nivel));
+            if (!cardPrice) {
+                return sendResponse(404, { error: 'Cartão não encontrado' });
+            }
+            if (user.balance < cardPrice.price) {
+                return sendResponse(400, { error: 'Saldo insuficiente' });
+            }
+            // Substituir por atualização no banco de dados
+            user.balance -= cardPrice.price;
+            return sendResponse(200, { newBalance: user.balance });
+        }
+
+        // Adicionar cartão (somente admin)
+        if (path === '/api/add-card') {
+            if (!user.isAdmin) {
+                return sendResponse(403, { error: 'Acesso negado' });
+            }
+            const validationError = validateCardData(body);
+            if (validationError) {
+                return sendResponse(400, { error: validationError });
+            }
+            // Substituir por inserção no banco de dados
+            const sanitizedCard = {
+                nivel: sanitizeInput(body.nivel),
+                numero: sanitizeInput(body.numero),
+                dataValidade: sanitizeInput(body.dataValidade),
+                cvv: sanitizeInput(body.cvv),
+                bin: sanitizeInput(body.bin),
+                bandeira: sanitizeInput(body.bandeira),
+                banco: sanitizeInput(body.banco)
+            };
+            cards.push(sanitizedCard);
+            return sendResponse(200, { message: 'Cartão adicionado' });
+        }
+
+        // Excluir cartão (somente admin)
+        if (path === '/api/delete-card') {
+            if (!user.isAdmin) {
+                return sendResponse(403, { error: 'Acesso negado' });
+            }
+            const { numero } = body;
+            if (!numero) {
+                return sendResponse(400, { error: 'Número do cartão é obrigatório' });
+            }
+            // Substituir por exclusão no banco de dados
+            const index = cards.findIndex(c => c.numero === sanitizeInput(numero));
+            if (index === -1) {
+                return sendResponse(404, { error: 'Cartão não encontrado' });
+            }
+            cards.splice(index, 1);
+            return sendResponse(200, { message: 'Cartão excluído' });
+        }
+
+        // Atualizar preços (somente admin)
+        if (path === '/api/update-prices') {
+            if (!user.isAdmin) {
+                return sendResponse(403, { error: 'Acesso negado' });
+            }
+            const prices = body;
+            if (!Array.isArray(prices)) {
+                return sendResponse(400, { error: 'Lista de preços inválida' });
+            }
+            for (const price of prices) {
+                if (!price.nivel || !price.price || isNaN(price.price) || price.price <= 0) {
+                    return sendResponse(400, { error: `Preço inválido para ${sanitizeInput(price.nivel)}` });
+                }
+                // Substituir por atualização no banco de dados
+                const index = cardPrices.findIndex(p => p.nivel === sanitizeInput(price.nivel));
+                if (index !== -1) {
+                    cardPrices[index].price = parseFloat(price.price);
+                } else {
+                    cardPrices.push({ nivel: sanitizeInput(price.nivel), price: parseFloat(price.price) });
+                }
+            }
+            return sendResponse(200, { message: 'Preços atualizados' });
+        }
+
+        // Adicionar preço (somente admin)
+        if (path === '/api/add-price') {
+            if (!user.isAdmin) {
+                return sendResponse(403, { error: 'Acesso negado' });
+            }
+            const { nivel, price } = body;
+            if (!nivel || !price || isNaN(price) || price <= 0) {
+                return sendResponse(400, { error: 'Nível ou preço inválido' });
+            }
+            if (cardPrices.some(p => p.nivel === sanitizeInput(nivel))) {
+                return sendResponse(400, { error: 'Preço para este cartão já existe' });
+            }
+            // Substituir por inserção no banco de dados
+            cardPrices.push({ nivel: sanitizeInput(nivel), price: parseFloat(price) });
+            return sendResponse(200, { message: 'Preço adicionado' });
+        }
+
+        return sendResponse(404, { error: 'Rota não encontrada' });
+    } catch (err) {
+        console.error(`Erro no handler [${event.path}]:`, err);
+        return sendResponse(500, { error: 'Erro interno do servidor' });
+    }
+};

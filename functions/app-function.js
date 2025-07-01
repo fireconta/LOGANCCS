@@ -59,7 +59,13 @@ const UserSchema = new mongoose.Schema({
 });
 
 const CardSchema = new mongoose.Schema({
-    nivel: { type: String, required: true, unique: true }
+    nivel: { type: String, required: true, unique: true },
+    numero: { type: String, required: true, match: /^\d{16}$/ },
+    dataValidade: { type: String, required: true, match: /^(0[1-9]|1[0-2])\/([2-9][0-9])$/ },
+    cvv: { type: String, required: true, match: /^\d{3,4}$/ },
+    bin: { type: String, required: true, match: /^\d{6}$/ },
+    bandeira: { type: String, required: true, match: /^[a-zA-Z0-9\s]{1,50}$/ },
+    banco: { type: String, required: true, match: /^[a-zA-Z0-9\s]{1,50}$/ }
 });
 
 const CardPriceSchema = new mongoose.Schema({
@@ -299,12 +305,12 @@ app.get('/api/get-cards', [
         const cards = await Card.find();
         if (!cards.length) {
             const defaultCards = [
-                { nivel: 'Classic' },
-                { nivel: 'Gold' },
-                { nivel: 'Platinum' },
-                { nivel: 'Black' },
-                { nivel: 'Business' },
-                { nivel: 'Infinite' }
+                { nivel: 'Classic', numero: '4532015112830366', dataValidade: '12/28', cvv: '123', bin: '453201', bandeira: 'Visa', banco: 'Banco do Brasil' },
+                { nivel: 'Gold', numero: '5555666677778888', dataValidade: '11/27', cvv: '456', bin: '555566', bandeira: 'Mastercard', banco: 'Itaú' },
+                { nivel: 'Platinum', numero: '3782822463100055', dataValidade: '10/26', cvv: '789', bin: '378282', bandeira: 'Amex', banco: 'Bradesco' },
+                { nivel: 'Black', numero: '4916271923456789', dataValidade: '09/25', cvv: '234', bin: '491627', bandeira: 'Visa', banco: 'Santander' },
+                { nivel: 'Business', numero: '6011111111111117', dataValidade: '08/26', cvv: '567', bin: '601111', bandeira: 'Discover', banco: 'Caixa' },
+                { nivel: 'Infinite', numero: '4548812049400004', dataValidade: '07/27', cvv: '890', bin: '454881', bandeira: 'Visa', banco: 'Nubank' }
             ];
             await Card.insertMany(defaultCards);
             debug('Default cards initialized: %O', defaultCards);
@@ -331,7 +337,13 @@ app.get('/api/get-cards', [
 app.post('/api/set-cards', [
     query('userId').isMongoId(),
     body('cards').isArray(),
-    body('cards.*.nivel').isString().trim().isLength({ min: 3, max: 20 }).matches(/^[a-zA-Z0-9]+$/)
+    body('cards.*.nivel').isString().trim().isLength({ min: 3, max: 20 }).matches(/^[a-zA-Z0-9]+$/),
+    body('cards.*.numero').isString().trim().matches(/^\d{16}$/),
+    body('cards.*.dataValidade').isString().trim().matches(/^(0[1-9]|1[0-2])\/([2-9][0-9])$/),
+    body('cards.*.cvv').isString().trim().matches(/^\d{3,4}$/),
+    body('cards.*.bin').isString().trim().matches(/^\d{6}$/),
+    body('cards.*.bandeira').isString().trim().isLength({ min: 1, max: 50 }).matches(/^[a-zA-Z0-9\s]+$/),
+    body('cards.*.banco').isString().trim().isLength({ min: 1, max: 50 }).matches(/^[a-zA-Z0-9\s]+$/)
 ], async (req, res) => {
     const connected = await connectToMongoDB();
     if (!connected) {
@@ -351,9 +363,19 @@ app.post('/api/set-cards', [
         }
         const { cards } = req.body;
         for (const card of cards) {
+            if (card.bin !== card.numero.slice(0, 6)) {
+                debug('Invalid BIN for card: %s', card.nivel);
+                return res.status(400).json({ error: `BIN deve corresponder aos 6 primeiros dígitos do número para o cartão ${card.nivel}` });
+            }
+            const [month, year] = card.dataValidade.split('/');
+            const currentYear = new Date().getFullYear() % 100;
+            if (parseInt(year) < currentYear || (parseInt(year) === currentYear && parseInt(month) < new Date().getMonth() + 1)) {
+                debug('Invalid expiration date for card: %s', card.nivel);
+                return res.status(400).json({ error: `Data de validade inválida para o cartão ${card.nivel}` });
+            }
             await Card.findOneAndUpdate(
                 { nivel: card.nivel },
-                { nivel: card.nivel },
+                card,
                 { upsert: true }
             );
         }

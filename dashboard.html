@@ -39,6 +39,23 @@
     </header>
     <main>
         <section class="mb-8">
+            <h2 class="text-xl font-semibold mb-4">Gerenciar Cartões</h2>
+            <div id="cardsForm" class="bg-gray-800 p-4 rounded-lg mb-4">
+                <div id="existingCards" class="space-y-4 mb-4"></div>
+                <div class="mb-4">
+                    <label for="newCardName" class="block text-sm font-medium text-gray-300">Nome do Cartão</label>
+                    <input type="text" id="newCardName" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Ex.: Diamond" oninput="restrictCardInput(this)">
+                </div>
+                <button onclick="addNewCard()" class="w-full py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center" aria-label="Adicionar cartão">
+                    <span>Adicionar Cartão</span>
+                    <svg id="addCardSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                </button>
+            </div>
+        </section>
+        <section class="mb-8">
             <h2 class="text-xl font-semibold mb-4">Gerenciar Preços de Cartões</h2>
             <div id="pricesForm" class="bg-gray-800 p-4 rounded-lg">
                 <div id="existingPrices" class="space-y-4 mb-4"></div>
@@ -51,18 +68,20 @@
                 </button>
             </div>
             <div class="bg-gray-800 p-4 rounded-lg mt-4">
-                <h3 class="text-lg font-semibold mb-2">Adicionar Novo Nível</h3>
+                <h3 class="text-lg font-semibold mb-2">Adicionar Preço para Cartão</h3>
                 <div class="mb-4">
-                    <label for="newLevelName" class="block text-sm font-medium text-gray-300">Nome do Nível</label>
-                    <input type="text" id="newLevelName" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Ex.: Diamond" oninput="restrictLevelInput(this)">
+                    <label for="newPriceCard" class="block text-sm font-medium text-gray-300">Cartão</label>
+                    <select id="newPriceCard" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500">
+                        <option value="">Selecione um cartão</option>
+                    </select>
                 </div>
                 <div class="mb-4">
-                    <label for="newLevelPrice" class="block text-sm font-medium text-gray-300">Preço</label>
-                    <input type="number" id="newLevelPrice" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Ex.: 1200" min="0.01" step="0.01">
+                    <label for="newPriceValue" class="block text-sm font-medium text-gray-300">Preço</label>
+                    <input type="number" id="newPriceValue" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Ex.: 1200" min="0.01" step="0.01">
                 </div>
-                <button onclick="addNewLevel()" class="w-full py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center" aria-label="Adicionar nível">
-                    <span>Adicionar Nível</span>
-                    <svg id="addLevelSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <button onclick="addNewPrice()" class="w-full py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center" aria-label="Adicionar preço">
+                    <span>Adicionar Preço</span>
+                    <svg id="addPriceSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                     </svg>
@@ -79,7 +98,7 @@
     <script src="/debug.js"></script>
     <script src="/utils.js"></script>
     <script>
-        function restrictLevelInput(input) {
+        function restrictCardInput(input) {
             input.value = input.value.replace(/[^a-zA-Z0-9]/g, '');
             if (input.value.length > 20) input.value = input.value.slice(0, 20);
         }
@@ -191,8 +210,51 @@
             }
         }
 
+        async function loadCards() {
+            Debug.log('Carregando cartões da coleção Cards');
+            const existingCards = document.getElementById('existingCards');
+            existingCards.innerHTML = '<p class="text-gray-500 text-center"><i class="fas fa-spinner animate-spin mr-2"></i> Carregando...</p>';
+            try {
+                const response = await fetchWithTimeout(`/api/get-cards?userId=${encodeURIComponent(localStorage.getItem('userId'))}`);
+                const text = await response.text();
+                Debug.log(`Resposta /api/get-cards: Status ${response.status}`, { response: text });
+                let cards = JSON.parse(text);
+                if (!response.ok) throw new Error(cards.error || 'Erro ao carregar cartões');
+                existingCards.innerHTML = '';
+                cards.forEach(card => {
+                    Debug.log(`Cartão carregado: ${card.nivel}`);
+                    const cardDiv = document.createElement('div');
+                    cardDiv.className = 'mb-4';
+                    cardDiv.innerHTML = `
+                        <p class="text-sm font-medium text-gray-300">Cartão: ${DOMPurify.sanitize(card.nivel)}</p>
+                    `;
+                    existingCards.appendChild(cardDiv);
+                });
+                if (cards.length === 0) {
+                    existingCards.innerHTML = '<p class="text-center text-yellow-500">Nenhum cartão encontrado.</p>';
+                    Debug.warn('Nenhum cartão encontrado na coleção Cards');
+                }
+                await loadPriceCardOptions(cards);
+            } catch (err) {
+                Debug.error('Erro ao carregar cartões: %s', err.message);
+                existingCards.innerHTML = `<p class="text-center text-red-500">Erro: ${DOMPurify.sanitize(err.message)}</p>`;
+                showNotification(`Erro: ${err.message}`, true);
+            }
+        }
+
+        async function loadPriceCardOptions(cards) {
+            const select = document.getElementById('newPriceCard');
+            select.innerHTML = '<option value="">Selecione um cartão</option>';
+            cards.forEach(card => {
+                const option = document.createElement('option');
+                option.value = card.nivel;
+                option.textContent = card.nivel;
+                select.appendChild(option);
+            });
+        }
+
         async function loadPrices() {
-            Debug.log('Carregando preços de cartões');
+            Debug.log('Carregando preços de cartões da coleção CardPrice');
             const existingPrices = document.getElementById('existingPrices');
             existingPrices.innerHTML = '<p class="text-gray-500 text-center"><i class="fas fa-spinner animate-spin mr-2"></i> Carregando...</p>';
             try {
@@ -203,18 +265,18 @@
                 if (!response.ok) throw new Error(prices.error || 'Erro ao carregar preços');
                 existingPrices.innerHTML = '';
                 prices.forEach(price => {
-                    Debug.log(`Preço carregado para ${price.nivel}: ${price.price}`);
+                    Debug.log(`Preço carregado para cartão: ${price.nivel}, Preço: ${price.price}`);
                     const priceDiv = document.createElement('div');
                     priceDiv.className = 'mb-4';
                     priceDiv.innerHTML = `
-                        <label for="price-${price.nivel.toLowerCase()}" class="block text-sm font-medium text-gray-300">${DOMPurify.sanitize(price.nivel)}</label>
+                        <label for="price-${price.nivel.toLowerCase()}" class="block text-sm font-medium text-gray-300">Cartão ${DOMPurify.sanitize(price.nivel)}</label>
                         <input type="number" id="price-${price.nivel.toLowerCase()}" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" value="${price.price}" min="0.01" step="0.01">
                     `;
                     existingPrices.appendChild(priceDiv);
                 });
                 if (prices.length === 0) {
-                    existingPrices.innerHTML = '<p class="text-center text-yellow-500">Nenhum nível de cartão encontrado.</p>';
-                    Debug.warn('Nenhum nível de cartão encontrado');
+                    existingPrices.innerHTML = '<p class="text-center text-yellow-500">Nenhum preço de cartão encontrado.</p>';
+                    Debug.warn('Nenhum preço de cartão encontrado na coleção CardPrice');
                 }
             } catch (err) {
                 Debug.error('Erro ao carregar preços: %s', err.message);
@@ -223,8 +285,41 @@
             }
         }
 
+        async function addNewCard() {
+            Debug.log('Tentando adicionar novo cartão à coleção Cards');
+            const button = document.querySelector('button[aria-label="Adicionar cartão"]');
+            const spinner = document.getElementById('addCardSpinner');
+            button.disabled = true;
+            spinner.classList.remove('hidden');
+            try {
+                const nivel = document.getElementById('newCardName').value.trim();
+                if (!nivel || nivel.length < 3 || nivel.length > 20 || !/^[a-zA-Z0-9]+$/.test(nivel)) {
+                    throw new Error('Nome do cartão deve ter 3-20 caracteres alfanuméricos');
+                }
+                const response = await fetchWithTimeout(`/api/set-cards?userId=${encodeURIComponent(localStorage.getItem('userId'))}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cards: [{ nivel }] })
+                });
+                const text = await response.text();
+                Debug.log(`Resposta /api/set-cards: Status ${response.status}`, { response: text });
+                let data = JSON.parse(text);
+                if (!response.ok) throw new Error(data.error || 'Erro ao adicionar cartão');
+                showNotification(`Cartão ${nivel} adicionado com sucesso!`);
+                Debug.success(`Cartão ${nivel} adicionado à coleção Cards`);
+                document.getElementById('newCardName').value = '';
+                await loadCards();
+            } catch (err) {
+                Debug.error('Erro ao adicionar cartão: %s', err.message);
+                showNotification(`Erro: ${err.message}`, true);
+            } finally {
+                button.disabled = false;
+                spinner.classList.add('hidden');
+            }
+        }
+
         async function updatePrices() {
-            Debug.log('Atualizando preços de cartões');
+            Debug.log('Atualizando preços de cartões na coleção CardPrice');
             const button = document.getElementById('pricesButton');
             const spinner = document.getElementById('pricesSpinner');
             button.disabled = true;
@@ -255,7 +350,7 @@
                 let data = JSON.parse(text);
                 if (!response.ok) throw new Error(data.error || 'Erro ao atualizar preços');
                 showNotification('Preços atualizados com sucesso!');
-                Debug.success('Preços atualizados com sucesso');
+                Debug.success('Preços atualizados na coleção CardPrice');
                 await loadPrices();
             } catch (err) {
                 Debug.error('Erro ao atualizar preços: %s', err.message);
@@ -266,17 +361,17 @@
             }
         }
 
-        async function addNewLevel() {
-            Debug.log('Tentando adicionar novo nível de cartão');
-            const button = document.querySelector('button[aria-label="Adicionar nível"]');
-            const spinner = document.getElementById('addLevelSpinner');
+        async function addNewPrice() {
+            Debug.log('Tentando adicionar novo preço à coleção CardPrice');
+            const button = document.querySelector('button[aria-label="Adicionar preço"]');
+            const spinner = document.getElementById('addPriceSpinner');
             button.disabled = true;
             spinner.classList.remove('hidden');
             try {
-                const nivel = document.getElementById('newLevelName').value.trim();
-                const price = parseFloat(document.getElementById('newLevelPrice').value);
-                if (!nivel || nivel.length < 3 || nivel.length > 20 || !/^[a-zA-Z0-9]+$/.test(nivel)) {
-                    throw new Error('Nome do nível deve ter 3-20 caracteres alfanuméricos');
+                const nivel = document.getElementById('newPriceCard').value;
+                const price = parseFloat(document.getElementById('newPriceValue').value);
+                if (!nivel) {
+                    throw new Error('Selecione um cartão');
                 }
                 if (isNaN(price) || price < 0.01) {
                     throw new Error('Preço deve ser pelo menos 0.01');
@@ -287,16 +382,16 @@
                     body: JSON.stringify({ prices: [{ nivel, price }] })
                 });
                 const text = await response.text();
-                Debug.log(`Resposta /api/set-card-prices (novo nível): Status ${response.status}`, { response: text });
+                Debug.log(`Resposta /api/set-card-prices (novo preço): Status ${response.status}`, { response: text });
                 let data = JSON.parse(text);
-                if (!response.ok) throw new Error(data.error || 'Erro ao adicionar nível');
-                showNotification(`Nível ${nivel} adicionado com sucesso!`);
-                Debug.success(`Nível ${nivel} adicionado com preço ${price}`);
-                document.getElementById('newLevelName').value = '';
-                document.getElementById('newLevelPrice').value = '';
+                if (!response.ok) throw new Error(data.error || 'Erro ao adicionar preço');
+                showNotification(`Preço para cartão ${nivel} adicionado com sucesso!`);
+                Debug.success(`Preço ${price} adicionado para cartão ${nivel} na coleção CardPrice`);
+                document.getElementById('newPriceCard').value = '';
+                document.getElementById('newPriceValue').value = '';
                 await loadPrices();
             } catch (err) {
-                Debug.error('Erro ao adicionar nível: %s', err.message);
+                Debug.error('Erro ao adicionar preço: %s', err.message);
                 showNotification(`Erro: ${err.message}`, true);
             } finally {
                 button.disabled = false;
@@ -315,7 +410,7 @@
             });
             await checkEnvironment();
             if (await checkAuth()) {
-                await Promise.all([loadUsers(), loadPrices()]);
+                await Promise.all([loadUsers(), loadCards(), loadPrices()]);
             }
         });
     </script>

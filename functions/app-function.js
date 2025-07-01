@@ -58,6 +58,10 @@ const UserSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
+const CardSchema = new mongoose.Schema({
+    nivel: { type: String, required: true, unique: true }
+});
+
 const CardPriceSchema = new mongoose.Schema({
     nivel: { type: String, required: true, unique: true },
     price: { type: Number, required: true }
@@ -71,6 +75,7 @@ const PurchaseSchema = new mongoose.Schema({
 });
 
 const User = mongoose.model('User', UserSchema);
+const Card = mongoose.model('Card', CardSchema);
 const CardPrice = mongoose.model('CardPrice', CardPriceSchema);
 const Purchase = mongoose.model('Purchase', PurchaseSchema);
 
@@ -80,10 +85,12 @@ async function checkCollections() {
         const collectionNames = collections.map(c => c.name);
         const result = {
             User: { exists: collectionNames.includes('users'), accessible: false },
+            Card: { exists: collectionNames.includes('cards'), accessible: false },
             CardPrice: { exists: collectionNames.includes('cardprices'), accessible: false },
             Purchase: { exists: collectionNames.includes('purchases'), accessible: false }
         };
         if (result.User.exists) result.User.accessible = await User.countDocuments().then(() => true).catch(() => false);
+        if (result.Card.exists) result.Card.accessible = await Card.countDocuments().then(() => true).catch(() => false);
         if (result.CardPrice.exists) result.CardPrice.accessible = await CardPrice.countDocuments().then(() => true).catch(() => false);
         if (result.Purchase.exists) result.Purchase.accessible = await Purchase.countDocuments().then(() => true).catch(() => false);
         debug('Collections check: %O', result);
@@ -92,6 +99,7 @@ async function checkCollections() {
         debug('Error checking collections: %s', err.message);
         return {
             User: { exists: false, accessible: false },
+            Card: { exists: false, accessible: false },
             CardPrice: { exists: false, accessible: false },
             Purchase: { exists: false, accessible: false }
         };
@@ -274,6 +282,89 @@ app.delete('/api/delete-user', [
     }
 });
 
+app.get('/api/get-cards', [
+    query('userId').isMongoId()
+], async (req, res) => {
+    const connected = await connectToMongoDB();
+    if (!connected) {
+        debug('MongoDB not connected');
+        return res.status(500).json({ error: 'Banco de dados não conectado' });
+    }
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        debug('Validation errors: %O', errors.array());
+        return res.status(400).json({ error: 'ID de usuário inválido' });
+    }
+    try {
+        const cards = await Card.find();
+        if (!cards.length) {
+            const defaultCards = [
+                { nivel: 'Classic' },
+                { nivel: 'Gold' },
+                { nivel: 'Platinum' },
+                { nivel: 'Black' },
+                { nivel: 'Business' },
+                { nivel: 'Infinite' }
+            ];
+            await Card.insertMany(defaultCards);
+            debug('Default cards initialized: %O', defaultCards);
+            const defaultPrices = [
+                { nivel: 'Classic', price: 100 },
+                { nivel: 'Gold', price: 200 },
+                { nivel: 'Platinum', price: 300 },
+                { nivel: 'Black', price: 500 },
+                { nivel: 'Business', price: 700 },
+                { nivel: 'Infinite', price: 1000 }
+            ];
+            await CardPrice.insertMany(defaultPrices);
+            debug('Default card prices initialized: %O', defaultPrices);
+            return res.json(defaultCards);
+        }
+        debug('Fetched cards: %O', cards);
+        res.json(cards);
+    } catch (err) {
+        debug('Error fetching cards: %s', err.message);
+        res.status(500).json({ error: `Erro ao buscar cartões: ${err.message}` });
+    }
+});
+
+app.post('/api/set-cards', [
+    query('userId').isMongoId(),
+    body('cards').isArray(),
+    body('cards.*.nivel').isString().trim().isLength({ min: 3, max: 20 }).matches(/^[a-zA-Z0-9]+$/)
+], async (req, res) => {
+    const connected = await connectToMongoDB();
+    if (!connected) {
+        debug('MongoDB not connected');
+        return res.status(500).json({ error: 'Banco de dados não conectado' });
+    }
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        debug('Validation errors: %O', errors.array());
+        return res.status(400).json({ error: 'Dados inválidos' });
+    }
+    try {
+        const admin = await User.findById(req.query.userId);
+        if (!admin || !admin.isAdmin) {
+            debug('Access denied: Not admin or user not found: %s', req.query.userId);
+            return res.status(403).json({ error: 'Acesso negado' });
+        }
+        const { cards } = req.body;
+        for (const card of cards) {
+            await Card.findOneAndUpdate(
+                { nivel: card.nivel },
+                { nivel: card.nivel },
+                { upsert: true }
+            );
+        }
+        debug('Cards updated: %O', cards);
+        res.json({ message: 'Cartões atualizados' });
+    } catch (err) {
+        debug('Error setting cards: %s', err.message);
+        res.status(500).json({ error: `Erro ao atualizar cartões: ${err.message}` });
+    }
+});
+
 app.get('/api/get-card-prices', [
     query('userId').isMongoId()
 ], async (req, res) => {
@@ -289,19 +380,6 @@ app.get('/api/get-card-prices', [
     }
     try {
         const prices = await CardPrice.find();
-        if (!prices.length) {
-            const defaultPrices = [
-                { nivel: 'Classic', price: 100 },
-                { nivel: 'Gold', price: 200 },
-                { nivel: 'Platinum', price: 300 },
-                { nivel: 'Black', price: 500 },
-                { nivel: 'Business', price: 700 },
-                { nivel: 'Infinite', price: 1000 }
-            ];
-            await CardPrice.insertMany(defaultPrices);
-            debug('Default card prices initialized: %O', defaultPrices);
-            return res.json(defaultPrices);
-        }
         debug('Fetched card prices: %O', prices);
         res.json(prices);
     } catch (err) {
@@ -334,6 +412,11 @@ app.post('/api/set-card-prices', [
         }
         const { prices } = req.body;
         for (const price of prices) {
+            const card = await Card.findOne({ nivel: price.nivel });
+            if (!card) {
+                debug('Card not found for price update: %s', price.nivel);
+                return res.status(400).json({ error: `Cartão ${price.nivel} não existe` });
+            }
             await CardPrice.findOneAndUpdate(
                 { nivel: price.nivel },
                 { price: price.price },
@@ -368,21 +451,26 @@ app.post('/api/buy-card', [
             debug('User not found: %s', req.query.userId);
             return res.status(404).json({ error: 'Usuário não encontrado' });
         }
-        const card = await CardPrice.findOne({ nivel: req.body.nivel });
+        const card = await Card.findOne({ nivel: req.body.nivel });
         if (!card) {
             debug('Card not found: %s', req.body.nivel);
             return res.status(404).json({ error: 'Cartão não encontrado' });
         }
-        if (user.balance < card.price) {
-            debug('Insufficient balance for %s: %d < %d', user.username, user.balance, card.price);
+        const cardPrice = await CardPrice.findOne({ nivel: req.body.nivel });
+        if (!cardPrice) {
+            debug('Price not found for card: %s', req.body.nivel);
+            return res.status(404).json({ error: 'Preço não definido para o cartão' });
+        }
+        if (user.balance < cardPrice.price) {
+            debug('Insufficient balance for %s: %d < %d', user.username, user.balance, cardPrice.price);
             return res.status(400).json({ error: 'Saldo insuficiente' });
         }
-        user.balance -= card.price;
+        user.balance -= cardPrice.price;
         await user.save();
         const purchase = new Purchase({
             userId: user._id,
             nivel: card.nivel,
-            price: card.price
+            price: cardPrice.price
         });
         await purchase.save();
         debug('Card purchased: %s by %s', card.nivel, user.username);

@@ -3,124 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - LOGANCCS</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <title>LOGAN CC's - Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" media="print" onload="this.media='all'">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.0/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.0/purify.min.js" defer></script>
     <style>
-        #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; visibility: hidden; }
+        body { transition: background-color 0.3s, color 0.3s; }
+        body.light { background: #f3f4f6; color: #1f2937; }
+        body.light .bg-gray-900 { background: #f3f4f6; }
+        body.light .bg-gray-800 { background: #e5e7eb; }
+        body.light .text-gray-100 { color: #1f2937; }
+        body.light .text-gray-300 { color: #4b5563; }
+        body.light .bg-gray-700 { background: #d1d5db; }
+        body.light .border-gray-600 { border-color: #9ca3af; }
+        #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 9999; visibility: hidden; }
         .spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid #10b981; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #notifications { position: fixed; top: 1rem; right: 1rem; z-index: 1000; max-width: 320px; }
+        #notifications { position: fixed; top: 1rem; right: 1rem; z-index: 10000; max-width: 320px; }
         .notification { background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; justify-content: space-between; align-items: center; animation: slideIn 0.3s ease-out; }
         .notification-error { background: #ef4444; }
         .notification-success { background: #10b981; }
+        body.light .notification { background: #4b5563; color: white; }
+        body.light .notification-error { background: #f87171; }
+        body.light .notification-success { background: #34d399; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         #debug { position: fixed; bottom: 4rem; left: 1rem; background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; max-width: 400px; max-height: 300px; overflow-y: auto; z-index: 1000; font-size: 0.75rem; }
-        #toggleDebug { position: fixed; bottom: 1rem; left: 1rem; background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer; z-index: 1001; }
-        .debug-info { color: #10b981; }
+        body.light #debug { background: #e5e7eb; color: #1f2937; }
+        #toggleDebug, #clearDebug { background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer; z-index: 1001; }
+        body.light #toggleDebug, body.light #clearDebug { background: #059669; }
+        #toggleDebug:hover, #clearDebug:hover { background: #059669; }
+        body.light #toggleDebug:hover, body.light #clearDebug:hover { background: #047857; }
+        .debug-info { color: #34d399; }
         .debug-warn { color: #f59e0b; }
-        .debug-error { color: #ef4444; }
+        .debug-error { color: #f87171; }
         .debug-success { color: #10b981; }
+        .navbar { backdrop-filter: blur(10px); }
+        .error-message { color: #f87171; font-size: 0.75rem; margin-top: 0.25rem; }
+        .input-error { border-color: #f87171 !important; }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center">
+<body class="bg-gray-900 text-gray-100 min-h-screen">
     <div id="globalLoader" aria-hidden="true"><div class="spinner"></div></div>
     <div id="notifications" class="space-y-2" aria-live="polite"></div>
-    <main class="container mx-auto p-6 max-w-md">
-        <h1 class="text-3xl font-bold text-green-500 text-center mb-6 flex items-center justify-center">
+    <nav class="navbar bg-gray-800 bg-opacity-90 sticky top-0 z-50 p-4 flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-green-500 flex items-center">
             <i class="fas fa-credit-card mr-2" aria-hidden="true"></i> LOGAN CC's
         </h1>
-        <section id="loginForm" class="bg-gray-800 p-6 rounded-lg mb-4">
-            <h2 class="text-xl font-semibold mb-4">Login</h2>
-            <div class="mb-4">
-                <label for="loginUsername" class="block text-sm font-medium text-gray-300">Usuário</label>
-                <input type="text" id="loginUsername" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Digite seu usuário" aria-label="Usuário">
-            </div>
-            <div class="mb-4">
-                <label for="loginPassword" class="block text-sm font-medium text-gray-300">Senha</label>
-                <input type="password" id="loginPassword" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Digite sua senha" aria-label="Senha">
-            </div>
-            <button id="loginButton" onclick="login()" class="w-full py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center" aria-label="Entrar">
-                <span>Entrar</span>
-                <svg id="loginSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                </svg>
+        <div class="flex items-center space-x-4">
+            <a href="/index.html" class="text-gray-300 hover:text-green-500" aria-current="page">Login</a>
+            <a href="/shop.html" class="text-gray-300 hover:text-green-500">Loja</a>
+            <a id="dashboardLink" href="/dashboard.html" class="text-gray-300 hover:text-green-500 hidden" aria-label="Painel Admin">Painel Admin</a>
+            <button id="themeToggle" class="text-gray-300 hover:text-green-500" aria-label="Alternar tema">
+                <i class="fas fa-moon"></i>
             </button>
-        </section>
-        <section id="registerForm" class="bg-gray-800 p-6 rounded-lg">
-            <h2 class="text-xl font-semibold mb-4">Registrar</h2>
-            <div class="mb-4">
-                <label for="registerUsername" class="block text-sm font-medium text-gray-300">Usuário</label>
-                <input type="text" id="registerUsername" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Digite seu usuário (3-20 caracteres)" aria-label="Usuário">
+        </div>
+    </nav>
+    <main class="container mx-auto p-6 flex items-center justify-center min-h-[calc(100vh-80px)]">
+        <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md">
+            <h2 class="text-2xl font-semibold text-center mb-6">Login</h2>
+            <div id="loginForm">
+                <div class="mb-4">
+                    <label for="username" class="block text-sm font-medium text-gray-300">Usuário</label>
+                    <input type="text" id="username" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Digite seu usuário" oninput="restrictUsernameInput(this)">
+                    <p id="usernameError" class="error-message hidden"></p>
+                </div>
+                <div class="mb-4">
+                    <label for="password" class="block text-sm font-medium text-gray-300">Senha</label>
+                    <input type="password" id="password" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Digite sua senha">
+                    <p id="passwordError" class="error-message hidden"></p>
+                </div>
+                <button onclick="login()" class="w-full py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center" aria-label="Entrar">
+                    <span>Entrar</span>
+                    <svg id="loginSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                </button>
+                <button onclick="switchToRegister()" class="mt-4 w-full py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700" aria-label="Cadastrar">Cadastrar</button>
             </div>
-            <div class="mb-4">
-                <label for="registerPassword" class="block text-sm font-medium text-gray-300">Senha</label>
-                <input type="password" id="registerPassword" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Digite sua senha (mín. 6 caracteres)" aria-label="Senha">
+            <div id="registerForm" class="hidden">
+                <div class="mb-4">
+                    <label for="newUsername" class="block text-sm font-medium text-gray-300">Usuário</label>
+                    <input type="text" id="newUsername" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Escolha um usuário" oninput="restrictUsernameInput(this)">
+                    <p id="newUsernameError" class="error-message hidden"></p>
+                </div>
+                <div class="mb-4">
+                    <label for="newPassword" class="block text-sm font-medium text-gray-300">Senha</label>
+                    <input type="password" id="newPassword" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Escolha uma senha">
+                    <p id="newPasswordError" class="error-message hidden"></p>
+                </div>
+                <div class="mb-4">
+                    <label for="confirmPassword" class="block text-sm font-medium text-gray-300">Confirmar Senha</label>
+                    <input type="password" id="confirmPassword" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Confirme sua senha">
+                    <p id="confirmPasswordError" class="error-message hidden"></p>
+                </div>
+                <button onclick="register()" class="w-full py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center" aria-label="Criar conta">
+                    <span>Criar Conta</span>
+                    <svg id="registerSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                </button>
+                <button onclick="switchToLogin()" class="mt-4 w-full py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700" aria-label="Voltar ao login">Voltar ao Login</button>
             </div>
-            <div class="mb-4">
-                <label for="confirmPassword" class="block text-sm font-medium text-gray-300">Confirmar Senha</label>
-                <input type="password" id="confirmPassword" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Confirme sua senha" aria-label="Confirmar Senha">
-            </div>
-            <button id="registerButton" onclick="register()" class="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center" aria-label="Registrar">
-                <span>Registrar</span>
-                <svg id="registerSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                </svg>
-            </button>
-        </section>
+        </div>
     </main>
-    <button id="toggleDebug" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg fixed bottom-4 left-4" aria-label="Alternar debug">Esconder Debug</button>
+    <div class="flex space-x-4 fixed bottom-4 left-4">
+        <button id="toggleDebug" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg" aria-label="Alternar debug">Esconder Debug</button>
+        <button id="clearDebug" class="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg" aria-label="Limpar debug">Limpar Debug</button>
+    </div>
     <div id="debug" aria-live="assertive"><div id="debug-output"></div></div>
     <script src="/debug.js"></script>
     <script src="/utils.js"></script>
     <script>
-        function restrictInput(input) {
+        function restrictUsernameInput(input) {
             input.value = input.value.replace(/[^a-zA-Z0-9]/g, '');
             if (input.value.length > 20) input.value = input.value.slice(0, 20);
         }
 
-        async function checkEnvironment() {
-            Debug.log('Verificando ambiente e conexão com MongoDB');
-            try {
-                const response = await fetchWithTimeout('/api/check-env');
-                const text = await response.text();
-                Debug.log(`Resposta /api/check-env: Status ${response.status}`, { response: text });
-                const data = JSON.parse(text);
-                if (!response.ok) {
-                    Debug.error(`Erro ao verificar ambiente: ${data.error || 'Desconhecido'}`);
-                    showDebugNotification(`Erro: ${data.error || 'Falha na verificação do ambiente'}`, true);
-                    return;
+        function clearErrors() {
+            ['username', 'password', 'newUsername', 'newPassword', 'confirmPassword'].forEach(field => {
+                const element = document.getElementById(field);
+                if (element) {
+                    element.classList.remove('input-error');
+                    document.getElementById(`${field}Error`).classList.add('hidden');
+                    document.getElementById(`${field}Error`).textContent = '';
                 }
-                Debug.log(`MongoDB conectado: ${data.mongodbConnected ? 'Sim' : 'Não'}`);
-                showDebugNotification(`MongoDB conectado: ${data.mongodbConnected ? 'Sim' : 'Não'}`, !data.mongodbConnected);
-                for (const [collection, status] of Object.entries(data.collections)) {
-                    Debug.log(`Coleção ${collection}: ${status.exists ? 'Acessível' : 'Inacessível'}`);
-                    showDebugNotification(`Coleção ${collection}: ${status.exists ? 'Acessível' : 'Inacessível'}`, !status.exists);
-                }
-                for (const [envVar, status] of Object.entries(data.environment)) {
-                    Debug.log(`Variável ${envVar}: ${status.exists ? 'Configurada' : 'Não configurada'}`);
-                    showDebugNotification(`Variável ${envVar}: ${status.exists ? 'Configurada' : 'Não configurada'}`, !status.exists);
-                }
-            } catch (err) {
-                Debug.error(`Erro ao verificar ambiente: ${err.message}`);
-                showDebugNotification(`Erro ao verificar ambiente: ${err.message}. Verifique a conexão de rede e o Netlify Functions log.`, true);
+            });
+        }
+
+        function showError(field, message) {
+            const element = document.getElementById(field);
+            if (element) {
+                element.classList.add('input-error');
+                const errorElement = document.getElementById(`${field}Error`);
+                errorElement.textContent = message;
+                errorElement.classList.remove('hidden');
             }
         }
 
+        function switchToRegister() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.remove('hidden');
+            clearErrors();
+            Debug.log('Trocado para formulário de cadastro');
+        }
+
+        function switchToLogin() {
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('loginForm').classList.remove('hidden');
+            clearErrors();
+            Debug.log('Trocado para formulário de login');
+        }
+
         async function login() {
-            Debug.log('Iniciando login');
-            const button = document.getElementById('loginButton');
+            const button = document.querySelector('button[aria-label="Entrar"]');
             const spinner = document.getElementById('loginSpinner');
             button.disabled = true;
             spinner.classList.remove('hidden');
-            const username = document.getElementById('loginUsername').value.trim();
-            const password = document.getElementById('loginPassword').value;
+            clearErrors();
             try {
-                if (!username || !password) {
-                    throw new Error('Usuário e senha são obrigatórios');
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('password').value;
+                if (!username) {
+                    showError('username', 'Usuário é obrigatório');
+                    throw new Error('Usuário é obrigatório');
+                }
+                if (!password) {
+                    showError('password', 'Senha é obrigatória');
+                    throw new Error('Senha é obrigatória');
+                }
+                if (!/^[a-zA-Z0-9]{3,20}$/.test(username)) {
+                    showError('username', 'Usuário deve ter 3-20 caracteres alfanuméricos');
+                    throw new Error('Usuário inválido');
+                }
+                if (password.length < 6) {
+                    showError('password', 'Senha deve ter pelo menos 6 caracteres');
+                    throw new Error('Senha inválida');
                 }
                 const response = await fetchWithTimeout('/api/login', {
                     method: 'POST',
@@ -129,16 +188,17 @@
                 });
                 const text = await response.text();
                 Debug.log(`Resposta /api/login: Status ${response.status}`, { response: text });
-                let data = JSON.parse(text);
-                if (!response.ok) throw new Error(data.error || 'Erro ao logar');
+                const data = JSON.parse(text);
+                if (!response.ok) throw new Error(data.error || 'Erro ao fazer login');
                 localStorage.setItem('userId', data.userId);
                 showNotification('Login bem-sucedido!');
-                Debug.success(`Login bem-sucedido para ${username}`);
-                setTimeout(() => {
-                    window.location.href = data.is_admin ? '/dashboard.html' : '/shop.html';
-                }, 1000);
+                Debug.success(`Login bem-sucedido para usuário ${username}`);
+                if (data.isAdmin) {
+                    document.getElementById('dashboardLink').classList.remove('hidden');
+                }
+                setTimeout(() => { window.location.href = '/shop.html'; }, 1000);
             } catch (err) {
-                Debug.error('Erro ao logar: %s', err.message);
+                Debug.error('Erro ao fazer login: %s', err.message);
                 showNotification(`Erro: ${err.message}`, true);
             } finally {
                 button.disabled = false;
@@ -147,23 +207,39 @@
         }
 
         async function register() {
-            Debug.log('Iniciando registro');
-            const button = document.getElementById('registerButton');
+            const button = document.querySelector('button[aria-label="Criar conta"]');
             const spinner = document.getElementById('registerSpinner');
             button.disabled = true;
             spinner.classList.remove('hidden');
-            const username = document.getElementById('registerUsername').value.trim();
-            const password = document.getElementById('registerPassword').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
+            clearErrors();
             try {
-                if (!username || !password || !confirmPassword) {
-                    throw new Error('Todos os campos são obrigatórios');
+                const username = document.getElementById('newUsername').value.trim();
+                const password = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                if (!username) {
+                    showError('newUsername', 'Usuário é obrigatório');
+                    throw new Error('Usuário é obrigatório');
+                }
+                if (!password) {
+                    showError('newPassword', 'Senha é obrigatória');
+                    throw new Error('Senha é obrigatória');
+                }
+                if (!confirmPassword) {
+                    showError('confirmPassword', 'Confirmação de senha é obrigatória');
+                    throw new Error('Confirmação de senha é obrigatória');
+                }
+                if (!/^[a-zA-Z0-9]{3,20}$/.test(username)) {
+                    showError('newUsername', 'Usuário deve ter 3-20 caracteres alfanuméricos');
+                    throw new Error('Usuário inválido');
+                }
+                if (password.length < 6) {
+                    showError('newPassword', 'Senha deve ter pelo menos 6 caracteres');
+                    throw new Error('Senha inválida');
                 }
                 if (password !== confirmPassword) {
-                    Debug.error('Senhas não coincidem no registro');
+                    showError('confirmPassword', 'As senhas não coincidem');
                     throw new Error('As senhas não coincidem');
                 }
-                Debug.log(`Tentativa de registro com username: ${username}`);
                 const response = await fetchWithTimeout('/api/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -171,15 +247,13 @@
                 });
                 const text = await response.text();
                 Debug.log(`Resposta /api/register: Status ${response.status}`, { response: text });
-                let data = JSON.parse(text);
-                if (!response.ok) throw new Error(data.error || 'Erro ao registrar');
-                showNotification('Registro bem-sucedido! Faça login.');
-                Debug.success(`Registro bem-sucedido para ${username}`);
-                document.getElementById('registerUsername').value = '';
-                document.getElementById('registerPassword').value = '';
-                document.getElementById('confirmPassword').value = '';
+                const data = JSON.parse(text);
+                if (!response.ok) throw new Error(data.error || 'Erro ao cadastrar');
+                showNotification('Cadastro bem-sucedido! Faça login.');
+                Debug.success(`Usuário ${username} cadastrado com sucesso`);
+                switchToLogin();
             } catch (err) {
-                Debug.error('Erro ao registrar: %s', err.message);
+                Debug.error('Erro ao cadastrar: %s', err.message);
                 showNotification(`Erro: ${err.message}`, true);
             } finally {
                 button.disabled = false;
@@ -187,7 +261,15 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', async () => {
+        function toggleTheme() {
+            document.body.classList.toggle('light');
+            const isLight = document.body.classList.contains('light');
+            document.getElementById('themeToggle').innerHTML = `<i class="fas fa-${isLight ? 'sun' : 'moon'}"></i>`;
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            Debug.log(`Tema alterado para: ${isLight ? 'claro' : 'escuro'}`);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
             Debug.log('DOM carregado');
             const debugDiv = document.getElementById('debug');
             debugDiv.style.display = 'block';
@@ -196,8 +278,25 @@
                 document.getElementById('toggleDebug').textContent = debugDiv.style.display === 'none' ? 'Mostrar Debug' : 'Esconder Debug';
                 Debug.log(`Debug ${debugDiv.style.display === 'none' ? 'desativado' : 'ativado'}`);
             });
-            document.getElementById('registerUsername').addEventListener('input', (e) => restrictInput(e.target));
-            await checkEnvironment();
+            document.getElementById('clearDebug').addEventListener('click', () => {
+                document.getElementById('debug-output').innerHTML = '';
+                Debug.log('Logs de debug limpos');
+            });
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                document.body.classList.add('light');
+                document.getElementById('themeToggle').innerHTML = '<i class="fas fa-sun"></i>';
+            }
+            if (localStorage.getItem('userId')) {
+                fetchWithTimeout(`/api/user?userId=${encodeURIComponent(localStorage.getItem('userId'))}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.isAdmin) {
+                            document.getElementById('dashboardLink').classList.remove('hidden');
+                        }
+                    });
+            }
         });
     </script>
 </body>

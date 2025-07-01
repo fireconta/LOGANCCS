@@ -1,5 +1,5 @@
 [build]
-  command = "npm install && npm run build"
+  command = ""
   publish = "."
 
 [functions]
@@ -11,6 +11,16 @@
   to = "/.netlify/functions/app-function/:splat"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/dashboard"
+  to = "/dashboard.html"
+  status = 200
+
+[[redirects]]
+  from = "/shop"
+  to = "/shop.html"
+  status = 200
 
 [[redirects]]
   from = "/*"

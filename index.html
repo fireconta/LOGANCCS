@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LOGAN CC's - Login</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    #debug { position: fixed; bottom: 4rem; left: 1rem; background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; max-width: 400px; max-height: 300px; overflow-y: auto; z-index: 1000; font-size: 0.75rem; }
+    #toggleDebug { position: fixed; bottom: 1rem; left: 1rem; background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer; z-index: 1001; }
+    .debug-info { color: #10b981; }
+    .debug-warn { color: #f59e0b; }
+    .debug-error { color: #ef4444; }
+    .debug-success { color: #10b981; }
+  </style>
 </head>
 <body class="min-h-screen flex items-center justify-center text-gray-100 bg-gray-900">
   <div class="w-full max-w-md p-8 bg-gray-800 rounded-lg shadow-lg">
@@ -38,14 +46,46 @@
       <p class="text-center text-sm">Já tem uma conta? <a href="#" onclick="showLoginForm()" class="text-blue-400 hover:underline">Faça login</a></p>
     </div>
   </div>
+  <button id="toggleDebug" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg fixed bottom-4 left-4" aria-label="Alternar debug">Esconder Debug</button>
+  <div id="debug" aria-live="assertive"><div id="debug-output"></div></div>
   <script src="/utils.js"></script>
+  <script src="/debug.js"></script>
   <script>
+    async function checkEnvironment() {
+      Debug.log('Verificando ambiente e conexão com MongoDB');
+      try {
+        const response = await fetchWithTimeout('/api/check-env');
+        const text = await response.text();
+        Debug.log(`Resposta /api/check-env: Status ${response.status}`, { response: text });
+        const data = JSON.parse(text);
+        if (!response.ok) {
+          Debug.error(`Erro ao verificar ambiente: ${data.error || 'Desconhecido'}`);
+          showDebugNotification(`Erro: ${data.error || 'Falha na verificação do ambiente'}`, true);
+          return;
+        }
+        Debug.log(`MongoDB conectado: ${data.mongodbConnected ? 'Sim' : 'Não'}`);
+        showDebugNotification(`MongoDB conectado: ${data.mongodbConnected ? 'Sim' : 'Não'}`, !data.mongodbConnected);
+        for (const [collection, status] of Object.entries(data.collections)) {
+          Debug.log(`Coleção ${collection}: ${status.exists ? 'Acessível' : 'Inacessível'}`);
+          showDebugNotification(`Coleção ${collection}: ${status.exists ? 'Acessível' : 'Inacessível'}`, !status.exists);
+        }
+        for (const [envVar, status] of Object.entries(data.environment)) {
+          Debug.log(`Variável ${envVar}: ${status.exists ? 'Configurada' : 'Não configurada'}`);
+          showDebugNotification(`Variável ${envVar}: ${status.exists ? 'Configurada' : 'Não configurada'}`, !status.exists);
+        }
+      } catch (err) {
+        Debug.error(`Erro ao verificar ambiente: ${err.message}`);
+        showDebugNotification(`Erro: ${err.message}`, true);
+      }
+    }
+
     function showRegisterForm() {
       document.getElementById('login-form').classList.add('hidden');
       document.getElementById('register-form').classList.remove('hidden');
       document.getElementById('login-error').classList.add('hidden');
       document.getElementById('login-username').value = '';
       document.getElementById('login-password').value = '';
+      Debug.clear();
     }
 
     function showLoginForm() {
@@ -54,6 +94,7 @@
       document.getElementById('register-error').classList.add('hidden');
       document.getElementById('register-username').value = '';
       document.getElementById('register-password').value = '';
+      Debug.clear();
     }
 
     async function register() {
@@ -61,72 +102,102 @@
       const password = document.getElementById('register-password').value;
       const errorDiv = document.getElementById('register-error');
       errorDiv.classList.add('hidden');
+      Debug.clear();
+      Debug.log(`Tentando registrar usuário: ${username}`);
       if (!username || username.length < 3 || username.length > 20) {
         errorDiv.textContent = 'Usuário: 3-20 caracteres alfanuméricos';
         errorDiv.classList.remove('hidden');
+        Debug.error('Erro de validação: Usuário inválido');
         return;
       }
       if (!/^[a-zA-Z0-9]+$/.test(username)) {
         errorDiv.textContent = 'Usuário: apenas letras e números';
         errorDiv.classList.remove('hidden');
+        Debug.error('Erro de validação: Caracteres inválidos no usuário');
         return;
       }
       if (!password || password.length < 6) {
         errorDiv.textContent = 'Senha: mínimo 6 caracteres';
         errorDiv.classList.remove('hidden');
+        Debug.error('Erro de validação: Senha inválida');
         return;
       }
       try {
-        const response = await fetch('/api/register', {
+        const response = await fetchWithTimeout('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
         });
-        const data = await response.json();
+        const text = await response.text();
+        Debug.log(`Resposta /api/register: Status ${response.status}`, { response: text });
+        const data = JSON.parse(text);
         if (!response.ok) {
-          errorDiv.textContent = data.error;
+          errorDiv.textContent = data.error || 'Erro ao registrar';
           errorDiv.classList.remove('hidden');
+          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
           return;
         }
         alert('Registro bem-sucedido! Faça login.');
+        Debug.log('Registro bem-sucedido');
         showLoginForm();
       } catch (err) {
-        errorDiv.textContent = 'Erro ao registrar.';
+        errorDiv.textContent = `Erro: ${err.message}`;
         errorDiv.classList.remove('hidden');
+        Debug.error(`Erro ao registrar: ${err.message}`);
       }
     }
 
     async function login() {
       const username = document.getElementById('login-username').value.trim();
-      const password = document.getElementById('login-password').value;
+      const password = document.getElementById('login-password'). душе();
       const errorDiv = document.getElementById('login-error');
       errorDiv.classList.add('hidden');
+      Debug.clear();
+      Debug.log(`Tentando logar usuário: ${username}`);
       if (!username || !password) {
         errorDiv.textContent = 'Preencha usuário e senha';
         errorDiv.classList.remove('hidden');
+        Debug.error('Erro de validação: Campos vazios');
         return;
       }
       try {
-        const response = await fetch('/api/login', {
+        const response = await fetchWithTimeout('/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
         });
-        const data = await response.json();
+        const text = await response.text();
+        Debug.log(`Resposta /api/login: Status ${response.status}`, { response: text });
+        const data = JSON.parse(text);
         if (!response.ok) {
-          errorDiv.textContent = data.error;
+          errorDiv.textContent = data.error || 'Erro ao logar';
           errorDiv.classList.remove('hidden');
+          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
           return;
         }
         localStorage.setItem('userId', data.userId);
         localStorage.setItem('username', data.username);
+        Debug.log(`Login bem-sucedido: ${data.username}, isAdmin: ${data.is_admin}`);
         const redirect = data.is_admin ? '/dashboard' : '/shop';
         window.location.href = redirect;
       } catch (err) {
-        errorDiv.textContent = 'Erro ao logar.';
+        errorDiv.textContent = `Erro: ${err.message}`;
         errorDiv.classList.remove('hidden');
+        Debug.error(`Erro ao logar: ${err.message}`);
       }
     }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Debug.log('DOM carregado');
+      const debugDiv = document.getElementById('debug');
+      debugDiv.style.display = 'block';
+      document.getElementById('toggleDebug').addEventListener('click', () => {
+        debugDiv.style.display = debugDiv.style.display === 'none' ? 'block' : 'none';
+        document.getElementById('toggleDebug').textContent = debugDiv.style.display === 'none' ? 'Mostrar Debug' : 'Esconder Debug';
+        Debug.log(`Debug ${debugDiv.style.display === 'none' ? 'desativado' : 'ativado'}`);
+      });
+      checkEnvironment();
+    });
   </script>
 </body>
 </html>

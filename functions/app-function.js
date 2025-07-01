@@ -10,29 +10,43 @@ const app = express();
 app.use(express.json());
 
 let connectionAttempts = 0;
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 5;
+const RETRY_INTERVAL_MS = 5000;
 
 async function connectToMongoDB() {
-    if (mongoose.connection.readyState === 1) return true;
+    if (mongoose.connection.readyState === 1) {
+        debug('MongoDB already connected (readyState: %d)', mongoose.connection.readyState);
+        return true;
+    }
     try {
+        debug('Attempting MongoDB connection (%d/%d)', connectionAttempts + 1, MAX_RETRIES);
         await mongoose.connect(process.env.MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            dbName: 'loganccs'
+            dbName: 'loganccs',
+            serverSelectionTimeoutMS: 10000,
+            maxPoolSize: 10
         });
-        debug('Connected to MongoDB');
+        debug('Connected to MongoDB successfully');
         connectionAttempts = 0;
         return true;
     } catch (err) {
         connectionAttempts++;
-        debug('MongoDB connection error: %s', err.message);
+        debug('MongoDB connection failed: %s', err.message);
+        if (err.name === 'MongoServerSelectionError') {
+            debug('Possible causes: Invalid MONGODB_URI, network restrictions, or IP not whitelisted in MongoDB Atlas');
+        } else if (err.name === 'MongoNetworkError') {
+            debug('Network issue detected. Check internet connectivity or MongoDB Atlas status');
+        }
         if (connectionAttempts < MAX_RETRIES) {
-            debug('Retrying MongoDB connection (%d/%d)', connectionAttempts, MAX_RETRIES);
-            setTimeout(connectToMongoDB, 5000);
+            const delay = RETRY_INTERVAL_MS * Math.pow(2, connectionAttempts);
+            debug('Retrying MongoDB connection in %dms (%d/%d)', delay, connectionAttempts, MAX_RETRIES);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return connectToMongoDB();
         } else {
             debug('Max MongoDB connection retries reached');
+            return false;
         }
-        return false;
     }
 }
 
@@ -64,11 +78,16 @@ async function checkCollections() {
     try {
         const collections = await mongoose.connection.db.listCollections().toArray();
         const collectionNames = collections.map(c => c.name);
-        return {
-            User: { exists: collectionNames.includes('users'), accessible: await User.countDocuments().then(() => true).catch(() => false) },
-            CardPrice: { exists: collectionNames.includes('cardprices'), accessible: await CardPrice.countDocuments().then(() => true).catch(() => false) },
-            Purchase: { exists: collectionNames.includes('purchases'), accessible: await Purchase.countDocuments().then(() => true).catch(() => false) }
+        const result = {
+            User: { exists: collectionNames.includes('users'), accessible: false },
+            CardPrice: { exists: collectionNames.includes('cardprices'), accessible: false },
+            Purchase: { exists: collectionNames.includes('purchases'), accessible: false }
         };
+        if (result.User.exists) result.User.accessible = await User.countDocuments().then(() => true).catch(() => false);
+        if (result.CardPrice.exists) result.CardPrice.accessible = await CardPrice.countDocuments().then(() => true).catch(() => false);
+        if (result.Purchase.exists) result.Purchase.accessible = await Purchase.countDocuments().then(() => true).catch(() => false);
+        debug('Collections check: %O', result);
+        return result;
     } catch (err) {
         debug('Error checking collections: %s', err.message);
         return {
@@ -89,11 +108,11 @@ app.get('/api/check-env', async (req, res) => {
             ADMIN_PASSWORD: { exists: !!process.env.ADMIN_PASSWORD },
             NODE_VERSION: { exists: !!process.env.NODE_VERSION }
         };
-        debug('Environment check: %O', { mongodbConnected, collections, environment });
+        debug('Environment check result: %O', { mongodbConnected, collections, environment });
         res.json({ mongodbConnected, collections, environment });
     } catch (err) {
         debug('Error checking environment: %s', err.message);
-        res.status(500).json({ error: 'Erro ao verificar ambiente' });
+        res.status(500).json({ error: `Erro ao verificar ambiente: ${err.message}` });
     }
 });
 
@@ -126,7 +145,7 @@ app.post('/api/register', [
         res.status(201).json({ message: 'Usuário registrado' });
     } catch (err) {
         debug('Error registering user: %s', err.message);
-        res.status(500).json({ error: 'Erro ao registrar usuário' });
+        res.status(500).json({ error: `Erro ao registrar usuário: ${err.message}` });
     }
 });
 
@@ -160,7 +179,7 @@ app.post('/api/login', [
         res.json({ userId: user._id, username: user.username, is_admin: user.isAdmin });
     } catch (err) {
         debug('Error logging in: %s', err.message);
-        res.status(500).json({ error: 'Erro ao logar' });
+        res.status(500).json({ error: `Erro ao logar: ${err.message}` });
     }
 });
 
@@ -186,7 +205,7 @@ app.get('/api/user', [
         res.json({ username: user.username, balance: user.balance, isAdmin: user.isAdmin });
     } catch (err) {
         debug('Error fetching user: %s', err.message);
-        res.status(500).json({ error: 'Erro ao buscar usuário' });
+        res.status(500).json({ error: `Erro ao buscar usuário: ${err.message}` });
     }
 });
 
@@ -213,7 +232,7 @@ app.get('/api/users', [
         res.json(users);
     } catch (err) {
         debug('Error fetching users: %s', err.message);
-        res.status(500).json({ error: 'Erro ao buscar usuários' });
+        res.status(500).json({ error: `Erro ao buscar usuários: ${err.message}` });
     }
 });
 
@@ -251,7 +270,7 @@ app.delete('/api/delete-user', [
         res.json({ message: 'Usuário excluído' });
     } catch (err) {
         debug('Error deleting user: %s', err.message);
-        res.status(500).json({ error: 'Erro ao excluir usuário' });
+        res.status(500).json({ error: `Erro ao excluir usuário: ${err.message}` });
     }
 });
 
@@ -284,7 +303,7 @@ app.get('/api/get-card-prices', [
         res.json(prices);
     } catch (err) {
         debug('Error fetching card prices: %s', err.message);
-        res.status(500).json({ error: 'Erro ao buscar preços' });
+        res.status(500).json({ error: `Erro ao buscar preços: ${err.message}` });
     }
 });
 
@@ -322,7 +341,7 @@ app.post('/api/set-card-prices', [
         res.json({ message: 'Preços atualizados' });
     } catch (err) {
         debug('Error setting card prices: %s', err.message);
-        res.status(500).json({ error: 'Erro ao atualizar preços' });
+        res.status(500).json({ error: `Erro ao atualizar preços: ${err.message}` });
     }
 });
 
@@ -367,7 +386,7 @@ app.post('/api/buy-card', [
         res.json({ message: 'Cartão comprado', newBalance: user.balance });
     } catch (err) {
         debug('Error buying card: %s', err.message);
-        res.status(500).json({ error: 'Erro ao comprar cartão' });
+        res.status(500).json({ error: `Erro ao comprar cartão: ${err.message}` });
     }
 });
 

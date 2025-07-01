@@ -17,148 +17,125 @@
         .notification-success { background: #10b981; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         #debug { position: fixed; bottom: 4rem; left: 1rem; background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; max-width: 400px; max-height: 300px; overflow-y: auto; z-index: 1000; font-size: 0.75rem; }
-        #toggleDebug { position: fixed; bottom: 1rem; left: 1rem; background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 0.25rem; z-index: 1001; cursor: pointer; }
+        #toggleDebug { position: fixed; bottom: 1rem; left: 1rem; background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer; z-index: 1001; }
         .debug-info { color: #10b981; }
         .debug-warn { color: #f59e0b; }
         .debug-error { color: #ef4444; }
-        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
-        .card-item { background: #1f2937; padding: 1.5rem; border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.2s; }
-        .card-item:hover { transform: translateY(-5px); }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
+        .card-item { background: #1f2937; padding: 1rem; border-radius: 0.5rem; }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen">
+<body class="bg-gray-900 text-gray-100 min-h-screen container mx-auto p-6">
     <div id="globalLoader" aria-hidden="true"><div class="spinner"></div></div>
     <div id="notifications" class="space-y-2" aria-live="polite"></div>
-    <header class="bg-gray-800 p-4 flex justify-between items-center">
+    <header class="bg-gray-800 p-4 flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold text-green-500 flex items-center">
-            <i class="fas fa-shopping-cart mr-2" aria-hidden="true"></i> LOGAN CC's - Loja
+            <i class="fas fa-credit-card mr-2" aria-hidden="true"></i> LOGAN CC's - Loja
         </h1>
         <div class="flex items-center space-x-4">
-            <span id="userBalance" class="text-gray-300"><i class="fas fa-wallet mr-1" aria-hidden="true"></i> Saldo: Carregando...</span>
+            <span id="userBalance" class="text-gray-300">Saldo: Carregando...</span>
             <button id="logoutButton" onclick="logout()" class="text-gray-300 hover:text-red-500 flex items-center" aria-label="Sair">
                 <i class="fas fa-sign-out-alt mr-2" aria-hidden="true"></i> Sair
             </button>
         </div>
     </header>
-    <main class="container mx-auto p-6">
-        <div id="cardsLoader" class="text-gray-500 text-center p-4" aria-hidden="true"><i class="fas fa-spinner animate-spin mr-2"></i> Carregando cartões...</div>
-        <div id="cardsGrid" class="card-grid hidden"></div>
+    <main>
+        <section>
+            <h2 class="text-xl font-semibold mb-4">Cartões Disponíveis</h2>
+            <div id="cardsGrid" class="card-grid"></div>
+        </section>
     </main>
-    <button id="toggleDebug" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg fixed bottom-4 left-4" aria-label="Alternar debug">Mostrar Debug</button>
-    <div id="debug" class="hidden" aria-live="assertive"></div>
-    <script src="debug.js"></script>
-    <script src="utils.js"></script>
+    <button id="toggleDebug" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg fixed bottom-4 left-4" aria-label="Alternar debug">Mostrar Debug</button>
+    <div id="debug" class="hidden" aria-live="assertive"><div id="debug-output"></div></div>
+    <script src="/debug.js"></script>
+    <script src="/utils.js"></script>
     <script>
-        async function loadUserData() {
-            Debug.log('Carregando dados do usuário');
+        async function checkAuth() {
+            Debug.log('Verificando autenticação');
             const userId = localStorage.getItem('userId');
             if (!userId) {
                 showNotification('Usuário não autenticado.', true);
-                setTimeout(() => { window.location.href = 'index.html'; }, 1000);
-                return;
+                setTimeout(() => { window.location.href = '/index.html'; }, 1000);
+                return false;
             }
             try {
-                const response = await fetchWithTimeout(`/.netlify/functions/app/api/user?userId=${encodeURIComponent(userId)}`);
-                const text = await response.text();
-                Debug.log(`Resposta /api/user: Status ${response.status}`, { response: text });
-                let user = JSON.parse(text);
-                if (!response.ok) throw new Error(user.error || 'Erro ao carregar dados');
-                document.getElementById('userBalance').innerHTML = `<i class="fas fa-wallet mr-1"></i> Saldo: ${formatCurrency(user.balance)}`;
+                const response = await fetchWithTimeout(`/api/user?userId=${encodeURIComponent(userId)}`);
+                const user = await response.json();
+                if (!response.ok) {
+                    showNotification('Erro ao verificar autenticação.', true);
+                    setTimeout(() => { window.location.href = '/index.html'; }, 1000);
+                    return false;
+                }
+                document.getElementById('userBalance').textContent = `Saldo: ${formatCurrency(user.balance)}`;
+                return true;
             } catch (err) {
-                Debug.error('Erro ao carregar usuário', { error: err.message });
+                Debug.error('Erro ao verificar autenticação: %s', err.message);
                 showNotification(`Erro: ${err.message}`, true);
-                localStorage.clear();
-                setTimeout(() => { window.location.href = 'index.html'; }, 1000);
+                setTimeout(() => { window.location.href = '/index.html'; }, 1000);
+                return false;
             }
         }
 
         async function loadCards() {
             Debug.log('Carregando cartões');
             const cardsGrid = document.getElementById('cardsGrid');
-            const cardsLoader = document.getElementById('cardsLoader');
-            cardsGrid.innerHTML = '';
-            cardsLoader.classList.remove('hidden');
-            cardsGrid.classList.add('hidden');
+            cardsGrid.innerHTML = '<p class="text-gray-500 text-center"><i class="fas fa-spinner animate-spin mr-2"></i> Carregando...</p>';
             try {
-                const userId = localStorage.getItem('userId');
-                const response = await fetchWithTimeout(`/.netlify/functions/app/api/cards?userId=${encodeURIComponent(userId)}`);
+                const response = await fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(localStorage.getItem('userId'))}`);
                 const text = await response.text();
-                Debug.log(`Resposta /api/cards: Status ${response.status}`, { response: text });
+                Debug.log(`Resposta /api/get-card-prices: Status ${response.status}`, { response: text });
                 let cards = JSON.parse(text);
                 if (!response.ok) throw new Error(cards.error || 'Erro ao carregar cartões');
-                cardsGrid.classList.remove('hidden');
+                cardsGrid.innerHTML = '';
                 cards.forEach(card => {
                     const cardDiv = document.createElement('div');
                     cardDiv.className = 'card-item';
                     cardDiv.innerHTML = `
-                        <h3 class="text-lg font-semibold text-green-500">${DOMPurify.sanitize(card.bandeira)} ${DOMPurify.sanitize(card.nivel)}</h3>
-                        <p class="text-gray-400">Número: ${DOMPurify.sanitize(card.numero)}</p>
-                        <p class="text-gray-400">Banco: ${DOMPurify.sanitize(card.banco)}</p>
-                        <p class="text-gray-400">Preço: ${formatCurrency(card.price)}</p>
-                        <button onclick="buyCard('${DOMPurify.sanitize(card._id)}', ${card.price})" class="mt-4 py-2 px-4 bg-green-500 text-white rounded hover:bg-green-600 flex items-center" aria-label="Comprar cartão ${DOMPurify.sanitize(card.nivel)}">
-                            <span>Comprar</span>
-                            <svg class="buy-spinner hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                            </svg>
-                        </button>
+                        <p class="text-gray-300 font-semibold">${DOMPurify.sanitize(card.nivel)}</p>
+                        <p class="text-gray-300">Preço: ${formatCurrency(card.price)}</p>
+                        <button onclick="buyCard('${card.nivel}')" class="mt-2 py-1 px-2 bg-blue-600 text-white rounded hover:bg-blue-700">Comprar</button>
                     `;
                     cardsGrid.appendChild(cardDiv);
                 });
             } catch (err) {
-                Debug.error('Erro ao carregar cartões', { error: err.message });
+                Debug.error('Erro ao carregar cartões: %s', err.message);
                 cardsGrid.innerHTML = `<p class="text-center text-red-500">Erro: ${DOMPurify.sanitize(err.message)}</p>`;
-                cardsGrid.classList.remove('hidden');
                 showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                cardsLoader.classList.add('hidden');
             }
         }
 
-        async function buyCard(cardId, price) {
-            Debug.log(`Iniciando compra do cartão: ${cardId}`);
-            const button = event.target;
-            const spinner = button.querySelector('.buy-spinner');
-            button.disabled = true;
-            spinner.classList.remove('hidden');
+        async function buyCard(nivel) {
+            Debug.log(`Tentando comprar cartão: ${nivel}`);
             try {
-                const userId = localStorage.getItem('userId');
-                const response = await fetchWithTimeout('/.netlify/functions/app/api/buy-card', {
+                const response = await fetchWithTimeout(`/api/buy-card?userId=${encodeURIComponent(localStorage.getItem('userId'))}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, cardId, price })
+                    body: JSON.stringify({ nivel })
                 });
                 const text = await response.text();
                 Debug.log(`Resposta /api/buy-card: Status ${response.status}`, { response: text });
                 let data = JSON.parse(text);
                 if (!response.ok) throw new Error(data.error || 'Erro ao comprar cartão');
                 showNotification('Cartão comprado com sucesso!');
-                await Promise.all([loadUserData(), loadCards()]);
+                document.getElementById('userBalance').textContent = `Saldo: ${formatCurrency(data.newBalance)}`;
             } catch (err) {
-                Debug.error('Erro ao comprar cartão', { error: err.message });
+                Debug.error('Erro ao comprar cartão: %s', err.message);
                 showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                button.disabled = false;
-                spinner.classList.add('hidden');
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             Debug.log('DOM carregado');
             const debugDiv = document.getElementById('debug');
             debugDiv.style.display = 'none';
-            if (!localStorage.getItem('userId')) {
-                showNotification('Usuário não autenticado.', true);
-                setTimeout(() => { window.location.href = 'index.html'; }, 1000);
-                return;
-            }
             document.getElementById('toggleDebug').addEventListener('click', () => {
                 debugDiv.style.display = debugDiv.style.display === 'none' ? 'block' : 'none';
                 document.getElementById('toggleDebug').textContent = debugDiv.style.display === 'none' ? 'Mostrar Debug' : 'Esconder Debug';
                 Debug.log(`Debug ${debugDiv.style.display === 'none' ? 'desativado' : 'ativado'}`);
             });
-            loadUserData();
-            loadCards();
+            if (await checkAuth()) {
+                await loadCards();
+            }
         });
     </script>
 </body>

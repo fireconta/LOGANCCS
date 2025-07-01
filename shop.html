@@ -23,7 +23,15 @@
         .debug-error { color: #ef4444; }
         .debug-success { color: #10b981; }
         .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
-        .card-item { background: #1f2937; padding: 1rem; border-radius: 0.5rem; }
+        .card-item { padding: 1rem; border-radius: 0.5rem; transition: transform 0.2s; }
+        .card-item:hover { transform: scale(1.05); }
+        .card-classic { background: #6b7280; }
+        .card-gold { background: #d4af37; color: #1f2937; }
+        .card-platinum { background: #e5e7eb; color: #1f2937; }
+        .card-black { background: #111827; }
+        .card-business { background: #3b82f6; }
+        .card-infinite { background: #8b5cf6; }
+        .card-custom { background: #4b5563; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen container mx-auto p-6">
@@ -34,7 +42,7 @@
             <i class="fas fa-credit-card mr-2" aria-hidden="true"></i> LOGAN CC's - Loja
         </h1>
         <div class="flex items-center space-x-4">
-            <span id="userBalance" class="text-gray-300">Saldo: Carregando...</span>
+            <span id="userBalance" class="text-gray-300" aria-live="polite">Saldo: Carregando...</span>
             <button id="logoutButton" onclick="logout()" class="text-gray-300 hover:text-red-500 flex items-center" aria-label="Sair">
                 <i class="fas fa-sign-out-alt mr-2" aria-hidden="true"></i> Sair
             </button>
@@ -43,7 +51,7 @@
     <main>
         <section>
             <h2 class="text-xl font-semibold mb-4">Cartões Disponíveis</h2>
-            <div id="cardsGrid" class="card-grid"></div>
+            <div id="cardsGrid" class="card-grid" aria-live="polite"></div>
         </section>
     </main>
     <button id="toggleDebug" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg fixed bottom-4 left-4" aria-label="Alternar debug">Esconder Debug</button>
@@ -129,6 +137,7 @@
                     cardsGrid.innerHTML = '<p class="text-center text-yellow-500">Nenhum cartão disponível.</p>';
                     return;
                 }
+                const knownLevels = ['classic', 'gold', 'platinum', 'black', 'business', 'infinite'];
                 cards.forEach(card => {
                     if (!card.nivel || !card.price) {
                         Debug.error('Cartão com dados inválidos: %O', card);
@@ -136,11 +145,14 @@
                     }
                     Debug.log(`Renderizando cartão: ${card.nivel}, Preço: ${card.price}`);
                     const cardDiv = document.createElement('div');
-                    cardDiv.className = 'card-item';
+                    const levelClass = knownLevels.includes(card.nivel.toLowerCase()) ? `card-${card.nivel.toLowerCase()}` : 'card-custom';
+                    cardDiv.className = `card-item ${levelClass}`;
+                    cardDiv.setAttribute('role', 'article');
+                    cardDiv.setAttribute('aria-label', `Cartão ${card.nivel}`);
                     cardDiv.innerHTML = `
-                        <p class="text-gray-300 font-semibold">${DOMPurify.sanitize(card.nivel)}</p>
-                        <p class="text-gray-300">Preço: ${formatCurrency(card.price)}</p>
-                        <button onclick="buyCard('${DOMPurify.sanitize(card.nivel)}')" class="mt-2 py-1 px-2 bg-blue-600 text-white rounded hover:bg-blue-700">Comprar</button>
+                        <p class="text-lg font-semibold">${DOMPurify.sanitize(card.nivel)}</p>
+                        <p class="text-sm">Preço: ${formatCurrency(card.price)}</p>
+                        <button onclick="buyCard('${DOMPurify.sanitize(card.nivel)}')" class="mt-2 py-1 px-2 bg-blue-600 text-white rounded hover:bg-blue-700" aria-label="Comprar cartão ${card.nivel}">Comprar</button>
                     `;
                     cardsGrid.appendChild(cardDiv);
                 });

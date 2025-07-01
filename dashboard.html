@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - LOGANCCS</title>
+    <title>Painel Admin - LOGANCCS</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.7/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.0/purify.min.js"></script>
     <style>
         #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; visibility: hidden; }
         .spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid #10b981; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.3s linear infinite; }
@@ -21,174 +21,180 @@
         .debug-info { color: #10b981; }
         .debug-warn { color: #f59e0b; }
         .debug-error { color: #ef4444; }
-        .eye-icon { position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); cursor: pointer; }
-        .password-container { position: relative; }
+        .user-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
+        .user-item { background: #1f2937; padding: 1rem; border-radius: 0.5rem; }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center">
+<body class="bg-gray-900 text-gray-100 min-h-screen container mx-auto p-6">
     <div id="globalLoader" aria-hidden="true"><div class="spinner"></div></div>
     <div id="notifications" class="space-y-2" aria-live="polite"></div>
-    <div class="bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full">
-        <h1 class="text-2xl font-bold text-green-500 mb-6 text-center flex items-center justify-center">
-            <i class="fas fa-credit-card mr-2" aria-hidden="true"></i> LOGAN CC's
+    <header class="bg-gray-800 p-4 flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-green-500 flex items-center">
+            <i class="fas fa-credit-card mr-2" aria-hidden="true"></i> LOGAN CC's - Painel Admin
         </h1>
-        <div id="loginForm" class="space-y-4">
-            <h2 class="text-xl font-semibold text-center">Login</h2>
-            <div>
-                <label for="loginUsername" class="block text-sm font-medium text-gray-300">Usuário</label>
-                <input type="text" id="loginUsername" name="username" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="username" required aria-required="true" aria-label="Username para login">
+        <button id="logoutButton" onclick="logout()" class="text-gray-300 hover:text-red-500 flex items-center" aria-label="Sair">
+            <i class="fas fa-sign-out-alt mr-2" aria-hidden="true"></i> Sair
+        </button>
+    </header>
+    <main>
+        <section class="mb-8">
+            <h2 class="text-xl font-semibold mb-4">Gerenciar Preços de Cartões</h2>
+            <div id="pricesForm" class="bg-gray-800 p-4 rounded-lg">
+                <div class="mb-4">
+                    <label for="classicPrice" class="block text-sm font-medium text-gray-300">Classic</label>
+                    <input type="number" id="classicPrice" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Preço Classic" min="0.01" step="0.01">
+                </div>
+                <div class="mb-4">
+                    <label for="goldPrice" class="block text-sm font-medium text-gray-300">Gold</label>
+                    <input type="number" id="goldPrice" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Preço Gold" min="0.01" step="0.01">
+                </div>
+                <div class="mb-4">
+                    <label for="platinumPrice" class="block text-sm font-medium text-gray-300">Platinum</label>
+                    <input type="number" id="platinumPrice" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Preço Platinum" min="0.01" step="0.01">
+                </div>
+                <div class="mb-4">
+                    <label for="blackPrice" class="block text-sm font-medium text-gray-300">Black</label>
+                    <input type="number" id="blackPrice" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Preço Black" min="0.01" step="0.01">
+                </div>
+                <button id="pricesButton" onclick="updatePrices()" class="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center" aria-label="Atualizar preços">
+                    <span>Atualizar Preços</span>
+                    <svg id="pricesSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                </button>
             </div>
-            <div class="password-container">
-                <label for="loginPassword" class="block text-sm font-medium text-gray-300">Senha</label>
-                <input type="password" id="loginPassword" name="password" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="password" required aria-required="true" aria-label="Senha para login">
-                <i id="eyeIconLogin" class="fas fa-eye eye-icon" onclick="togglePassword('loginPassword')"></i>
-            </div>
-            <p id="loginError" class="text-red-500 text-sm hidden" role="alert" aria-hidden="true"></p>
-            <button type="button" id="loginButton" onclick="login()" class="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center" aria-label="Entrar">
-                <span>Entrar</span>
-                <svg id="loginSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                </svg>
-            </button>
-            <p class="text-center text-sm text-gray-400">
-                Não tem uma conta? <a href="#" class="cursor-pointer text-blue-500 hover:underline" onclick="toggleForm('register')" aria-label="Mudar para registro">Registre-se</a>
-            </p>
-        </div>
-        <div id="registerForm" class="space-y-4 hidden">
-            <h2 class="text-xl font-semibold text-center">Registro</h2>
-            <div>
-                <label for="registerUsername" class="block text-sm font-medium text-gray-300">Usuário</label>
-                <input type="text" id="registerUsername" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-required="true" aria-label="Username para registro">
-            </div>
-            <div class="password-container">
-                <label for="registerPassword" class="block text-sm font-medium text-gray-300">Senha</label>
-                <input type="password" id="registerPassword" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" required aria-required="true" aria-label="Senha para registro">
-                <i id="eyeIconRegister" class="fas fa-eye eye-icon" onclick="togglePassword('registerPassword')"></i>
-            </div>
-            <p id="registerError" class="text-red-500 text-sm hidden" role="alert"></p>
-            <button type="button" id="registerButton" onclick="register()" class="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center" aria-label="Registrar">
-                <span>Registrar</span>
-                <svg id="registerSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                </svg>
-            </button>
-            <p class="text-center text-sm text-gray-400">
-                Já tem uma conta? <a href="#" class="text-blue-500 hover:underline" onclick="toggleForm('login')" aria-label="Mudar para login">Logar</a>
-            </p>
-        </div>
-    </div>
+        </section>
+        <section>
+            <h2 class="text-xl font-semibold mb-4">Usuários</h2>
+            <div id="usersGrid" class="user-grid"></div>
+        </section>
+    </main>
     <button id="toggleDebug" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg fixed bottom-4 left-4" aria-label="Alternar debug">Mostrar Debug</button>
-    <div id="debug" class="hidden" aria-live="assertive"></div>
+    <div id="debug" class="hidden" aria-live="assertive"><div id="debug-output"></div></div>
     <script src="/debug.js"></script>
     <script src="/utils.js"></script>
     <script>
-        async function login() {
-            Debug.log('Iniciando login');
-            const button = document.getElementById('loginButton');
-            const spinner = document.getElementById('loginSpinner');
-            const errorDiv = document.getElementById('loginError');
-            const username = document.getElementById('loginUsername').value.trim();
-            const password = document.getElementById('loginPassword').value;
-            button.disabled = true;
-            spinner.classList.remove('hidden');
-            errorDiv.classList.add('hidden');
-            if (!username || !password) {
-                Debug.error('Campos obrigatórios não preenchidos');
-                errorDiv.textContent = 'Preencha usuário e senha';
-                errorDiv.classList.remove('hidden');
-                button.disabled = false;
-                spinner.classList.add('hidden');
-                return;
+        async function checkAuth() {
+            Debug.log('Verificando autenticação');
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                showNotification('Usuário não autenticado.', true);
+                setTimeout(() => { window.location.href = '/index.html'; }, 1000);
+                return false;
             }
             try {
-                const response = await fetchWithTimeout('/.netlify/functions/app/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
+                const response = await fetchWithTimeout(`/api/user?userId=${encodeURIComponent(userId)}`);
+                const user = await response.json();
+                if (!response.ok || !user.isAdmin) {
+                    showNotification('Acesso negado. Apenas administradores.', true);
+                    setTimeout(() => { window.location.href = '/index.html'; }, 1000);
+                    return false;
+                }
+                return true;
+            } catch (err) {
+                Debug.error('Erro ao verificar autenticação: %s', err.message);
+                showNotification(`Erro: ${err.message}`, true);
+                setTimeout(() => { window.location.href = '/index.html'; }, 1000);
+                return false;
+            }
+        }
+
+        async function loadUsers() {
+            Debug.log('Carregando usuários');
+            const usersGrid = document.getElementById('usersGrid');
+            usersGrid.innerHTML = '<p class="text-gray-500 text-center"><i class="fas fa-spinner animate-spin mr-2"></i> Carregando...</p>';
+            try {
+                const response = await fetchWithTimeout(`/api/users?userId=${encodeURIComponent(localStorage.getItem('userId'))}`);
+                const text = await response.text();
+                Debug.log(`Resposta /api/users: Status ${response.status}`, { response: text });
+                let users = JSON.parse(text);
+                if (!response.ok) throw new Error(users.error || 'Erro ao carregar usuários');
+                usersGrid.innerHTML = '';
+                users.forEach(user => {
+                    const userDiv = document.createElement('div');
+                    userDiv.className = 'user-item';
+                    userDiv.innerHTML = `
+                        <p class="text-gray-300">Usuário: ${DOMPurify.sanitize(user.username)}</p>
+                        <p class="text-gray-300">Admin: ${user.isAdmin ? 'Sim' : 'Não'}</p>
+                        <p class="text-gray-300">Saldo: ${formatCurrency(user.balance)}</p>
+                        <p class="text-gray-300">Criado: ${formatDate(user.createdAt)}</p>
+                        ${user.username !== 'LVz' ? `<button onclick="deleteUser('${user._id}')" class="mt-2 py-1 px-2 bg-red-600 text-white rounded hover:bg-red-700">Excluir</button>` : ''}
+                    `;
+                    usersGrid.appendChild(userDiv);
+                });
+            } catch (err) {
+                Debug.error('Erro ao carregar usuários: %s', err.message);
+                usersGrid.innerHTML = `<p class="text-center text-red-500">Erro: ${DOMPurify.sanitize(err.message)}</p>`;
+                showNotification(`Erro: ${err.message}`, true);
+            }
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
+            Debug.log(`Tentando excluir usuário: ${userId}`);
+            try {
+                const response = await fetchWithTimeout(`/api/delete-user?userId=${encodeURIComponent(localStorage.getItem('userId'))}&targetId=${encodeURIComponent(userId)}`, {
+                    method: 'DELETE'
                 });
                 const text = await response.text();
-                Debug.log(`Resposta /api/login: Status ${response.status}`, { response: text });
-                let data;
-                try {
-                    data = JSON.parse(text);
-                } catch {
-                    throw new Error('Resposta inválida: formato não JSON');
-                }
-                if (!response.ok) throw new Error(data.error || 'Erro ao fazer login');
-                localStorage.setItem('userId', data.userId);
-                localStorage.setItem('username', data.username);
-                showNotification('Login realizado com sucesso!');
-                setTimeout(() => {
-                    window.location.href = data.is_admin ? 'dashboard.html' : 'shop.html';
-                }, 1000);
+                Debug.log(`Resposta /api/delete-user: Status ${response.status}`, { response: text });
+                let data = JSON.parse(text);
+                if (!response.ok) throw new Error(data.error || 'Erro ao excluir usuário');
+                showNotification('Usuário excluído com sucesso!');
+                loadUsers();
             } catch (err) {
-                Debug.error('Erro ao fazer login:', { error: err.message });
-                errorDiv.textContent = err.message;
-                errorDiv.classList.remove('hidden');
+                Debug.error('Erro ao excluir usuário: %s', err.message);
                 showNotification(`Erro: ${err.message}`, true);
-            } finally {
-                button.disabled = false;
-                spinner.classList.add('hidden');
             }
         }
 
-        async function register() {
-            Debug.log('Iniciando registro');
-            const button = document.getElementById('registerButton');
-            const spinner = document.getElementById('registerSpinner');
-            const errorDiv = document.getElementById('registerError');
-            const username = document.getElementById('registerUsername').value.trim();
-            const password = document.getElementById('registerPassword').value;
+        async function loadPrices() {
+            Debug.log('Carregando preços de cartões');
+            try {
+                const response = await fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(localStorage.getItem('userId'))}`);
+                const text = await response.text();
+                Debug.log(`Resposta /api/get-card-prices: Status ${response.status}`, { response: text });
+                let prices = JSON.parse(text);
+                if (!response.ok) throw new Error(prices.error || 'Erro ao carregar preços');
+                prices.forEach(price => {
+                    const input = document.getElementById(`${price.nivel.toLowerCase()}Price`);
+                    if (input) input.value = price.price;
+                });
+            } catch (err) {
+                Debug.error('Erro ao carregar preços: %s', err.message);
+                showNotification(`Erro: ${err.message}`, true);
+            }
+        }
+
+        async function updatePrices() {
+            Debug.log('Atualizando preços de cartões');
+            const button = document.getElementById('pricesButton');
+            const spinner = document.getElementById('pricesSpinner');
             button.disabled = true;
             spinner.classList.remove('hidden');
-            errorDiv.classList.add('hidden');
-            if (!username || !password) {
-                Debug.error('Campos obrigatórios não preenchidos');
-                errorDiv.textContent = 'Preencha usuário e senha';
-                errorDiv.classList.remove('hidden');
-                button.disabled = false;
-                spinner.classList.add('hidden');
-                return;
-            }
-            if (username.length < 3 || username.length > 20) {
-                Debug.error('Usuário inválido');
-                errorDiv.textContent = 'Usuário: 3-20 caracteres';
-                errorDiv.classList.remove('hidden');
-                button.disabled = false;
-                spinner.classList.add('hidden');
-                return;
-            }
-            if (password.length < 6) {
-                Debug.error('Senha inválida');
-                errorDiv.textContent = 'Senha: mínimo 6 caracteres';
-                errorDiv.classList.remove('hidden');
-                button.disabled = false;
-                spinner.classList.add('hidden');
-                return;
-            }
             try {
-                const res = await fetchWithTimeout('/.netlify/functions/app/api/register', {
+                const prices = [
+                    { nivel: 'Classic', price: parseFloat(document.getElementById('classicPrice').value) || 0 },
+                    { nivel: 'Gold', price: parseFloat(document.getElementById('goldPrice').value) || 0 },
+                    { nivel: 'Platinum', price: parseFloat(document.getElementById('platinumPrice').value) || 0 },
+                    { nivel: 'Black', price: parseFloat(document.getElementById('blackPrice').value) || 0 }
+                ];
+                if (prices.some(p => p.price < 0.01)) {
+                    throw new Error('Preços devem ser pelo menos 0.01');
+                }
+                const response = await fetchWithTimeout(`/api/set-card-prices?userId=${encodeURIComponent(localStorage.getItem('userId'))}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
+                    body: JSON.stringify({ prices })
                 });
-                const text = await res.text();
-                Debug.log(`Resposta /api/register: Status ${res.status}`, { response: text });
-                let data;
-                try {
-                    data = JSON.parse(text);
-                } catch {
-                    throw new Error('Resposta inválida: formato não JSON');
-                }
-                if (!res.ok) throw new Error(data.error || 'Erro ao registrar');
-                showNotification('Registro realizado com sucesso! Faça login.');
-                toggleForm('login');
+                const text = await response.text();
+                Debug.log(`Resposta /api/set-card-prices: Status ${response.status}`, { response: text });
+                let data = JSON.parse(text);
+                if (!response.ok) throw new Error(data.error || 'Erro ao atualizar preços');
+                showNotification('Preços atualizados com sucesso!');
             } catch (err) {
-                Debug.error('Erro ao registrar:', { error: err.message });
-                errorDiv.textContent = err.message;
-                errorDiv.classList.remove('hidden');
+                Debug.error('Erro ao atualizar preços: %s', err.message);
                 showNotification(`Erro: ${err.message}`, true);
             } finally {
                 button.disabled = false;
@@ -196,40 +202,7 @@
             }
         }
 
-        function toggleForm(form) {
-            Debug.log(`Alternando para ${form}`);
-            const loginForm = document.getElementById('loginForm');
-            const registerForm = document.getElementById('registerForm');
-            if (form === 'register') {
-                loginForm.classList.add('hidden');
-                registerForm.classList.remove('hidden');
-                document.getElementById('loginUsername').value = '';
-                document.getElementById('loginPassword').value = '';
-                document.getElementById('loginError').classList.add('hidden');
-            } else {
-                registerForm.classList.add('hidden');
-                loginForm.classList.remove('hidden');
-                document.getElementById('registerUsername').value = '';
-                document.getElementById('registerPassword').value = '';
-                document.getElementById('registerError').classList.add('hidden');
-            }
-        }
-
-        function togglePassword(inputId) {
-            const input = document.getElementById(inputId);
-            const icon = document.getElementById(`eyeIcon${inputId === 'loginPassword' ? 'Login' : 'Register'}`);
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                input.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             Debug.log('DOM carregado');
             const debugDiv = document.getElementById('debug');
             debugDiv.style.display = 'none';
@@ -238,6 +211,9 @@
                 document.getElementById('toggleDebug').textContent = debugDiv.style.display === 'none' ? 'Mostrar Debug' : 'Esconder Debug';
                 Debug.log(`Debug ${debugDiv.style.display === 'none' ? 'desativado' : 'ativado'}`);
             });
+            if (await checkAuth()) {
+                await Promise.all([loadUsers(), loadPrices()]);
+            }
         });
     </script>
 </body>

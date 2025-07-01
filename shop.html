@@ -75,7 +75,7 @@
                 }
             } catch (err) {
                 Debug.error(`Erro ao verificar ambiente: ${err.message}`);
-                showDebugNotification(`Erro: ${err.message}`, true);
+                showDebugNotification(`Erro ao verificar ambiente: ${err.message}. Verifique a conexão de rede e o Netlify Functions log.`, true);
             }
         }
 
@@ -110,7 +110,7 @@
         }
 
         async function loadCards() {
-            Debug.log('Carregando cartões');
+            Debug.log('Carregando cartões disponíveis');
             const cardsGrid = document.getElementById('cardsGrid');
             cardsGrid.innerHTML = '<p class="text-gray-500 text-center"><i class="fas fa-spinner animate-spin mr-2"></i> Carregando...</p>';
             try {
@@ -119,21 +119,35 @@
                 Debug.log(`Resposta /api/get-card-prices: Status ${response.status}`, { response: text });
                 let cards = JSON.parse(text);
                 if (!response.ok) throw new Error(cards.error || 'Erro ao carregar cartões');
+                if (!Array.isArray(cards)) {
+                    Debug.error('Dados inválidos recebidos do endpoint /api/get-card-prices: %O', cards);
+                    throw new Error('Formato de dados inválido');
+                }
                 cardsGrid.innerHTML = '';
+                if (cards.length === 0) {
+                    Debug.warn('Nenhum cartão encontrado');
+                    cardsGrid.innerHTML = '<p class="text-center text-yellow-500">Nenhum cartão disponível.</p>';
+                    return;
+                }
                 cards.forEach(card => {
+                    if (!card.nivel || !card.price) {
+                        Debug.error('Cartão com dados inválidos: %O', card);
+                        return;
+                    }
+                    Debug.log(`Renderizando cartão: ${card.nivel}, Preço: ${card.price}`);
                     const cardDiv = document.createElement('div');
                     cardDiv.className = 'card-item';
                     cardDiv.innerHTML = `
                         <p class="text-gray-300 font-semibold">${DOMPurify.sanitize(card.nivel)}</p>
                         <p class="text-gray-300">Preço: ${formatCurrency(card.price)}</p>
-                        <button onclick="buyCard('${card.nivel}')" class="mt-2 py-1 px-2 bg-blue-600 text-white rounded hover:bg-blue-700">Comprar</button>
+                        <button onclick="buyCard('${DOMPurify.sanitize(card.nivel)}')" class="mt-2 py-1 px-2 bg-blue-600 text-white rounded hover:bg-blue-700">Comprar</button>
                     `;
                     cardsGrid.appendChild(cardDiv);
                 });
             } catch (err) {
                 Debug.error('Erro ao carregar cartões: %s', err.message);
                 cardsGrid.innerHTML = `<p class="text-center text-red-500">Erro: ${DOMPurify.sanitize(err.message)}</p>`;
-                showNotification(`Erro: ${err.message}`, true);
+                showNotification(`Erro ao carregar cartões: ${err.message}`, true);
             }
         }
 
@@ -150,6 +164,7 @@
                 let data = JSON.parse(text);
                 if (!response.ok) throw new Error(data.error || 'Erro ao comprar cartão');
                 showNotification('Cartão comprado com sucesso!');
+                Debug.success(`Cartão ${nivel} comprado com sucesso`);
                 document.getElementById('userBalance').textContent = `Saldo: ${formatCurrency(data.newBalance)}`;
             } catch (err) {
                 Debug.error('Erro ao comprar cartão: %s', err.message);

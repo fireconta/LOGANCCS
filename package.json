@@ -2,10 +2,10 @@
   "name": "loganccs",
   "version": "1.0.0",
   "description": "LOGAN CC's - Sistema de Compra de Cartões",
-  "main": "app.js",
+  "main": "functions/app-function.js",
   "scripts": {
-    "start": "node app.js",
-    "build": "echo 'Build complete'"
+    "dev": "netlify dev",
+    "build": "echo 'No build required for static site'"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

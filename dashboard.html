@@ -21,6 +21,7 @@
         .debug-info { color: #10b981; }
         .debug-warn { color: #f59e0b; }
         .debug-error { color: #ef4444; }
+        .debug-success { color: #10b981; }
         .user-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
         .user-item { background: #1f2937; padding: 1rem; border-radius: 0.5rem; }
     </style>
@@ -70,24 +71,56 @@
             <div id="usersGrid" class="user-grid"></div>
         </section>
     </main>
-    <button id="toggleDebug" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg fixed bottom-4 left-4" aria-label="Alternar debug">Mostrar Debug</button>
-    <div id="debug" class="hidden" aria-live="assertive"><div id="debug-output"></div></div>
+    <button id="toggleDebug" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg fixed bottom-4 left-4" aria-label="Alternar debug">Esconder Debug</button>
+    <div id="debug" aria-live="assertive"><div id="debug-output"></div></div>
     <script src="/debug.js"></script>
     <script src="/utils.js"></script>
     <script>
+        async function checkEnvironment() {
+            Debug.log('Verificando ambiente e conexão com MongoDB');
+            try {
+                const response = await fetchWithTimeout('/api/check-env');
+                const text = await response.text();
+                Debug.log(`Resposta /api/check-env: Status ${response.status}`, { response: text });
+                const data = JSON.parse(text);
+                if (!response.ok) {
+                    Debug.error(`Erro ao verificar ambiente: ${data.error || 'Desconhecido'}`);
+                    showDebugNotification(`Erro: ${data.error || 'Falha na verificação do ambiente'}`, true);
+                    return;
+                }
+                Debug.log(`MongoDB conectado: ${data.mongodbConnected ? 'Sim' : 'Não'}`);
+                showDebugNotification(`MongoDB conectado: ${data.mongodbConnected ? 'Sim' : 'Não'}`, !data.mongodbConnected);
+                for (const [collection, status] of Object.entries(data.collections)) {
+                    Debug.log(`Coleção ${collection}: ${status.exists ? 'Acessível' : 'Inacessível'}`);
+                    showDebugNotification(`Coleção ${collection}: ${status.exists ? 'Acessível' : 'Inacessível'}`, !status.exists);
+                }
+                for (const [envVar, status] of Object.entries(data.environment)) {
+                    Debug.log(`Variável ${envVar}: ${status.exists ? 'Configurada' : 'Não configurada'}`);
+                    showDebugNotification(`Variável ${envVar}: ${status.exists ? 'Configurada' : 'Não configurada'}`, !status.exists);
+                }
+            } catch (err) {
+                Debug.error(`Erro ao verificar ambiente: ${err.message}`);
+                showDebugNotification(`Erro: ${err.message}`, true);
+            }
+        }
+
         async function checkAuth() {
             Debug.log('Verificando autenticação');
             const userId = localStorage.getItem('userId');
             if (!userId) {
                 showNotification('Usuário não autenticado.', true);
+                Debug.error('Nenhum userId encontrado no localStorage');
                 setTimeout(() => { window.location.href = '/index.html'; }, 1000);
                 return false;
             }
             try {
                 const response = await fetchWithTimeout(`/api/user?userId=${encodeURIComponent(userId)}`);
-                const user = await response.json();
+                const text = await response.text();
+                Debug.log(`Resposta /api/user: Status ${response.status}`, { response: text });
+                const user = JSON.parse(text);
                 if (!response.ok || !user.isAdmin) {
                     showNotification('Acesso negado. Apenas administradores.', true);
+                    Debug.error(`Erro: ${user.error || 'Usuário não é administrador'}`);
                     setTimeout(() => { window.location.href = '/index.html'; }, 1000);
                     return false;
                 }
@@ -205,12 +238,13 @@
         document.addEventListener('DOMContentLoaded', async () => {
             Debug.log('DOM carregado');
             const debugDiv = document.getElementById('debug');
-            debugDiv.style.display = 'none';
+            debugDiv.style.display = 'block';
             document.getElementById('toggleDebug').addEventListener('click', () => {
                 debugDiv.style.display = debugDiv.style.display === 'none' ? 'block' : 'none';
                 document.getElementById('toggleDebug').textContent = debugDiv.style.display === 'none' ? 'Mostrar Debug' : 'Esconder Debug';
                 Debug.log(`Debug ${debugDiv.style.display === 'none' ? 'desativado' : 'ativado'}`);
             });
+            await checkEnvironment();
             if (await checkAuth()) {
                 await Promise.all([loadUsers(), loadPrices()]);
             }

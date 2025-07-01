@@ -294,12 +294,15 @@ app.get('/api/get-card-prices', [
                 { nivel: 'Classic', price: 100 },
                 { nivel: 'Gold', price: 200 },
                 { nivel: 'Platinum', price: 300 },
-                { nivel: 'Black', price: 500 }
+                { nivel: 'Black', price: 500 },
+                { nivel: 'Business', price: 700 },
+                { nivel: 'Infinite', price: 1000 }
             ];
             await CardPrice.insertMany(defaultPrices);
-            debug('Default card prices initialized');
+            debug('Default card prices initialized: %O', defaultPrices);
             return res.json(defaultPrices);
         }
+        debug('Fetched card prices: %O', prices);
         res.json(prices);
     } catch (err) {
         debug('Error fetching card prices: %s', err.message);
@@ -310,7 +313,7 @@ app.get('/api/get-card-prices', [
 app.post('/api/set-card-prices', [
     query('userId').isMongoId(),
     body('prices').isArray(),
-    body('prices.*.nivel').isIn(['Classic', 'Gold', 'Platinum', 'Black']),
+    body('prices.*.nivel').isString().trim().isLength({ min: 3, max: 20 }).matches(/^[a-zA-Z0-9]+$/),
     body('prices.*.price').isFloat({ min: 0.01 })
 ], async (req, res) => {
     const connected = await connectToMongoDB();
@@ -337,7 +340,7 @@ app.post('/api/set-card-prices', [
                 { upsert: true }
             );
         }
-        debug('Card prices updated');
+        debug('Card prices updated: %O', prices);
         res.json({ message: 'Preços atualizados' });
     } catch (err) {
         debug('Error setting card prices: %s', err.message);
@@ -347,7 +350,7 @@ app.post('/api/set-card-prices', [
 
 app.post('/api/buy-card', [
     query('userId').isMongoId(),
-    body('nivel').isIn(['Classic', 'Gold', 'Platinum', 'Black'])
+    body('nivel').isString().trim().isLength({ min: 3, max: 20 }).matches(/^[a-zA-Z0-9]+$/)
 ], async (req, res) => {
     const connected = await connectToMongoDB();
     if (!connected) {

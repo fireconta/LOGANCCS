@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Loja - LOGANCCS</title>
+    <title>Login - LOGANCCS</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.0/purify.min.js"></script>
     <style>
-        #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 9999; visibility: hidden; }
+        #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; visibility: hidden; }
         .spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid #10b981; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #notifications { position: fixed; top: 1rem; right: 1rem; z-index: 10000; max-width: 320px; }
+        #notifications { position: fixed; top: 1rem; right: 1rem; z-index: 1000; max-width: 320px; }
         .notification { background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; justify-content: space-between; align-items: center; animation: slideIn 0.3s ease-out; }
         .notification-error { background: #ef4444; }
         .notification-success { background: #10b981; }
@@ -22,36 +22,54 @@
         .debug-warn { color: #f59e0b; }
         .debug-error { color: #ef4444; }
         .debug-success { color: #10b981; }
-        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
-        .card-item { padding: 1rem; border-radius: 0.5rem; transition: transform 0.2s; }
-        .card-item:hover { transform: scale(1.05); }
-        .card-classic { background: #6b7280; }
-        .card-gold { background: #d4af37; color: #1f2937; }
-        .card-platinum { background: #e5e7eb; color: #1f2937; }
-        .card-black { background: #111827; }
-        .card-business { background: #3b82f6; }
-        .card-infinite { background: #8b5cf6; }
-        .card-custom { background: #4b5563; }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen container mx-auto p-6">
+<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center">
     <div id="globalLoader" aria-hidden="true"><div class="spinner"></div></div>
     <div id="notifications" class="space-y-2" aria-live="polite"></div>
-    <header class="bg-gray-800 p-4 flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-green-500 flex items-center">
-            <i class="fas fa-credit-card mr-2" aria-hidden="true"></i> LOGAN CC's - Loja
+    <main class="container mx-auto p-6 max-w-md">
+        <h1 class="text-3xl font-bold text-green-500 text-center mb-6 flex items-center justify-center">
+            <i class="fas fa-credit-card mr-2" aria-hidden="true"></i> LOGAN CC's
         </h1>
-        <div class="flex items-center space-x-4">
-            <span id="userBalance" class="text-gray-300" aria-live="polite">Saldo: Carregando...</span>
-            <button id="logoutButton" onclick="logout()" class="text-gray-300 hover:text-red-500 flex items-center" aria-label="Sair">
-                <i class="fas fa-sign-out-alt mr-2" aria-hidden="true"></i> Sair
+        <section id="loginForm" class="bg-gray-800 p-6 rounded-lg mb-4">
+            <h2 class="text-xl font-semibold mb-4">Login</h2>
+            <div class="mb-4">
+                <label for="loginUsername" class="block text-sm font-medium text-gray-300">Usuário</label>
+                <input type="text" id="loginUsername" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Digite seu usuário" aria-label="Usuário">
+            </div>
+            <div class="mb-4">
+                <label for="loginPassword" class="block text-sm font-medium text-gray-300">Senha</label>
+                <input type="password" id="loginPassword" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Digite sua senha" aria-label="Senha">
+            </div>
+            <button id="loginButton" onclick="login()" class="w-full py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center" aria-label="Entrar">
+                <span>Entrar</span>
+                <svg id="loginSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
             </button>
-        </div>
-    </header>
-    <main>
-        <section>
-            <h2 class="text-xl font-semibold mb-4">Cartões Disponíveis</h2>
-            <div id="cardsGrid" class="card-grid" aria-live="polite"></div>
+        </section>
+        <section id="registerForm" class="bg-gray-800 p-6 rounded-lg">
+            <h2 class="text-xl font-semibold mb-4">Registrar</h2>
+            <div class="mb-4">
+                <label for="registerUsername" class="block text-sm font-medium text-gray-300">Usuário</label>
+                <input type="text" id="registerUsername" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Digite seu usuário (3-20 caracteres)" aria-label="Usuário">
+            </div>
+            <div class="mb-4">
+                <label for="registerPassword" class="block text-sm font-medium text-gray-300">Senha</label>
+                <input type="password" id="registerPassword" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Digite sua senha (mín. 6 caracteres)" aria-label="Senha">
+            </div>
+            <div class="mb-4">
+                <label for="confirmPassword" class="block text-sm font-medium text-gray-300">Confirmar Senha</label>
+                <input type="password" id="confirmPassword" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Confirme sua senha" aria-label="Confirmar Senha">
+            </div>
+            <button id="registerButton" onclick="register()" class="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center" aria-label="Registrar">
+                <span>Registrar</span>
+                <svg id="registerSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+            </button>
         </section>
     </main>
     <button id="toggleDebug" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg fixed bottom-4 left-4" aria-label="Alternar debug">Esconder Debug</button>
@@ -59,6 +77,11 @@
     <script src="/debug.js"></script>
     <script src="/utils.js"></script>
     <script>
+        function restrictInput(input) {
+            input.value = input.value.replace(/[^a-zA-Z0-9]/g, '');
+            if (input.value.length > 20) input.value = input.value.slice(0, 20);
+        }
+
         async function checkEnvironment() {
             Debug.log('Verificando ambiente e conexão com MongoDB');
             try {
@@ -87,100 +110,80 @@
             }
         }
 
-        async function checkAuth() {
-            Debug.log('Verificando autenticação');
-            const userId = localStorage.getItem('userId');
-            if (!userId) {
-                showNotification('Usuário não autenticado.', true);
-                Debug.error('Nenhum userId encontrado no localStorage');
-                setTimeout(() => { window.location.href = '/index.html'; }, 1000);
-                return false;
-            }
+        async function login() {
+            Debug.log('Iniciando login');
+            const button = document.getElementById('loginButton');
+            const spinner = document.getElementById('loginSpinner');
+            button.disabled = true;
+            spinner.classList.remove('hidden');
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
             try {
-                const response = await fetchWithTimeout(`/api/user?userId=${encodeURIComponent(userId)}`);
-                const text = await response.text();
-                Debug.log(`Resposta /api/user: Status ${response.status}`, { response: text });
-                const user = JSON.parse(text);
-                if (!response.ok) {
-                    showNotification('Erro ao verificar autenticação.', true);
-                    Debug.error(`Erro na API: ${user.error || 'Desconhecido'}`);
-                    setTimeout(() => { window.location.href = '/index.html'; }, 1000);
-                    return false;
+                if (!username || !password) {
+                    throw new Error('Usuário e senha são obrigatórios');
                 }
-                document.getElementById('userBalance').textContent = `Saldo: ${formatCurrency(user.balance)}`;
-                return true;
-            } catch (err) {
-                Debug.error('Erro ao verificar autenticação: %s', err.message);
-                showNotification(`Erro: ${err.message}`, true);
-                setTimeout(() => { window.location.href = '/index.html'; }, 1000);
-                return false;
-            }
-        }
-
-        async function loadCards() {
-            Debug.log('Carregando cartões disponíveis');
-            const cardsGrid = document.getElementById('cardsGrid');
-            cardsGrid.innerHTML = '<p class="text-gray-500 text-center"><i class="fas fa-spinner animate-spin mr-2"></i> Carregando...</p>';
-            try {
-                const response = await fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(localStorage.getItem('userId'))}`);
-                const text = await response.text();
-                Debug.log(`Resposta /api/get-card-prices: Status ${response.status}`, { response: text });
-                let cards = JSON.parse(text);
-                if (!response.ok) throw new Error(cards.error || 'Erro ao carregar cartões');
-                if (!Array.isArray(cards)) {
-                    Debug.error('Dados inválidos recebidos do endpoint /api/get-card-prices: %O', cards);
-                    throw new Error('Formato de dados inválido');
-                }
-                cardsGrid.innerHTML = '';
-                if (cards.length === 0) {
-                    Debug.warn('Nenhum cartão encontrado');
-                    cardsGrid.innerHTML = '<p class="text-center text-yellow-500">Nenhum cartão disponível.</p>';
-                    return;
-                }
-                const knownLevels = ['classic', 'gold', 'platinum', 'black', 'business', 'infinite'];
-                cards.forEach(card => {
-                    if (!card.nivel || !card.price) {
-                        Debug.error('Cartão com dados inválidos: %O', card);
-                        return;
-                    }
-                    Debug.log(`Renderizando cartão: ${card.nivel}, Preço: ${card.price}`);
-                    const cardDiv = document.createElement('div');
-                    const levelClass = knownLevels.includes(card.nivel.toLowerCase()) ? `card-${card.nivel.toLowerCase()}` : 'card-custom';
-                    cardDiv.className = `card-item ${levelClass}`;
-                    cardDiv.setAttribute('role', 'article');
-                    cardDiv.setAttribute('aria-label', `Cartão ${card.nivel}`);
-                    cardDiv.innerHTML = `
-                        <p class="text-lg font-semibold">${DOMPurify.sanitize(card.nivel)}</p>
-                        <p class="text-sm">Preço: ${formatCurrency(card.price)}</p>
-                        <button onclick="buyCard('${DOMPurify.sanitize(card.nivel)}')" class="mt-2 py-1 px-2 bg-blue-600 text-white rounded hover:bg-blue-700" aria-label="Comprar cartão ${card.nivel}">Comprar</button>
-                    `;
-                    cardsGrid.appendChild(cardDiv);
-                });
-            } catch (err) {
-                Debug.error('Erro ao carregar cartões: %s', err.message);
-                cardsGrid.innerHTML = `<p class="text-center text-red-500">Erro: ${DOMPurify.sanitize(err.message)}</p>`;
-                showNotification(`Erro ao carregar cartões: ${err.message}`, true);
-            }
-        }
-
-        async function buyCard(nivel) {
-            Debug.log(`Tentando comprar cartão: ${nivel}`);
-            try {
-                const response = await fetchWithTimeout(`/api/buy-card?userId=${encodeURIComponent(localStorage.getItem('userId'))}`, {
+                const response = await fetchWithTimeout('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nivel })
+                    body: JSON.stringify({ username, password })
                 });
                 const text = await response.text();
-                Debug.log(`Resposta /api/buy-card: Status ${response.status}`, { response: text });
+                Debug.log(`Resposta /api/login: Status ${response.status}`, { response: text });
                 let data = JSON.parse(text);
-                if (!response.ok) throw new Error(data.error || 'Erro ao comprar cartão');
-                showNotification('Cartão comprado com sucesso!');
-                Debug.success(`Cartão ${nivel} comprado com sucesso`);
-                document.getElementById('userBalance').textContent = `Saldo: ${formatCurrency(data.newBalance)}`;
+                if (!response.ok) throw new Error(data.error || 'Erro ao logar');
+                localStorage.setItem('userId', data.userId);
+                showNotification('Login bem-sucedido!');
+                Debug.success(`Login bem-sucedido para ${username}`);
+                setTimeout(() => {
+                    window.location.href = data.is_admin ? '/dashboard.html' : '/shop.html';
+                }, 1000);
             } catch (err) {
-                Debug.error('Erro ao comprar cartão: %s', err.message);
+                Debug.error('Erro ao logar: %s', err.message);
                 showNotification(`Erro: ${err.message}`, true);
+            } finally {
+                button.disabled = false;
+                spinner.classList.add('hidden');
+            }
+        }
+
+        async function register() {
+            Debug.log('Iniciando registro');
+            const button = document.getElementById('registerButton');
+            const spinner = document.getElementById('registerSpinner');
+            button.disabled = true;
+            spinner.classList.remove('hidden');
+            const username = document.getElementById('registerUsername').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            try {
+                if (!username || !password || !confirmPassword) {
+                    throw new Error('Todos os campos são obrigatórios');
+                }
+                if (password !== confirmPassword) {
+                    Debug.error('Senhas não coincidem no registro');
+                    throw new Error('As senhas não coincidem');
+                }
+                Debug.log(`Tentativa de registro com username: ${username}`);
+                const response = await fetchWithTimeout('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const text = await response.text();
+                Debug.log(`Resposta /api/register: Status ${response.status}`, { response: text });
+                let data = JSON.parse(text);
+                if (!response.ok) throw new Error(data.error || 'Erro ao registrar');
+                showNotification('Registro bem-sucedido! Faça login.');
+                Debug.success(`Registro bem-sucedido para ${username}`);
+                document.getElementById('registerUsername').value = '';
+                document.getElementById('registerPassword').value = '';
+                document.getElementById('confirmPassword').value = '';
+            } catch (err) {
+                Debug.error('Erro ao registrar: %s', err.message);
+                showNotification(`Erro: ${err.message}`, true);
+            } finally {
+                button.disabled = false;
+                spinner.classList.add('hidden');
             }
         }
 
@@ -193,10 +196,8 @@
                 document.getElementById('toggleDebug').textContent = debugDiv.style.display === 'none' ? 'Mostrar Debug' : 'Esconder Debug';
                 Debug.log(`Debug ${debugDiv.style.display === 'none' ? 'desativado' : 'ativado'}`);
             });
+            document.getElementById('registerUsername').addEventListener('input', (e) => restrictInput(e.target));
             await checkEnvironment();
-            if (await checkAuth()) {
-                await loadCards();
-            }
         });
     </script>
 </body>

@@ -118,40 +118,53 @@
         }
 
         async function loadCards() {
-            Debug.log('Carregando cartões disponíveis');
+            Debug.log('Carregando cartões da coleção Cards');
             const cardsGrid = document.getElementById('cardsGrid');
             cardsGrid.innerHTML = '<p class="text-gray-500 text-center"><i class="fas fa-spinner animate-spin mr-2"></i> Carregando...</p>';
             try {
-                const response = await fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(localStorage.getItem('userId'))}`);
-                const text = await response.text();
-                Debug.log(`Resposta /api/get-card-prices: Status ${response.status}`, { response: text });
-                let cards = JSON.parse(text);
-                if (!response.ok) throw new Error(cards.error || 'Erro ao carregar cartões');
-                if (!Array.isArray(cards)) {
-                    Debug.error('Dados inválidos recebidos do endpoint /api/get-card-prices: %O', cards);
+                const [cardsResponse, pricesResponse] = await Promise.all([
+                    fetchWithTimeout(`/api/get-cards?userId=${encodeURIComponent(localStorage.getItem('userId'))}`),
+                    fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(localStorage.getItem('userId'))}`)
+                ]);
+                const cardsText = await cardsResponse.text();
+                const pricesText = await pricesResponse.text();
+                Debug.log(`Resposta /api/get-cards: Status ${cardsResponse.status}`, { response: cardsText });
+                Debug.log(`Resposta /api/get-card-prices: Status ${pricesResponse.status}`, { response: pricesText });
+                let cards = JSON.parse(cardsText);
+                let prices = JSON.parse(pricesText);
+                if (!cardsResponse.ok) throw new Error(cards.error || 'Erro ao carregar cartões');
+                if (!pricesResponse.ok) throw new Error(prices.error || 'Erro ao carregar preços');
+                if (!Array.isArray(cards) || !Array.isArray(prices)) {
+                    Debug.error('Dados inválidos recebidos: cards=%O, prices=%O', cards, prices);
                     throw new Error('Formato de dados inválido');
                 }
                 cardsGrid.innerHTML = '';
                 if (cards.length === 0) {
-                    Debug.warn('Nenhum cartão encontrado');
+                    Debug.warn('Nenhum cartão encontrado na coleção Cards');
                     cardsGrid.innerHTML = '<p class="text-center text-yellow-500">Nenhum cartão disponível.</p>';
                     return;
                 }
-                const knownLevels = ['classic', 'gold', 'platinum', 'black', 'business', 'infinite'];
+                const priceMap = new Map(prices.map(p => [p.nivel, p.price]));
+                const knownCards = ['classic', 'gold', 'platinum', 'black', 'business', 'infinite'];
                 cards.forEach(card => {
-                    if (!card.nivel || !card.price) {
+                    if (!card.nivel) {
                         Debug.error('Cartão com dados inválidos: %O', card);
                         return;
                     }
-                    Debug.log(`Renderizando cartão: ${card.nivel}, Preço: ${card.price}`);
+                    const price = priceMap.get(card.nivel);
+                    if (price === undefined) {
+                        Debug.warn(`Preço não encontrado para cartão: ${card.nivel}`);
+                        return;
+                    }
+                    Debug.log(`Renderizando cartão: ${card.nivel}, Preço: ${price}`);
                     const cardDiv = document.createElement('div');
-                    const levelClass = knownLevels.includes(card.nivel.toLowerCase()) ? `card-${card.nivel.toLowerCase()}` : 'card-custom';
-                    cardDiv.className = `card-item ${levelClass}`;
+                    const cardClass = knownCards.includes(card.nivel.toLowerCase()) ? `card-${card.nivel.toLowerCase()}` : 'card-custom';
+                    cardDiv.className = `card-item ${cardClass}`;
                     cardDiv.setAttribute('role', 'article');
                     cardDiv.setAttribute('aria-label', `Cartão ${card.nivel}`);
                     cardDiv.innerHTML = `
-                        <p class="text-lg font-semibold">${DOMPurify.sanitize(card.nivel)}</p>
-                        <p class="text-sm">Preço: ${formatCurrency(card.price)}</p>
+                        <p class="text-lg font-semibold">Cartão ${DOMPurify.sanitize(card.nivel)}</p>
+                        <p class="text-sm">Preço: ${formatCurrency(price)}</p>
                         <button onclick="buyCard('${DOMPurify.sanitize(card.nivel)}')" class="mt-2 py-1 px-2 bg-blue-600 text-white rounded hover:bg-blue-700" aria-label="Comprar cartão ${card.nivel}">Comprar</button>
                     `;
                     cardsGrid.appendChild(cardDiv);
@@ -163,20 +176,20 @@
             }
         }
 
-        async function buyCard(nivel) {
-            Debug.log(`Tentando comprar cartão: ${nivel}`);
+        async function buyCard(cardName) {
+            Debug.log(`Tentando comprar cartão: ${cardName}`);
             try {
                 const response = await fetchWithTimeout(`/api/buy-card?userId=${encodeURIComponent(localStorage.getItem('userId'))}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nivel })
+                    body: JSON.stringify({ nivel: cardName })
                 });
                 const text = await response.text();
                 Debug.log(`Resposta /api/buy-card: Status ${response.status}`, { response: text });
                 let data = JSON.parse(text);
                 if (!response.ok) throw new Error(data.error || 'Erro ao comprar cartão');
-                showNotification('Cartão comprado com sucesso!');
-                Debug.success(`Cartão ${nivel} comprado com sucesso`);
+                showNotification(`Cartão ${cardName} comprado com sucesso!`);
+                Debug.success(`Cartão ${cardName} comprado com sucesso`);
                 document.getElementById('userBalance').textContent = `Saldo: ${formatCurrency(data.newBalance)}`;
             } catch (err) {
                 Debug.error('Erro ao comprar cartão: %s', err.message);

@@ -147,19 +147,30 @@
         async function checkEnvironment() {
             Debug.log('Verificando ambiente e conexão com MongoDB');
             try {
-                const response = await fetchWithTimeout('/api/check-env');
+                const response = await fetchWithTimeout('/api/check-env', {}, 5000);
                 const data = await response.json();
                 Debug.log(`Resposta /api/check-env: Status ${response.status}`, data);
                 if (!response.ok) {
                     Debug.error(`Erro ao verificar ambiente: ${data.error || 'Desconhecido'}`);
-                    showNotification(`Erro: ${data.error || 'Falha na verificação do ambiente'}`, true);
-                    return;
+                    showNotification(`Erro na configuração do servidor. Contate o suporte.`, true);
+                    return false;
                 }
-                Debug.log(`MongoDB conectado: ${data.mongodbConnected ? 'Sim' : 'Não'}`);
-                showNotification(`MongoDB conectado: ${data.mongodbConnected ? 'Sim' : 'Não'}`, !data.mongodbConnected);
+                if (!data.mongodbConnected) {
+                    Debug.error('MongoDB não conectado');
+                    showNotification('Falha na conexão com o banco de dados. Tente novamente mais tarde.', true);
+                    return false;
+                }
+                if (!data.collections.cards.exists || !data.collections.cardPrices.exists) {
+                    Debug.warn('Coleções cards ou cardPrices não encontradas');
+                    showNotification('Nenhum dado disponível. Contate o administrador para adicionar cartões.', true);
+                    return false;
+                }
+                Debug.log('Ambiente verificado com sucesso');
+                return true;
             } catch (err) {
                 Debug.error(`Erro ao verificar ambiente: ${err.message}`);
-                showNotification(`Erro ao verificar ambiente: ${err.message}. Verifique sua conexão.`, true);
+                showNotification(`Erro ao verificar servidor: ${err.message}. Tente novamente.`, true);
+                return false;
             }
         }
 
@@ -173,7 +184,7 @@
                 return false;
             }
             try {
-                const response = await fetchWithTimeout(`/api/user?userId=${encodeURIComponent(userId)}`);
+                const response = await fetchWithTimeout(`/api/user?userId=${encodeURIComponent(userId)}`, {}, 5000);
                 const data = await response.json();
                 Debug.log(`Resposta /api/user: Status ${response.status}`, data);
                 if (!response.ok) {
@@ -186,10 +197,11 @@
                 if (data.isAdmin) {
                     document.getElementById('dashboardLink').classList.remove('hidden');
                 }
+                Debug.success('Autenticação verificada com sucesso', { userId });
                 return true;
             } catch (err) {
                 Debug.error('Erro ao verificar autenticação: %s', err.message);
-                showNotification(`Erro: ${err.message}. Redirecionando...`, true);
+                showNotification(`Erro de conexão: ${err.message}. Redirecionando...`, true);
                 setTimeout(() => { window.location.href = '/index.html'; }, 1000);
                 return false;
             }
@@ -202,8 +214,8 @@
             try {
                 document.getElementById('globalLoader').style.visibility = 'visible';
                 const [cardsResponse, pricesResponse] = await Promise.all([
-                    fetchWithTimeout(`/api/get-cards?userId=${encodeURIComponent(localStorage.getItem('userId'))}`),
-                    fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(localStorage.getItem('userId'))}`)
+                    fetchWithTimeout(`/api/get-cards?userId=${encodeURIComponent(localStorage.getItem('userId'))}`, {}, 5000),
+                    fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(localStorage.getItem('userId'))}`, {}, 5000)
                 ]);
                 const cardsData = await cardsResponse.json();
                 const pricesData = await pricesResponse.json();
@@ -215,9 +227,10 @@
                 }
                 allCards = Array.isArray(cardsData) ? cardsData : [];
                 allPrices = Array.isArray(pricesData) ? pricesData : [];
-                if (allCards.length === 0) {
-                    Debug.warn('Nenhum cartão disponível na base de dados');
-                    cardsGrid.innerHTML = '<p class="no-results text-yellow-500">Nenhum cartão disponível no momento.</p>';
+                if (allCards.length === 0 || allPrices.length === 0) {
+                    Debug.warn('Nenhum cartão ou preço disponível na base de dados');
+                    cardsGrid.innerHTML = '<p class="no-results text-yellow-500">Nenhum cartão disponível no momento. Contate o administrador.</p>';
+                    showNotification('Nenhum cartão disponível. Contate o administrador.', true);
                     return;
                 }
                 populateFilters();
@@ -225,8 +238,8 @@
             } catch (err) {
                 document.getElementById('globalLoader').style.visibility = 'hidden';
                 Debug.error('Erro ao carregar cartões: %s', err.message);
-                cardsGrid.innerHTML = `<p class="no-results text-red-500">Erro: ${DOMPurify.sanitize(err.message)}</p>`;
-                showNotification(`Erro ao carregar cartões: ${err.message}. Verifique sua conexão.`, true);
+                cardsGrid.innerHTML = `<p class="no-results text-red-500">Erro ao carregar cartões: ${DOMPurify.sanitize(err.message)}. Tente novamente ou contate o suporte.</p>`;
+                showNotification(`Erro ao carregar cartões: ${err.message}. Verifique sua conexão ou contate o suporte.`, true);
             }
         }
 
@@ -247,6 +260,7 @@
             if (savedFilters.brand) brandFilter.value = savedFilters.brand;
             if (savedFilters.bank) bankFilter.value = savedFilters.bank;
             if (savedFilters.search) document.getElementById('cardSearch').value = savedFilters.search;
+            Debug.log('Filtros populados', { levels, brands, banks });
         }
 
         function applyFilters() {
@@ -347,7 +361,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ nivel: cardName })
-                });
+                }, 5000);
                 const data = await response.json();
                 Debug.log(`Resposta /api/buy-card: Status ${response.status}`, data);
                 document.getElementById('globalLoader').style.visibility = 'hidden';
@@ -361,7 +375,7 @@
             } catch (err) {
                 document.getElementById('globalLoader').style.visibility = 'hidden';
                 Debug.error('Erro ao comprar cartão: %s', err.message);
-                showNotification(`Erro: ${err.message}`, true);
+                showNotification(`Erro: ${err.message}. Tente novamente ou contate o suporte.`, true);
             }
         }
 
@@ -392,8 +406,8 @@
                 document.body.classList.add('light');
                 document.getElementById('themeToggle').innerHTML = '<i class="fas fa-sun"></i>';
             }
-            await checkEnvironment();
-            if (await checkAuth()) {
+            const envValid = await checkEnvironment();
+            if (envValid && await checkAuth()) {
                 await loadCards();
             }
         });

@@ -213,9 +213,10 @@
             cardsGrid.innerHTML = '<p class="text-gray-500 text-center"><i class="fas fa-spinner animate-spin mr-2"></i> Carregando...</p>';
             try {
                 document.getElementById('globalLoader').style.visibility = 'visible';
+                const userId = localStorage.getItem('userId');
                 const [cardsResponse, pricesResponse] = await Promise.all([
-                    fetchWithTimeout(`/api/get-cards?userId=${encodeURIComponent(localStorage.getItem('userId'))}`, {}, 5000),
-                    fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(localStorage.getItem('userId'))}`, {}, 5000)
+                    fetchWithTimeout(`/api/get-cards?userId=${encodeURIComponent(userId)}`, {}, 5000),
+                    fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(userId)}`, {}, 5000)
                 ]);
                 const cardsData = await cardsResponse.json();
                 const pricesData = await pricesResponse.json();

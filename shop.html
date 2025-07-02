@@ -75,37 +75,6 @@
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
-        #debug {
-            position: fixed;
-            bottom: 1rem;
-            left: 1rem;
-            background: #1f2937;
-            color: white;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            max-width: 400px;
-            max-height: 300px;
-            overflow-y: auto;
-            z-index: 1000;
-            font-size: 0.75rem;
-        }
-        body.light #debug { background: #e5e7eb; color: #1f2937; }
-        #toggleDebug, #clearDebug {
-            background: #10b981;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.25rem;
-            cursor: pointer;
-            z-index: 1001;
-            transition: background-color 0.2s;
-        }
-        body.light #toggleDebug, body.light #clearDebug { background: #059669; }
-        #toggleDebug:hover, #clearDebug:hover { background: #059669; }
-        body.light #toggleDebug:hover, body.light #clearDebug:hover { background: #047857; }
-        .debug-info { color: #34d399; }
-        .debug-warn { color: #f59e0b; }
-        .debug-error { color: #f87171; }
-        .debug-success { color: #10b981; }
         .card-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -133,7 +102,8 @@
         .card-infinite { background: linear-gradient(135deg, #8b5cf6, #5b21b6); }
         .card-custom { background: linear-gradient(135deg, #4b5563, #374151); }
         .card-content { display: flex; flex-direction: column; height: 100%; }
-        .card-brand { font-size: 1.25rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+        .card-brand, .card-bank { font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
         .card-number { font-family: monospace; letter-spacing: 2px; font-size: 0.9rem; margin-top: 0.5rem; }
         .card-details { margin-top: auto; display: flex; justify-content: space-between; font-size: 0.85rem; }
         .card-buy {
@@ -186,7 +156,7 @@
             color: #f59e0b;
         }
         body.light .no-results { background: #e5e7eb; color: #b45309; }
-        .brand-icon { font-size: 1.5rem; }
+        .brand-icon, .bank-icon { font-size: 1.25rem; }
         .filter-icon { margin-right: 0.5rem; }
     </style>
 </head>
@@ -257,15 +227,6 @@
             <div id="cardsGrid" class="card-grid" aria-live="polite"></div>
         </section>
     </main>
-    <div class="flex space-x-4 fixed bottom-4 left-4">
-        <button id="toggleDebug" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center" aria-label="Alternar debug">
-            <i class="fas fa-bug mr-2"></i> Esconder Debug
-        </button>
-        <button id="clearDebug" class="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center" aria-label="Limpar debug">
-            <i class="fas fa-eraser mr-2"></i> Limpar Debug
-        </button>
-    </div>
-    <div id="debug" aria-live="assertive"><div id="debug-output"></div></div>
     <script src="/debug.js"></script>
     <script src="/utils.js"></script>
     <script>
@@ -305,53 +266,46 @@
             return `<i class="fas ${brandIcons[key] || 'fa-credit-card'} brand-icon"></i>`;
         }
 
+        function getBankIcon(banco) {
+            return `<i class="fas fa-university bank-icon"></i>`;
+        }
+
         async function checkEnvironment() {
-            Debug.log('Verificando ambiente e conexão com MongoDB');
             try {
                 const response = await fetchWithTimeout('/api/check-env', {}, 5000);
                 const data = await response.json();
-                Debug.log(`Resposta /api/check-env: Status ${response.status}`, { mongodbConnected: data.mongodbConnected, collections: data.collections });
                 if (!response.ok) {
-                    Debug.error(`Erro ao verificar ambiente: ${data.error || 'Desconhecido'}`);
                     showNotification(`Erro na configuração do servidor: ${data.error || 'Desconhecido'}. Contate o suporte.`, true);
                     return false;
                 }
                 if (!data.mongodbConnected) {
-                    Debug.error('MongoDB não conectado');
                     showNotification('Falha na conexão com o banco de dados. Tente novamente mais tarde.', true);
                     return false;
                 }
                 if (!data.collections.cards.exists || !data.collections.cardPrices.exists) {
-                    Debug.warn('Coleções cards ou cardPrices não encontradas');
                     showNotification('Nenhum dado disponível. Contate o administrador para adicionar cartões ou preços.', true);
                     return false;
                 }
-                Debug.success('Ambiente verificado com sucesso');
                 return true;
             } catch (err) {
-                Debug.error(`Erro ao verificar ambiente: ${err.message}`);
                 showNotification(`Erro ao verificar servidor: ${err.message}. Tente novamente.`, true);
                 return false;
             }
         }
 
         async function checkAuth() {
-            Debug.log('Verificando autenticação');
             const userId = localStorage.getItem('userId');
             const storedUsername = localStorage.getItem('username');
             if (!userId) {
                 showNotification('Usuário não autenticado. Redirecionando para login...', true);
-                Debug.error('Nenhum userId encontrado no localStorage');
                 setTimeout(() => { window.location.href = '/index.html'; }, 1000);
                 return false;
             }
             try {
                 const response = await fetchWithTimeout(`/api/user?userId=${encodeURIComponent(userId)}`, {}, 5000);
                 const data = await response.json();
-                Debug.log(`Resposta /api/user: Status ${response.status}`, { username: data.username, isAdmin: data.isAdmin });
                 if (!response.ok) {
                     showNotification('Erro ao verificar autenticação. Redirecionando...', true);
-                    Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
                     setTimeout(() => { window.location.href = '/index.html'; }, 1000);
                     return false;
                 }
@@ -360,10 +314,8 @@
                 if (data.isAdmin) {
                     document.getElementById('dashboardLink').classList.remove('hidden');
                 }
-                Debug.success('Autenticação verificada com sucesso', { userId, username: data.username || storedUsername });
                 return true;
             } catch (err) {
-                Debug.error('Erro ao verificar autenticação: %s', err.message);
                 showNotification(`Erro de conexão: ${err.message}. Redirecionando...`, true);
                 setTimeout(() => { window.location.href = '/index.html'; }, 1000);
                 return false;
@@ -371,21 +323,17 @@
         }
 
         async function loadCards() {
-            Debug.log('Carregando cartões da coleção Cards');
             const cardsGrid = document.getElementById('cardsGrid');
             cardsGrid.innerHTML = '<p class="text-gray-500 text-center"><i class="fas fa-spinner animate-spin mr-2"></i> Carregando...</p>';
             try {
                 document.getElementById('globalLoader').style.visibility = 'visible';
                 const userId = localStorage.getItem('userId');
-                Debug.log(`Iniciando chamadas para /api/get-cards e /api/get-card-prices com userId: ${userId}`);
                 const [cardsResponse, pricesResponse] = await Promise.all([
                     fetchWithTimeout(`/api/get-cards?userId=${encodeURIComponent(userId)}`, {}, 5000),
                     fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(userId)}`, {}, 5000)
                 ]);
                 const cardsData = await cardsResponse.json();
                 const pricesData = await pricesResponse.json();
-                Debug.log(`Resposta /api/get-cards: Status ${cardsResponse.status}, Total de cartões: ${cardsData.length || 0}`);
-                Debug.log(`Resposta /api/get-card-prices: Status ${pricesResponse.status}, Total de preços: ${pricesData.length || 0}`);
                 document.getElementById('globalLoader').style.visibility = 'hidden';
                 if (!cardsResponse.ok) {
                     throw new Error(cardsData.error || 'Erro ao carregar cartões');
@@ -402,28 +350,23 @@
                 allCards = cardsData;
                 allPrices = pricesData;
                 if (allCards.length === 0) {
-                    Debug.warn('Nenhum cartão encontrado na coleção cards');
                     cardsGrid.innerHTML = '<p class="no-results"><i class="fas fa-exclamation-triangle mr-2"></i> Nenhum cartão disponível no momento. Contate o administrador.</p>';
                     showNotification('Nenhum cartão disponível. Verifique a coleção cards ou contate o administrador.', true);
                     return;
                 }
                 if (allPrices.length === 0) {
-                    Debug.warn('Nenhum preço encontrado na coleção cardPrices');
                     cardsGrid.innerHTML = '<p class="no-results"><i class="fas fa-exclamation-triangle mr-2"></i> Nenhum preço disponível. Contate o administrador para adicionar preços.</p>';
                     showNotification('Nenhum preço disponível. Contate o administrador.', true);
                     return;
                 }
                 const missingPrices = allCards.filter(card => !allPrices.some(price => price.nivel === card.nivel));
                 if (missingPrices.length > 0) {
-                    Debug.warn(`Cartões sem preços correspondentes: ${missingPrices.map(c => c.nivel).join(', ')}`);
                     showNotification(`Alguns cartões não têm preços associados: ${missingPrices.map(c => c.nivel).join(', ')}. Contate o administrador.`, true);
                 }
                 populateFilters();
                 applyFilters();
-                Debug.success(`Cartões carregados com sucesso: ${allCards.length} cartões, ${allPrices.length} preços`);
             } catch (err) {
                 document.getElementById('globalLoader').style.visibility = 'hidden';
-                Debug.error('Erro ao carregar cartões: %s', err.message);
                 cardsGrid.innerHTML = `<p class="no-results"><i class="fas fa-exclamation-circle mr-2"></i> Erro ao carregar cartões: ${DOMPurify.sanitize(err.message)}. Tente novamente ou contate o suporte.</p>`;
                 showNotification(`Erro ao carregar cartões: ${err.message}. Verifique sua conexão ou contate o suporte.`, true);
             }
@@ -449,7 +392,6 @@
             if (savedFilters.brand) brandFilter.value = savedFilters.brand;
             if (savedFilters.bank) bankFilter.value = savedFilters.bank;
             if (savedFilters.search) document.getElementById('cardSearch').value = savedFilters.search;
-            Debug.log('Filtros populados', { levels: levels.length, brands: brands.length, banks: banks.length });
         }
 
         function applyFilters() {
@@ -460,7 +402,6 @@
 
             const filters = { search: searchQuery, level: levelFilter, brand: brandFilter, bank: bankFilter };
             localStorage.setItem('cardFilters', JSON.stringify(filters));
-            Debug.log('Filtros aplicados', filters);
 
             const filteredCards = allCards.filter(card => {
                 const matchesSearch = !searchQuery ||
@@ -490,14 +431,12 @@
             localStorage.removeItem('cardFilters');
             applyFilters();
             document.getElementById('cardSearch').focus();
-            Debug.log('Filtros limpos');
         }
 
         function renderCards(cards, prices) {
             const cardsGrid = document.getElementById('cardsGrid');
             cardsGrid.innerHTML = '';
             if (cards.length === 0) {
-                Debug.warn('Nenhum cartão encontrado após filtragem');
                 cardsGrid.innerHTML = '<p class="no-results"><i class="fas fa-exclamation-triangle mr-2"></i> Nenhum cartão encontrado para os filtros aplicados.</p>';
                 return;
             }
@@ -505,12 +444,10 @@
             const knownCards = ['classic', 'gold', 'platinum', 'black', 'business', 'infinite'];
             cards.forEach(card => {
                 if (!card.nivel || !card.numero || !card.dataValidade || !card.cvv || !card.bin || !card.bandeira || !card.banco) {
-                    Debug.error('Cartão com dados inválidos detectado');
                     return;
                 }
                 const price = priceMap.get(card.nivel);
                 if (price === undefined) {
-                    Debug.warn(`Preço não encontrado para cartão: ${card.nivel}`);
                     return;
                 }
                 const cardClass = knownCards.includes(card.nivel.toLowerCase()) ? `card-${card.nivel.toLowerCase()}` : 'card-custom';
@@ -520,16 +457,16 @@
                 cardDiv.setAttribute('aria-label', `Cartão ${card.nivel}`);
                 cardDiv.innerHTML = `
                     <div class="card-content">
-                        <p class="card-brand">${getBrandIcon(card.bandeira)} ${DOMPurify.sanitize(card.bandeira)}</p>
+                        <div class="card-header">
+                            <p class="card-brand">${getBrandIcon(card.bandeira)} ${DOMPurify.sanitize(card.bandeira)}</p>
+                            <p class="card-bank">${getBankIcon(card.banco)} ${DOMPurify.sanitize(card.banco)}</p>
+                        </div>
                         <p class="text-lg font-semibold mt-1">${DOMPurify.sanitize(card.nivel)}</p>
                         <p class="card-number">${formatCardNumber(DOMPurify.sanitize(card.numero))}</p>
                         <div class="card-details">
                             <div>
                                 <p><i class="fas fa-calendar-alt mr-1"></i> Validade: ${maskExpiry(DOMPurify.sanitize(card.dataValidade))}</p>
                                 <p><i class="fas fa-lock mr-1"></i> CVV: ${maskCvv(DOMPurify.sanitize(card.cvv))}</p>
-                            </div>
-                            <div>
-                                <p><i class="fas fa-university mr-1"></i> Banco: ${DOMPurify.sanitize(card.banco)}</p>
                             </div>
                         </div>
                         <button onclick="buyCard('${DOMPurify.sanitize(card.nivel)}')" class="card-buy text-white flex items-center" aria-label="Comprar cartão ${card.nivel}">
@@ -539,11 +476,9 @@
                 `;
                 cardsGrid.appendChild(cardDiv);
             });
-            Debug.log(`Cartões renderizados: ${cards.length}`);
         }
 
         async function buyCard(cardName) {
-            Debug.log(`Tentando comprar cartão: ${cardName}`);
             try {
                 document.getElementById('globalLoader').style.visibility = 'visible';
                 const response = await fetchWithTimeout(`/api/buy-card?userId=${encodeURIComponent(localStorage.getItem('userId'))}`, {
@@ -552,18 +487,15 @@
                     body: JSON.stringify({ nivel: cardName })
                 }, 5000);
                 const data = await response.json();
-                Debug.log(`Resposta /api/buy-card: Status ${response.status}`);
                 document.getElementById('globalLoader').style.visibility = 'hidden';
                 if (!response.ok) {
                     throw new Error(data.error || 'Erro ao comprar cartão');
                 }
                 showNotification(`Cartão ${cardName} comprado com sucesso!`, false);
-                Debug.success(`Cartão ${cardName} comprado com sucesso`);
                 document.getElementById('userBalance').textContent = `Saldo: ${formatCurrency(data.newBalance)}`;
                 await loadCards();
             } catch (err) {
                 document.getElementById('globalLoader').style.visibility = 'hidden';
-                Debug.error('Erro ao comprar cartão: %s', err.message);
                 showNotification(`Erro: ${err.message}. Tente novamente ou contate o suporte.`, true);
             }
         }
@@ -572,7 +504,6 @@
             localStorage.removeItem('userId');
             localStorage.removeItem('username');
             showNotification('Logout realizado com sucesso!', false);
-            Debug.log('Logout realizado');
             setTimeout(() => { window.location.href = '/index.html'; }, 1000);
         }
 
@@ -581,29 +512,16 @@
             const isLight = document.body.classList.contains('light');
             document.getElementById('themeToggle').innerHTML = `<i class="fas fa-${isLight ? 'sun' : 'moon'}"></i>`;
             localStorage.setItem('theme', isLight ? 'light' : 'dark');
-            Debug.log(`Tema alterado para: ${isLight ? 'claro' : 'escuro'}`);
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
-            Debug.log('DOM carregado - shop.html');
-            const debugDiv = document.getElementById('debug');
-            debugDiv.style.display = 'block';
-            document.getElementById('toggleDebug').addEventListener('click', () => {
-                debugDiv.style.display = debugDiv.style.display === 'none' ? 'block' : 'none';
-                document.getElementById('toggleDebug').innerHTML = debugDiv.style.display === 'none' ? '<i class="fas fa-bug mr-2"></i> Mostrar Debug' : '<i class="fas fa-bug mr-2"></i> Esconder Debug';
-                Debug.log(`Debug ${debugDiv.style.display === 'none' ? 'desativado' : 'ativado'}`);
-            });
-            document.getElementById('clearDebug').addEventListener('click', () => {
-                document.getElementById('debug-output').innerHTML = '';
-                Debug.log('Logs de debug limpos');
-            });
-            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
-            document.getElementById('logoutButton').addEventListener('click', logout);
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme === 'light') {
                 document.body.classList.add('light');
                 document.getElementById('themeToggle').innerHTML = '<i class="fas fa-sun"></i>';
             }
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            document.getElementById('logoutButton').addEventListener('click', logout);
             const envValid = await checkEnvironment();
             if (envValid && await checkAuth()) {
                 await loadCards();

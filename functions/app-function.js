@@ -61,43 +61,68 @@ function showNotification(message, isError = false) {
 async function fetchWithTimeout(url, options, timeout = 10000) {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
+    const startTime = performance.now();
     try {
         const response = await fetch(url, { ...options, signal: controller.signal });
+        const endTime = performance.now();
         clearTimeout(id);
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.error || `Erro HTTP ${response.status}`);
         }
+        if (isDevMode) {
+            console.log(`[API] ${url} - Sucesso | Tempo: ${(endTime - startTime).toFixed(2)}ms | Status: ${response.status}`);
+        }
         return response;
     } catch (error) {
+        const endTime = performance.now();
         clearTimeout(id);
+        if (isDevMode) {
+            console.error(`[API] ${url} - Falha | Tempo: ${(endTime - startTime).toFixed(2)}ms | Erro: ${error.message}`);
+        }
         if (error.name === 'AbortError') {
             throw new Error('Tempo de resposta do servidor excedido. Tente novamente.');
         }
         throw error;
-    } finally {
-        if (isDevMode) console.log(`Fetch ${url}: ${error ? `Erro - ${error.message}` : 'Sucesso'}`);
     }
 }
 
 async function checkEnvironment() {
     try {
+        if (isDevMode) console.log('[DEBUG] Verificando conexão com MongoDB e coleções...');
         const response = await fetchWithTimeout('/api/check-env', {}, 10000);
         const data = await response.json();
         if (!data.mongodbConnected) {
+            if (isDevMode) console.error('[DEBUG] MongoDB não conectado');
             showNotification('Falha na conexão com o banco de dados. Tente novamente mais tarde.', true);
             return false;
         }
         if (!data.collections?.cards?.exists || !data.collections?.cardPrices?.exists || 
             !data.collections?.users?.exists || !data.collections?.banks?.exists) {
+            if (isDevMode) {
+                console.error('[DEBUG] Coleções ausentes:', {
+                    cards: data.collections?.cards?.exists,
+                    cardPrices: data.collections?.cardPrices?.exists,
+                    users: data.collections?.users?.exists,
+                    banks: data.collections?.banks?.exists
+                });
+            }
             showNotification('Dados indisponíveis. Contate o administrador.', true);
             return false;
         }
-        if (isDevMode) console.log('Ambiente verificado com sucesso:', data);
+        if (isDevMode) {
+            console.log('[DEBUG] MongoDB conectado com sucesso');
+            console.log('[DEBUG] Coleções verificadas:', {
+                cards: data.collections.cards.exists,
+                cardPrices: data.collections.cardPrices.exists,
+                users: data.collections.users.exists,
+                banks: data.collections.banks.exists
+            });
+        }
         return true;
     } catch (err) {
+        if (isDevMode) console.error('[DEBUG] Erro em checkEnvironment:', err);
         showNotification(`Erro ao verificar servidor: ${err.message}. Tente novamente.`, true);
-        if (isDevMode) console.error('Erro em checkEnvironment:', err);
         return false;
     }
 }
@@ -106,27 +131,32 @@ async function checkAuth(attempt = 1, maxAttempts = 2) {
     const userId = localStorage.getItem('userId');
     const storedUsername = localStorage.getItem('username');
     if (!userId) {
+        if (isDevMode) console.warn('[DEBUG] userId não encontrado no localStorage');
         showNotification('Usuário não autenticado. Redirecionando para login...', true);
         setTimeout(() => { window.location.href = '/index.html'; }, 1000);
         return false;
     }
     try {
+        if (isDevMode) console.log(`[DEBUG] Tentativa ${attempt} de autenticação para userId: ${userId}`);
         const response = await fetchWithTimeout(`/api/user?userId=${encodeURIComponent(userId)}`, {}, 10000);
         const data = await response.json();
         if (!data || !data.username || typeof data.isAdmin !== 'boolean') {
+            if (isDevMode) console.error('[DEBUG] Resposta de autenticação inválida:', data);
             throw new Error('Resposta da API de autenticação inválida');
         }
         if (!data.isAdmin) {
+            if (isDevMode) console.warn('[DEBUG] Usuário não é administrador:', data.username);
             showNotification('Acesso não autorizado. Redirecionando...', true);
             setTimeout(() => { window.location.href = '/index.html'; }, 1000);
             return false;
         }
         document.getElementById('usernameDisplay').innerHTML = `<i class="fas fa-user mr-2"></i> ${DOMPurify.sanitize(data.username || storedUsername || 'Usuário')}`;
-        if (isDevMode) console.log('Autenticação bem-sucedida:', data);
+        if (isDevMode) console.log('[DEBUG] Autenticação bem-sucedida:', data);
         return true;
     } catch (err) {
-        if (isDevMode) console.error(`Tentativa ${attempt} de autenticação falhou:`, err);
+        if (isDevMode) console.error(`[DEBUG] Tentativa ${attempt} de autenticação falhou:`, err);
         if (attempt < maxAttempts) {
+            if (isDevMode) console.log('[DEBUG] Tentando reconectar...');
             showNotification('Tentando reconectar...', false);
             return await checkAuth(attempt + 1, maxAttempts);
         }
@@ -142,25 +172,29 @@ async function loadCards() {
     try {
         document.getElementById('globalLoader').style.visibility = 'visible';
         const userId = localStorage.getItem('userId');
+        if (isDevMode) console.log('[DEBUG] Carregando cartões para userId:', userId);
         const response = await fetchWithTimeout(`/api/get-cards?userId=${encodeURIComponent(userId)}`, {}, 10000);
         const data = await response.json();
         document.getElementById('globalLoader').style.visibility = 'hidden';
         if (!Array.isArray(data)) {
+            if (isDevMode) console.error('[DEBUG] Resposta de cartões não é um array:', data);
             throw new Error('Resposta de cartões não é um array');
         }
         allCards = data;
         if (allCards.length === 0) {
             cardsGrid.innerHTML = '<p class="no-results"><i class="fas fa-exclamation-triangle mr-2"></i> Nenhum cartão disponível no momento.</p>';
             showNotification('Nenhum cartão disponível.', true);
+            if (isDevMode) console.warn('[DEBUG] Nenhum cartão encontrado');
             return;
         }
+        if (isDevMode) console.log('[DEBUG] Cartões carregados:', allCards.length);
         populateCardFilters();
         applyCardFilters();
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         cardsGrid.innerHTML = `<p class="no-results"><i class="fas fa-exclamation-circle mr-2"></i> Erro ao carregar cartões: ${DOMPurify.sanitize(err.message)}.</p>`;
         showNotification(`Erro ao carregar cartões: ${err.message}.`, true);
-        if (isDevMode) console.error('Erro em loadCards:', err);
+        if (isDevMode) console.error('[DEBUG] Erro em loadCards:', err);
     }
 }
 
@@ -170,24 +204,28 @@ async function loadPrices() {
     try {
         document.getElementById('globalLoader').style.visibility = 'visible';
         const userId = localStorage.getItem('userId');
+        if (isDevMode) console.log('[DEBUG] Carregando preços para userId:', userId);
         const response = await fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(userId)}`, {}, 10000);
         const data = await response.json();
         document.getElementById('globalLoader').style.visibility = 'hidden';
         if (!Array.isArray(data)) {
+            if (isDevMode) console.error('[DEBUG] Resposta de preços não é um array:', data);
             throw new Error('Resposta de preços não é um array');
         }
         allPrices = data;
         if (allPrices.length === 0) {
             pricesGrid.innerHTML = '<p class="no-results"><i class="fas fa-exclamation-triangle mr-2"></i> Nenhum preço disponível no momento.</p>';
             showNotification('Nenhum preço disponível.', true);
+            if (isDevMode) console.warn('[DEBUG] Nenhum preço encontrado');
             return;
         }
+        if (isDevMode) console.log('[DEBUG] Preços carregados:', allPrices.length);
         applyPriceFilters();
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         pricesGrid.innerHTML = `<p class="no-results"><i class="fas fa-exclamation-circle mr-2"></i> Erro ao carregar preços: ${DOMPurify.sanitize(err.message)}.</p>`;
         showNotification(`Erro ao carregar preços: ${err.message}.`, true);
-        if (isDevMode) console.error('Erro em loadPrices:', err);
+        if (isDevMode) console.error('[DEBUG] Erro em loadPrices:', err);
     }
 }
 
@@ -197,24 +235,28 @@ async function loadUsers() {
     try {
         document.getElementById('globalLoader').style.visibility = 'visible';
         const userId = localStorage.getItem('userId');
+        if (isDevMode) console.log('[DEBUG] Carregando usuários para userId:', userId);
         const response = await fetchWithTimeout(`/api/get-users?userId=${encodeURIComponent(userId)}`, {}, 10000);
         const data = await response.json();
         document.getElementById('globalLoader').style.visibility = 'hidden';
         if (!Array.isArray(data)) {
+            if (isDevMode) console.error('[DEBUG] Resposta de usuários não é um array:', data);
             throw new Error('Resposta de usuários não é um array');
         }
         allUsers = data;
         if (allUsers.length === 0) {
             usersGrid.innerHTML = '<p class="no-results"><i class="fas fa-exclamation-triangle mr-2"></i> Nenhum usuário disponível no momento.</p>';
             showNotification('Nenhum usuário disponível.', true);
+            if (isDevMode) console.warn('[DEBUG] Nenhum usuário encontrado');
             return;
         }
+        if (isDevMode) console.log('[DEBUG] Usuários carregados:', allUsers.length);
         applyUserFilters();
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         usersGrid.innerHTML = `<p class="no-results"><i class="fas fa-exclamation-circle mr-2"></i> Erro ao carregar usuários: ${DOMPurify.sanitize(err.message)}.</p>`;
         showNotification(`Erro ao carregar usuários: ${err.message}.`, true);
-        if (isDevMode) console.error('Erro em loadUsers:', err);
+        if (isDevMode) console.error('[DEBUG] Erro em loadUsers:', err);
     }
 }
 
@@ -224,24 +266,28 @@ async function loadBanks() {
     try {
         document.getElementById('globalLoader').style.visibility = 'visible';
         const userId = localStorage.getItem('userId');
+        if (isDevMode) console.log('[DEBUG] Carregando bancos para userId:', userId);
         const response = await fetchWithTimeout(`/api/get-banks?userId=${encodeURIComponent(userId)}`, {}, 10000);
         const data = await response.json();
         document.getElementById('globalLoader').style.visibility = 'hidden';
         if (!Array.isArray(data)) {
+            if (isDevMode) console.error('[DEBUG] Resposta de bancos não é um array:', data);
             throw new Error('Resposta de bancos não é um array');
         }
         allBanks = data;
         if (allBanks.length === 0) {
             banksGrid.innerHTML = '<p class="no-results"><i class="fas fa-exclamation-triangle mr-2"></i> Nenhum banco disponível no momento.</p>';
             showNotification('Nenhum banco disponível.', true);
+            if (isDevMode) console.warn('[DEBUG] Nenhum banco encontrado');
             return;
         }
+        if (isDevMode) console.log('[DEBUG] Bancos carregados:', allBanks.length);
         applyBankFilters();
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         banksGrid.innerHTML = `<p class="no-results"><i class="fas fa-exclamation-circle mr-2"></i> Erro ao carregar bancos: ${DOMPurify.sanitize(err.message)}.</p>`;
         showNotification(`Erro ao carregar bancos: ${err.message}.`, true);
-        if (isDevMode) console.error('Erro em loadBanks:', err);
+        if (isDevMode) console.error('[DEBUG] Erro em loadBanks:', err);
     }
 }
 
@@ -249,6 +295,7 @@ async function loadModalOptions() {
     try {
         document.getElementById('globalLoader').style.visibility = 'visible';
         const userId = localStorage.getItem('userId');
+        if (isDevMode) console.log('[DEBUG] Carregando opções de modais para userId:', userId);
         const [pricesResponse, cardsResponse, banksResponse] = await Promise.all([
             fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(userId)}`, {}, 10000),
             fetchWithTimeout(`/api/get-cards?userId=${encodeURIComponent(userId)}`, {}, 10000),
@@ -259,8 +306,14 @@ async function loadModalOptions() {
         const banksData = await banksResponse.json();
         document.getElementById('globalLoader').style.visibility = 'hidden';
         if (!Array.isArray(pricesData) || !Array.isArray(cardsData) || !Array.isArray(banksData)) {
+            if (isDevMode) console.error('[DEBUG] Resposta de opções não é um array:', { prices: pricesData, cards: cardsData, banks: banksData });
             throw new Error('Resposta das opções não é um array');
         }
+        if (isDevMode) console.log('[DEBUG] Opções de modais carregadas:', {
+            prices: pricesData.length,
+            cards: cardsData.length,
+            banks: banksData.length
+        });
         const levels = [...new Set(pricesData.map(p => p.nivel))].sort();
         const brands = [...new Set(cardsData.map(c => c.bandeira))].sort();
         const banks = [...new Set(banksData.map(b => b.name))].sort();
@@ -284,7 +337,7 @@ async function loadModalOptions() {
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro ao carregar opções: ${err.message}.`, true);
-        if (isDevMode) console.error('Erro em loadModalOptions:', err);
+        if (isDevMode) console.error('[DEBUG] Erro em loadModalOptions:', err);
     }
 }
 
@@ -704,6 +757,7 @@ async function addCard() {
             showNotification('BIN deve ter 6 dígitos.', true);
             return;
         }
+        if (isDevMode) console.log('[DEBUG] Adicionando cartão:', card);
         const response = await fetchWithTimeout(`/api/add-card?userId=${encodeURIComponent(localStorage.getItem('userId'))}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -717,7 +771,7 @@ async function addCard() {
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
-        if (isDevMode) console.error('Erro em addCard:', err);
+        if (isDevMode) console.error('[DEBUG] Erro em addCard:', err);
     }
 }
 
@@ -754,6 +808,7 @@ async function updateCard() {
             showNotification('BIN deve ter 6 dígitos.', true);
             return;
         }
+        if (isDevMode) console.log('[DEBUG] Atualizando cartão:', card);
         const response = await fetchWithTimeout(`/api/update-card?userId=${encodeURIComponent(localStorage.getItem('userId'))}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -767,7 +822,7 @@ async function updateCard() {
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
-        if (isDevMode) console.error('Erro em updateCard:', err);
+        if (isDevMode) console.error('[DEBUG] Erro em updateCard:', err);
     }
 }
 
@@ -775,6 +830,7 @@ async function deleteCard(id) {
     if (!confirm('Tem certeza que deseja excluir este cartão?')) return;
     try {
         document.getElementById('globalLoader').style.visibility = 'visible';
+        if (isDevMode) console.log('[DEBUG] Excluindo cartão:', id);
         const response = await fetchWithTimeout(`/api/delete-card?userId=${encodeURIComponent(localStorage.getItem('userId'))}&id=${encodeURIComponent(id)}`, {
             method: 'DELETE'
         }, 10000);
@@ -785,7 +841,7 @@ async function deleteCard(id) {
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
-        if (isDevMode) console.error('Erro em deleteCard:', err);
+        if (isDevMode) console.error('[DEBUG] Erro em deleteCard:', err);
     }
 }
 
@@ -800,6 +856,7 @@ async function addPrice() {
             showNotification('Preencha todos os campos do preço e insira um valor válido.', true);
             return;
         }
+        if (isDevMode) console.log('[DEBUG] Adicionando preço:', price);
         const response = await fetchWithTimeout(`/api/add-card-price?userId=${encodeURIComponent(localStorage.getItem('userId'))}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -813,7 +870,7 @@ async function addPrice() {
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
-        if (isDevMode) console.error('Erro em addPrice:', err);
+        if (isDevMode) console.error('[DEBUG] Erro em addPrice:', err);
     }
 }
 
@@ -829,6 +886,7 @@ async function updatePrice() {
             showNotification('Preencha todos os campos do preço e insira um valor válido.', true);
             return;
         }
+        if (isDevMode) console.log('[DEBUG] Atualizando preço:', price);
         const response = await fetchWithTimeout(`/api/update-card-price?userId=${encodeURIComponent(localStorage.getItem('userId'))}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -842,7 +900,7 @@ async function updatePrice() {
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
-        if (isDevMode) console.error('Erro em updatePrice:', err);
+        if (isDevMode) console.error('[DEBUG] Erro em updatePrice:', err);
     }
 }
 
@@ -850,6 +908,7 @@ async function deletePrice(id) {
     if (!confirm('Tem certeza que deseja excluir este preço?')) return;
     try {
         document.getElementById('globalLoader').style.visibility = 'visible';
+        if (isDevMode) console.log('[DEBUG] Excluindo preço:', id);
         const response = await fetchWithTimeout(`/api/delete-card-price?userId=${encodeURIComponent(localStorage.getItem('userId'))}&id=${encodeURIComponent(id)}`, {
             method: 'DELETE'
         }, 10000);
@@ -860,7 +919,7 @@ async function deletePrice(id) {
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
-        if (isDevMode) console.error('Erro em deletePrice:', err);
+        if (isDevMode) console.error('[DEBUG] Erro em deletePrice:', err);
     }
 }
 
@@ -877,6 +936,7 @@ async function addUser() {
             showNotification('Preencha todos os campos do usuário e insira um saldo válido.', true);
             return;
         }
+        if (isDevMode) console.log('[DEBUG] Adicionando usuário:', user);
         const response = await fetchWithTimeout(`/api/add-user?userId=${encodeURIComponent(localStorage.getItem('userId'))}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -890,7 +950,7 @@ async function addUser() {
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
-        if (isDevMode) console.error('Erro em addUser:', err);
+        if (isDevMode) console.error('[DEBUG] Erro em addUser:', err);
     }
 }
 
@@ -907,6 +967,7 @@ async function updateUser() {
             showNotification('Preencha todos os campos do usuário e insira um saldo válido.', true);
             return;
         }
+        if (isDevMode) console.log('[DEBUG] Atualizando usuário:', user);
         const response = await fetchWithTimeout(`/api/update-user?userId=${encodeURIComponent(localStorage.getItem('userId'))}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -920,7 +981,7 @@ async function updateUser() {
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
-        if (isDevMode) console.error('Erro em updateUser:', err);
+        if (isDevMode) console.error('[DEBUG] Erro em updateUser:', err);
     }
 }
 
@@ -928,6 +989,7 @@ async function deleteUser(id) {
     if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
     try {
         document.getElementById('globalLoader').style.visibility = 'visible';
+        if (isDevMode) console.log('[DEBUG] Excluindo usuário:', id);
         const response = await fetchWithTimeout(`/api/delete-user?userId=${encodeURIComponent(localStorage.getItem('userId'))}&id=${encodeURIComponent(id)}`, {
             method: 'DELETE'
         }, 10000);
@@ -938,7 +1000,7 @@ async function deleteUser(id) {
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
-        if (isDevMode) console.error('Erro em deleteUser:', err);
+        if (isDevMode) console.error('[DEBUG] Erro em deleteUser:', err);
     }
 }
 
@@ -952,6 +1014,7 @@ async function addBank() {
             showNotification('Preencha o nome do banco.', true);
             return;
         }
+        if (isDevMode) console.log('[DEBUG] Adicionando banco:', bank);
         const response = await fetchWithTimeout(`/api/add-bank?userId=${encodeURIComponent(localStorage.getItem('userId'))}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -966,7 +1029,7 @@ async function addBank() {
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
-        if (isDevMode) console.error('Erro em addBank:', err);
+        if (isDevMode) console.error('[DEBUG] Erro em addBank:', err);
     }
 }
 
@@ -981,6 +1044,7 @@ async function updateBank() {
             showNotification('Preencha o nome do banco.', true);
             return;
         }
+        if (isDevMode) console.log('[DEBUG] Atualizando banco:', bank);
         const response = await fetchWithTimeout(`/api/update-bank?userId=${encodeURIComponent(localStorage.getItem('userId'))}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -995,7 +1059,7 @@ async function updateBank() {
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
-        if (isDevMode) console.error('Erro em updateBank:', err);
+        if (isDevMode) console.error('[DEBUG] Erro em updateBank:', err);
     }
 }
 
@@ -1003,6 +1067,7 @@ async function deleteBank(id) {
     if (!confirm('Tem certeza que deseja excluir este banco?')) return;
     try {
         document.getElementById('globalLoader').style.visibility = 'visible';
+        if (isDevMode) console.log('[DEBUG] Excluindo banco:', id);
         const response = await fetchWithTimeout(`/api/delete-bank?userId=${encodeURIComponent(localStorage.getItem('userId'))}&id=${encodeURIComponent(id)}`, {
             method: 'DELETE'
         }, 10000);
@@ -1014,7 +1079,7 @@ async function deleteBank(id) {
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
-        if (isDevMode) console.error('Erro em deleteBank:', err);
+        if (isDevMode) console.error('[DEBUG] Erro em deleteBank:', err);
     }
 }
 
@@ -1058,6 +1123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     document.getElementById('themeToggle').addEventListener('click', toggleTheme);
     setupTabs();
+    if (isDevMode) console.log('[DEBUG] Inicializando aplicação...');
     if (await checkEnvironment()) {
         if (await checkAuth()) {
             await loadCards();

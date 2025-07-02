@@ -111,12 +111,20 @@ exports.handler = async function(event, context) {
         if (path === '/api/login') {
             const { username, password } = body;
             if (!username || !password) {
+                console.log('Erro: Usuário ou senha não fornecidos');
                 return sendResponse(400, { error: 'Usuário e senha são obrigatórios' });
             }
-            const user = await usersCollection.findOne({ username: sanitizeInput(username), password });
+            const sanitizedUsername = sanitizeInput(username);
+            const user = await usersCollection.findOne({ username: sanitizedUsername });
             if (!user) {
-                return sendResponse(401, { error: 'Credenciais inválidas' });
+                console.log(`Usuário ${sanitizedUsername} não encontrado`);
+                return sendResponse(401, { error: 'Usuário não encontrado' });
             }
+            if (user.password !== password) {
+                console.log(`Senha incorreta para usuário ${sanitizedUsername}`);
+                return sendResponse(401, { error: 'Senha incorreta' });
+            }
+            console.log(`Login bem-sucedido para usuário ${sanitizedUsername}`);
             return sendResponse(200, { userId: user._id.toString(), isAdmin: user.isAdmin });
         }
 
@@ -144,6 +152,7 @@ exports.handler = async function(event, context) {
                 createdAt: new Date().toISOString()
             };
             const result = await usersCollection.insertOne(newUser);
+            console.log(`Novo usuário registrado: ${username}`);
             return sendResponse(200, { userId: result.insertedId.toString() });
         }
 
@@ -195,14 +204,14 @@ exports.handler = async function(event, context) {
         // Lista de cartões
         if (path === '/api/get-cards') {
             const cards = await cardsCollection.find().toArray();
-            console.log('Cartões retornados:', cards);
+            console.log('Cartões retornados:', cards.length);
             return sendResponse(200, cards);
         }
 
         // Lista de preços
         if (path === '/api/get-card-prices') {
             const prices = await pricesCollection.find().toArray();
-            console.log('Preços retornados:', prices);
+            console.log('Preços retornados:', prices.length);
             return sendResponse(200, prices);
         }
 
@@ -223,6 +232,7 @@ exports.handler = async function(event, context) {
                 { _id: new ObjectId(user._id) },
                 { $set: { balance: user.balance - cardPrice.price } }
             );
+            console.log(`Cartão ${nivel} comprado por ${user.username}, novo saldo: ${user.balance - cardPrice.price}`);
             return sendResponse(200, { newBalance: user.balance - cardPrice.price });
         }
 
@@ -245,6 +255,7 @@ exports.handler = async function(event, context) {
                 banco: sanitizeInput(body.banco)
             };
             await cardsCollection.insertOne(sanitizedCard);
+            console.log(`Cartão ${sanitizedCard.nivel} adicionado por ${user.username}`);
             return sendResponse(200, { message: 'Cartão adicionado' });
         }
 
@@ -261,6 +272,7 @@ exports.handler = async function(event, context) {
             if (result.deletedCount === 0) {
                 return sendResponse(404, { error: 'Cartão não encontrado' });
             }
+            console.log(`Cartão ${numero} excluído por ${user.username}`);
             return sendResponse(200, { message: 'Cartão excluído' });
         }
 
@@ -283,6 +295,7 @@ exports.handler = async function(event, context) {
                     { upsert: true }
                 );
             }
+            console.log(`Preços atualizados por ${user.username}`);
             return sendResponse(200, { message: 'Preços atualizados' });
         }
 
@@ -300,6 +313,7 @@ exports.handler = async function(event, context) {
                 return sendResponse(400, { error: 'Preço para este cartão já existe' });
             }
             await pricesCollection.insertOne({ nivel: sanitizeInput(nivel), price: parseFloat(price) });
+            console.log(`Preço para ${nivel} adicionado por ${user.username}`);
             return sendResponse(200, { message: 'Preço adicionado' });
         }
 

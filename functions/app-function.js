@@ -1,6 +1,4 @@
-const users = [];
-const cards = [];
-const cardPrices = [];
+const { MongoClient } = require('mongodb');
 
 function sendResponse(statusCode, body, headers = {}) {
     return {
@@ -46,11 +44,30 @@ function validateCardData({ nivel, numero, dataValidade, cvv, bin, bandeira, ban
     return null;
 }
 
+async function connectToMongo() {
+    const client = new MongoClient(process.env.MONGODB_URI, { useUnifiedTopology: true });
+    try {
+        await client.connect();
+        const db = client.db('logancss');
+        return { client, db };
+    } catch (err) {
+        console.error('Erro ao conectar ao MongoDB:', err);
+        throw new Error('Falha na conexão com o banco de dados');
+    }
+}
+
 exports.handler = async function(event, context) {
+    let client;
     try {
         if (event.httpMethod === 'OPTIONS') {
             return sendResponse(200, {});
         }
+
+        const { client: mongoClient, db } = await connectToMongo();
+        client = mongoClient;
+        const usersCollection = db.collection('users');
+        const cardsCollection = db.collection('cards');
+        const pricesCollection = db.collection('cardPrices');
 
         const path = event.path;
         const query = event.queryStringParameters || {};
@@ -58,11 +75,19 @@ exports.handler = async function(event, context) {
 
         // Verificação de ambiente
         if (path === '/api/check-env') {
-            // Substituir por verificação real do MongoDB
+            const collections = await db.listCollections().toArray();
+            const collectionNames = collections.map(c => c.name);
             return sendResponse(200, {
-                mongodbConnected: true, // Atualizar com conexão real
-                collections: { users: { exists: true }, cards: { exists: true }, cardPrices: { exists: true } },
-                environment: { MONGODB_URI: { exists: true }, JWT_SECRET: { exists: true } }
+                mongodbConnected: true,
+                collections: {
+                    users: { exists: collectionNames.includes('users') },
+                    cards: { exists: collectionNames.includes('cards') },
+                    cardPrices: { exists: collectionNames.includes('cardPrices') }
+                },
+                environment: {
+                    MONGODB_URI: { exists: !!process.env.MONGODB_URI },
+                    JWT_SECRET: { exists: !!process.env.JWT_SECRET }
+                }
             });
         }
 
@@ -77,12 +102,11 @@ exports.handler = async function(event, context) {
             if (!username || !password) {
                 return sendResponse(400, { error: 'Usuário e senha são obrigatórios' });
             }
-            // Substituir por consulta ao banco de dados
-            const user = users.find(u => u.username === sanitizeInput(username) && u.password === password);
+            const user = await usersCollection.findOne({ username: sanitizeInput(username), password });
             if (!user) {
                 return sendResponse(401, { error: 'Credenciais inválidas' });
             }
-            return sendResponse(200, { userId: user._id, isAdmin: user.isAdmin });
+            return sendResponse(200, { userId: user._id.toString(), isAdmin: user.isAdmin });
         }
 
         // Registro
@@ -97,18 +121,23 @@ exports.handler = async function(event, context) {
             if (password.length < 6) {
                 return sendResponse(400, { error: 'Senha deve ter pelo menos 6 caracteres' });
             }
-            if (users.some(u => u.username === sanitizeInput(username))) {
+            const existingUser = await usersCollection.findOne({ username: sanitizeInput(username) });
+            if (existingUser) {
                 return sendResponse(400, { error: 'Usuário já existe' });
             }
-            // Substituir por inserção no banco de dados
-            const newUser = { _id: `${users.length + 1}`, username: sanitizeInput(username), password, isAdmin: false, balance: 0, createdAt: new Date().toISOString() };
-            users.push(newUser);
-            return sendResponse(200, { userId: newUser._id });
+            const newUser = {
+                username: sanitizeInput(username),
+                password,
+                isAdmin: false,
+                balance: 0,
+                createdAt: new Date().toISOString()
+            };
+            const result = await usersCollection.insertOne(newUser);
+            return sendResponse(200, { userId: result.insertedId.toString() });
         }
 
         // Verificação do usuário autenticado
-        // Substituir por consulta ao banco de dados
-        const user = users.find(u => u._id === query.userId);
+        const user = await usersCollection.findOne({ _id: require('mongodb').ObjectId(query.userId) });
         if (!user && path !== '/api/login' && path !== '/api/register') {
             return sendResponse(404, { error: 'Usuário não encontrado' });
         }
@@ -123,8 +152,8 @@ exports.handler = async function(event, context) {
             if (!user.isAdmin) {
                 return sendResponse(403, { error: 'Acesso negado' });
             }
-            // Substituir por consulta ao banco de dados
-            return sendResponse(200, users);
+            const users = await usersCollection.find().toArray();
+            return sendResponse(200, users.length > 0 ? users : { message: 'Nenhum usuário encontrado' });
         }
 
         // Exclusão de usuário (somente admin)
@@ -136,28 +165,26 @@ exports.handler = async function(event, context) {
             if (!targetId) {
                 return sendResponse(400, { error: 'ID do usuário alvo é obrigatório' });
             }
-            if (targetId === user._id) {
+            if (targetId === user._id.toString()) {
                 return sendResponse(400, { error: 'Não é possível excluir a si mesmo' });
             }
-            // Substituir por exclusão no banco de dados
-            const index = users.findIndex(u => u._id === targetId);
-            if (index === -1) {
+            const result = await usersCollection.deleteOne({ _id: require('mongodb').ObjectId(targetId) });
+            if (result.deletedCount === 0) {
                 return sendResponse(404, { error: 'Usuário não encontrado' });
             }
-            users.splice(index, 1);
             return sendResponse(200, { message: 'Usuário excluído' });
         }
 
         // Lista de cartões
         if (path === '/api/get-cards') {
-            // Substituir por consulta ao banco de dados
-            return sendResponse(200, cards);
+            const cards = await cardsCollection.find().toArray();
+            return sendResponse(200, cards.length > 0 ? cards : []);
         }
 
         // Lista de preços
         if (path === '/api/get-card-prices') {
-            // Substituir por consulta ao banco de dados
-            return sendResponse(200, cardPrices);
+            const prices = await pricesCollection.find().toArray();
+            return sendResponse(200, prices.length > 0 ? prices : []);
         }
 
         // Compra de cartão
@@ -166,17 +193,18 @@ exports.handler = async function(event, context) {
             if (!nivel) {
                 return sendResponse(400, { error: 'Nível do cartão é obrigatório' });
             }
-            // Substituir por consulta ao banco de dados
-            const cardPrice = cardPrices.find(p => p.nivel === sanitizeInput(nivel));
+            const cardPrice = await pricesCollection.findOne({ nivel: sanitizeInput(nivel) });
             if (!cardPrice) {
                 return sendResponse(404, { error: 'Cartão não encontrado' });
             }
             if (user.balance < cardPrice.price) {
                 return sendResponse(400, { error: 'Saldo insuficiente' });
             }
-            // Substituir por atualização no banco de dados
-            user.balance -= cardPrice.price;
-            return sendResponse(200, { newBalance: user.balance });
+            await usersCollection.updateOne(
+                { _id: require('mongodb').ObjectId(user._id) },
+                { $set: { balance: user.balance - cardPrice.price } }
+            );
+            return sendResponse(200, { newBalance: user.balance - cardPrice.price });
         }
 
         // Adicionar cartão (somente admin)
@@ -188,7 +216,6 @@ exports.handler = async function(event, context) {
             if (validationError) {
                 return sendResponse(400, { error: validationError });
             }
-            // Substituir por inserção no banco de dados
             const sanitizedCard = {
                 nivel: sanitizeInput(body.nivel),
                 numero: sanitizeInput(body.numero),
@@ -198,7 +225,7 @@ exports.handler = async function(event, context) {
                 bandeira: sanitizeInput(body.bandeira),
                 banco: sanitizeInput(body.banco)
             };
-            cards.push(sanitizedCard);
+            await cardsCollection.insertOne(sanitizedCard);
             return sendResponse(200, { message: 'Cartão adicionado' });
         }
 
@@ -211,12 +238,10 @@ exports.handler = async function(event, context) {
             if (!numero) {
                 return sendResponse(400, { error: 'Número do cartão é obrigatório' });
             }
-            // Substituir por exclusão no banco de dados
-            const index = cards.findIndex(c => c.numero === sanitizeInput(numero));
-            if (index === -1) {
+            const result = await cardsCollection.deleteOne({ numero: sanitizeInput(numero) });
+            if (result.deletedCount === 0) {
                 return sendResponse(404, { error: 'Cartão não encontrado' });
             }
-            cards.splice(index, 1);
             return sendResponse(200, { message: 'Cartão excluído' });
         }
 
@@ -233,13 +258,11 @@ exports.handler = async function(event, context) {
                 if (!price.nivel || !price.price || isNaN(price.price) || price.price <= 0) {
                     return sendResponse(400, { error: `Preço inválido para ${sanitizeInput(price.nivel)}` });
                 }
-                // Substituir por atualização no banco de dados
-                const index = cardPrices.findIndex(p => p.nivel === sanitizeInput(price.nivel));
-                if (index !== -1) {
-                    cardPrices[index].price = parseFloat(price.price);
-                } else {
-                    cardPrices.push({ nivel: sanitizeInput(price.nivel), price: parseFloat(price.price) });
-                }
+                await pricesCollection.updateOne(
+                    { nivel: sanitizeInput(price.nivel) },
+                    { $set: { price: parseFloat(price.price) } },
+                    { upsert: true }
+                );
             }
             return sendResponse(200, { message: 'Preços atualizados' });
         }
@@ -253,17 +276,21 @@ exports.handler = async function(event, context) {
             if (!nivel || !price || isNaN(price) || price <= 0) {
                 return sendResponse(400, { error: 'Nível ou preço inválido' });
             }
-            if (cardPrices.some(p => p.nivel === sanitizeInput(nivel))) {
+            const existingPrice = await pricesCollection.findOne({ nivel: sanitizeInput(nivel) });
+            if (existingPrice) {
                 return sendResponse(400, { error: 'Preço para este cartão já existe' });
             }
-            // Substituir por inserção no banco de dados
-            cardPrices.push({ nivel: sanitizeInput(nivel), price: parseFloat(price) });
+            await pricesCollection.insertOne({ nivel: sanitizeInput(nivel), price: parseFloat(price) });
             return sendResponse(200, { message: 'Preço adicionado' });
         }
 
         return sendResponse(404, { error: 'Rota não encontrada' });
     } catch (err) {
         console.error(`Erro no handler [${event.path}]:`, err);
-        return sendResponse(500, { error: 'Erro interno do servidor' });
+        return sendResponse(500, { error: 'Erro interno do servidor: ' + err.message });
+    } finally {
+        if (client) {
+            await client.close();
+        }
     }
 };

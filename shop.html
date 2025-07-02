@@ -67,9 +67,10 @@
             <i class="fas fa-credit-card mr-2" aria-hidden="true"></i> LOGAN CC's - Loja
         </h1>
         <div class="flex items-center space-x-4">
-            <a href="/index.html" class="text-gray-300 hover:text-green-500">Login</a>
+            <span id="usernameDisplay" class="text-gray-300 hover:text-green-500" aria-live="polite">Carregando...</span>
             <a href="/shop.html" class="text-gray-300 hover:text-green-500" aria-current="page">Loja</a>
             <a id="dashboardLink" href="/dashboard.html" class="text-gray-300 hover:text-green-500 hidden" aria-label="Painel Admin">Painel Admin</a>
+            <button id="logoutButton" class="text-gray-300 hover:text-green-500" aria-label="Sair">Sair</button>
             <button id="themeToggle" class="text-gray-300 hover:text-green-500" aria-label="Alternar tema">
                 <i class="fas fa-moon"></i>
             </button>
@@ -194,10 +195,11 @@
                     return false;
                 }
                 document.getElementById('userBalance').textContent = `Saldo: ${formatCurrency(data.balance)}`;
+                document.getElementById('usernameDisplay').textContent = data.username || localStorage.getItem('username') || 'Usuário';
                 if (data.isAdmin) {
                     document.getElementById('dashboardLink').classList.remove('hidden');
                 }
-                Debug.success('Autenticação verificada com sucesso', { userId });
+                Debug.success('Autenticação verificada com sucesso', { userId, username: data.username });
                 return true;
             } catch (err) {
                 Debug.error('Erro ao verificar autenticação: %s', err.message);
@@ -380,6 +382,14 @@
             }
         }
 
+        function logout() {
+            localStorage.removeItem('userId');
+            localStorage.removeItem('username');
+            showNotification('Logout realizado com sucesso!', false);
+            Debug.log('Logout realizado');
+            setTimeout(() => { window.location.href = '/index.html'; }, 1000);
+        }
+
         function toggleTheme() {
             document.body.classList.toggle('light');
             const isLight = document.body.classList.contains('light');
@@ -402,6 +412,7 @@
                 Debug.log('Logs de debug limpos');
             });
             document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            document.getElementById('logoutButton').addEventListener('click', logout);
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme === 'light') {
                 document.body.classList.add('light');

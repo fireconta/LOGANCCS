@@ -3,6 +3,7 @@ let allPrices = [];
 let allUsers = [];
 let allBanks = [];
 let debounceTimeout;
+const isDevMode = typeof process !== 'undefined' && process.env.NODE_ENV !== 'production';
 
 function debounce(func, wait) {
     return function (...args) {
@@ -57,43 +58,51 @@ function showNotification(message, isError = false) {
     setTimeout(() => notification.remove(), 5000);
 }
 
-async function fetchWithTimeout(url, options, timeout = 5000) {
+async function fetchWithTimeout(url, options, timeout = 10000) {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
     try {
         const response = await fetch(url, { ...options, signal: controller.signal });
         clearTimeout(id);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Erro HTTP ${response.status}`);
+        }
         return response;
     } catch (error) {
         clearTimeout(id);
+        if (error.name === 'AbortError') {
+            throw new Error('Tempo de resposta do servidor excedido. Tente novamente.');
+        }
         throw error;
+    } finally {
+        if (isDevMode) console.log(`Fetch ${url}: ${error ? `Erro - ${error.message}` : 'Sucesso'}`);
     }
 }
 
 async function checkEnvironment() {
     try {
-        const response = await fetchWithTimeout('/api/check-env', {}, 5000);
+        const response = await fetchWithTimeout('/api/check-env', {}, 10000);
         const data = await response.json();
-        if (!response.ok) {
-            showNotification(`Erro na configuração do servidor: ${data.error || 'Desconhecido'}. Contate o suporte.`, true);
-            return false;
-        }
         if (!data.mongodbConnected) {
             showNotification('Falha na conexão com o banco de dados. Tente novamente mais tarde.', true);
             return false;
         }
-        if (!data.collections.cards.exists || !data.collections.cardPrices.exists || !data.collections.users.exists || !data.collections.banks.exists) {
+        if (!data.collections?.cards?.exists || !data.collections?.cardPrices?.exists || 
+            !data.collections?.users?.exists || !data.collections?.banks?.exists) {
             showNotification('Dados indisponíveis. Contate o administrador.', true);
             return false;
         }
+        if (isDevMode) console.log('Ambiente verificado com sucesso:', data);
         return true;
     } catch (err) {
         showNotification(`Erro ao verificar servidor: ${err.message}. Tente novamente.`, true);
+        if (isDevMode) console.error('Erro em checkEnvironment:', err);
         return false;
     }
 }
 
-async function checkAuth() {
+async function checkAuth(attempt = 1, maxAttempts = 2) {
     const userId = localStorage.getItem('userId');
     const storedUsername = localStorage.getItem('username');
     if (!userId) {
@@ -102,16 +111,25 @@ async function checkAuth() {
         return false;
     }
     try {
-        const response = await fetchWithTimeout(`/api/user?userId=${encodeURIComponent(userId)}`, {}, 5000);
+        const response = await fetchWithTimeout(`/api/user?userId=${encodeURIComponent(userId)}`, {}, 10000);
         const data = await response.json();
-        if (!response.ok || !data.isAdmin) {
+        if (!data || !data.username || typeof data.isAdmin !== 'boolean') {
+            throw new Error('Resposta da API de autenticação inválida');
+        }
+        if (!data.isAdmin) {
             showNotification('Acesso não autorizado. Redirecionando...', true);
             setTimeout(() => { window.location.href = '/index.html'; }, 1000);
             return false;
         }
         document.getElementById('usernameDisplay').innerHTML = `<i class="fas fa-user mr-2"></i> ${DOMPurify.sanitize(data.username || storedUsername || 'Usuário')}`;
+        if (isDevMode) console.log('Autenticação bem-sucedida:', data);
         return true;
     } catch (err) {
+        if (isDevMode) console.error(`Tentativa ${attempt} de autenticação falhou:`, err);
+        if (attempt < maxAttempts) {
+            showNotification('Tentando reconectar...', false);
+            return await checkAuth(attempt + 1, maxAttempts);
+        }
         showNotification(`Erro de conexão: ${err.message}. Redirecionando...`, true);
         setTimeout(() => { window.location.href = '/index.html'; }, 1000);
         return false;
@@ -124,12 +142,9 @@ async function loadCards() {
     try {
         document.getElementById('globalLoader').style.visibility = 'visible';
         const userId = localStorage.getItem('userId');
-        const response = await fetchWithTimeout(`/api/get-cards?userId=${encodeURIComponent(userId)}`, {}, 5000);
+        const response = await fetchWithTimeout(`/api/get-cards?userId=${encodeURIComponent(userId)}`, {}, 10000);
         const data = await response.json();
         document.getElementById('globalLoader').style.visibility = 'hidden';
-        if (!response.ok) {
-            throw new Error(data.error || 'Erro ao carregar cartões');
-        }
         if (!Array.isArray(data)) {
             throw new Error('Resposta de cartões não é um array');
         }
@@ -145,6 +160,7 @@ async function loadCards() {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         cardsGrid.innerHTML = `<p class="no-results"><i class="fas fa-exclamation-circle mr-2"></i> Erro ao carregar cartões: ${DOMPurify.sanitize(err.message)}.</p>`;
         showNotification(`Erro ao carregar cartões: ${err.message}.`, true);
+        if (isDevMode) console.error('Erro em loadCards:', err);
     }
 }
 
@@ -154,12 +170,9 @@ async function loadPrices() {
     try {
         document.getElementById('globalLoader').style.visibility = 'visible';
         const userId = localStorage.getItem('userId');
-        const response = await fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(userId)}`, {}, 5000);
+        const response = await fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(userId)}`, {}, 10000);
         const data = await response.json();
         document.getElementById('globalLoader').style.visibility = 'hidden';
-        if (!response.ok) {
-            throw new Error(data.error || 'Erro ao carregar preços');
-        }
         if (!Array.isArray(data)) {
             throw new Error('Resposta de preços não é um array');
         }
@@ -174,6 +187,7 @@ async function loadPrices() {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         pricesGrid.innerHTML = `<p class="no-results"><i class="fas fa-exclamation-circle mr-2"></i> Erro ao carregar preços: ${DOMPurify.sanitize(err.message)}.</p>`;
         showNotification(`Erro ao carregar preços: ${err.message}.`, true);
+        if (isDevMode) console.error('Erro em loadPrices:', err);
     }
 }
 
@@ -183,12 +197,9 @@ async function loadUsers() {
     try {
         document.getElementById('globalLoader').style.visibility = 'visible';
         const userId = localStorage.getItem('userId');
-        const response = await fetchWithTimeout(`/api/get-users?userId=${encodeURIComponent(userId)}`, {}, 5000);
+        const response = await fetchWithTimeout(`/api/get-users?userId=${encodeURIComponent(userId)}`, {}, 10000);
         const data = await response.json();
         document.getElementById('globalLoader').style.visibility = 'hidden';
-        if (!response.ok) {
-            throw new Error(data.error || 'Erro ao carregar usuários');
-        }
         if (!Array.isArray(data)) {
             throw new Error('Resposta de usuários não é um array');
         }
@@ -203,6 +214,7 @@ async function loadUsers() {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         usersGrid.innerHTML = `<p class="no-results"><i class="fas fa-exclamation-circle mr-2"></i> Erro ao carregar usuários: ${DOMPurify.sanitize(err.message)}.</p>`;
         showNotification(`Erro ao carregar usuários: ${err.message}.`, true);
+        if (isDevMode) console.error('Erro em loadUsers:', err);
     }
 }
 
@@ -212,12 +224,9 @@ async function loadBanks() {
     try {
         document.getElementById('globalLoader').style.visibility = 'visible';
         const userId = localStorage.getItem('userId');
-        const response = await fetchWithTimeout(`/api/get-banks?userId=${encodeURIComponent(userId)}`, {}, 5000);
+        const response = await fetchWithTimeout(`/api/get-banks?userId=${encodeURIComponent(userId)}`, {}, 10000);
         const data = await response.json();
         document.getElementById('globalLoader').style.visibility = 'hidden';
-        if (!response.ok) {
-            throw new Error(data.error || 'Erro ao carregar bancos');
-        }
         if (!Array.isArray(data)) {
             throw new Error('Resposta de bancos não é um array');
         }
@@ -232,6 +241,7 @@ async function loadBanks() {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         banksGrid.innerHTML = `<p class="no-results"><i class="fas fa-exclamation-circle mr-2"></i> Erro ao carregar bancos: ${DOMPurify.sanitize(err.message)}.</p>`;
         showNotification(`Erro ao carregar bancos: ${err.message}.`, true);
+        if (isDevMode) console.error('Erro em loadBanks:', err);
     }
 }
 
@@ -240,22 +250,16 @@ async function loadModalOptions() {
         document.getElementById('globalLoader').style.visibility = 'visible';
         const userId = localStorage.getItem('userId');
         const [pricesResponse, cardsResponse, banksResponse] = await Promise.all([
-            fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(userId)}`, {}, 5000),
-            fetchWithTimeout(`/api/get-cards?userId=${encodeURIComponent(userId)}`, {}, 5000),
-            fetchWithTimeout(`/api/get-banks?userId=${encodeURIComponent(userId)}`, {}, 5000)
+            fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(userId)}`, {}, 10000),
+            fetchWithTimeout(`/api/get-cards?userId=${encodeURIComponent(userId)}`, {}, 10000),
+            fetchWithTimeout(`/api/get-banks?userId=${encodeURIComponent(userId)}`, {}, 10000)
         ]);
         const pricesData = await pricesResponse.json();
         const cardsData = await cardsResponse.json();
         const banksData = await banksResponse.json();
         document.getElementById('globalLoader').style.visibility = 'hidden';
-        if (!pricesResponse.ok) {
-            throw new Error(pricesData.error || 'Erro ao carregar níveis');
-        }
-        if (!cardsResponse.ok) {
-            throw new Error(cardsData.error || 'Erro ao carregar cartões');
-        }
-        if (!banksResponse.ok) {
-            throw new Error(banksData.error || 'Erro ao carregar bancos');
+        if (!Array.isArray(pricesData) || !Array.isArray(cardsData) || !Array.isArray(banksData)) {
+            throw new Error('Resposta das opções não é um array');
         }
         const levels = [...new Set(pricesData.map(p => p.nivel))].sort();
         const brands = [...new Set(cardsData.map(c => c.bandeira))].sort();
@@ -280,6 +284,7 @@ async function loadModalOptions() {
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro ao carregar opções: ${err.message}.`, true);
+        if (isDevMode) console.error('Erro em loadModalOptions:', err);
     }
 }
 
@@ -703,18 +708,16 @@ async function addCard() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(card)
-        }, 5000);
+        }, 10000);
         const data = await response.json();
         document.getElementById('globalLoader').style.visibility = 'hidden';
-        if (!response.ok) {
-            throw new Error(data.error || 'Erro ao adicionar cartão');
-        }
         showNotification('Cartão adicionado com sucesso!', false);
         closeAddCardModal();
         await loadCards();
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
+        if (isDevMode) console.error('Erro em addCard:', err);
     }
 }
 
@@ -755,18 +758,16 @@ async function updateCard() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(card)
-        }, 5000);
+        }, 10000);
         const data = await response.json();
         document.getElementById('globalLoader').style.visibility = 'hidden';
-        if (!response.ok) {
-            throw new Error(data.error || 'Erro ao atualizar cartão');
-        }
         showNotification('Cartão atualizado com sucesso!', false);
         closeEditCardModal();
         await loadCards();
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
+        if (isDevMode) console.error('Erro em updateCard:', err);
     }
 }
 
@@ -776,17 +777,15 @@ async function deleteCard(id) {
         document.getElementById('globalLoader').style.visibility = 'visible';
         const response = await fetchWithTimeout(`/api/delete-card?userId=${encodeURIComponent(localStorage.getItem('userId'))}&id=${encodeURIComponent(id)}`, {
             method: 'DELETE'
-        }, 5000);
+        }, 10000);
         const data = await response.json();
         document.getElementById('globalLoader').style.visibility = 'hidden';
-        if (!response.ok) {
-            throw new Error(data.error || 'Erro ao excluir cartão');
-        }
         showNotification('Cartão excluído com sucesso!', false);
         await loadCards();
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
+        if (isDevMode) console.error('Erro em deleteCard:', err);
     }
 }
 
@@ -805,18 +804,16 @@ async function addPrice() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(price)
-        }, 5000);
+        }, 10000);
         const data = await response.json();
         document.getElementById('globalLoader').style.visibility = 'hidden';
-        if (!response.ok) {
-            throw new Error(data.error || 'Erro ao adicionar preço');
-        }
         showNotification('Preço adicionado com sucesso!', false);
         closeAddPriceModal();
         await loadPrices();
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
+        if (isDevMode) console.error('Erro em addPrice:', err);
     }
 }
 
@@ -836,18 +833,16 @@ async function updatePrice() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(price)
-        }, 5000);
+        }, 10000);
         const data = await response.json();
         document.getElementById('globalLoader').style.visibility = 'hidden';
-        if (!response.ok) {
-            throw new Error(data.error || 'Erro ao atualizar preço');
-        }
         showNotification('Preço atualizado com sucesso!', false);
         closeEditPriceModal();
         await loadPrices();
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
+        if (isDevMode) console.error('Erro em updatePrice:', err);
     }
 }
 
@@ -857,17 +852,15 @@ async function deletePrice(id) {
         document.getElementById('globalLoader').style.visibility = 'visible';
         const response = await fetchWithTimeout(`/api/delete-card-price?userId=${encodeURIComponent(localStorage.getItem('userId'))}&id=${encodeURIComponent(id)}`, {
             method: 'DELETE'
-        }, 5000);
+        }, 10000);
         const data = await response.json();
         document.getElementById('globalLoader').style.visibility = 'hidden';
-        if (!response.ok) {
-            throw new Error(data.error || 'Erro ao excluir preço');
-        }
         showNotification('Preço excluído com sucesso!', false);
         await loadPrices();
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
+        if (isDevMode) console.error('Erro em deletePrice:', err);
     }
 }
 
@@ -888,18 +881,16 @@ async function addUser() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(user)
-        }, 5000);
+        }, 10000);
         const data = await response.json();
         document.getElementById('globalLoader').style.visibility = 'hidden';
-        if (!response.ok) {
-            throw new Error(data.error || 'Erro ao adicionar usuário');
-        }
         showNotification('Usuário adicionado com sucesso!', false);
         closeAddUserModal();
         await loadUsers();
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
+        if (isDevMode) console.error('Erro em addUser:', err);
     }
 }
 
@@ -920,18 +911,16 @@ async function updateUser() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(user)
-        }, 5000);
+        }, 10000);
         const data = await response.json();
         document.getElementById('globalLoader').style.visibility = 'hidden';
-        if (!response.ok) {
-            throw new Error(data.error || 'Erro ao atualizar usuário');
-        }
         showNotification('Usuário atualizado com sucesso!', false);
         closeEditUserModal();
         await loadUsers();
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
+        if (isDevMode) console.error('Erro em updateUser:', err);
     }
 }
 
@@ -941,17 +930,15 @@ async function deleteUser(id) {
         document.getElementById('globalLoader').style.visibility = 'visible';
         const response = await fetchWithTimeout(`/api/delete-user?userId=${encodeURIComponent(localStorage.getItem('userId'))}&id=${encodeURIComponent(id)}`, {
             method: 'DELETE'
-        }, 5000);
+        }, 10000);
         const data = await response.json();
         document.getElementById('globalLoader').style.visibility = 'hidden';
-        if (!response.ok) {
-            throw new Error(data.error || 'Erro ao excluir usuário');
-        }
         showNotification('Usuário excluído com sucesso!', false);
         await loadUsers();
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
+        if (isDevMode) console.error('Erro em deleteUser:', err);
     }
 }
 
@@ -969,19 +956,17 @@ async function addBank() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(bank)
-        }, 5000);
+        }, 10000);
         const data = await response.json();
         document.getElementById('globalLoader').style.visibility = 'hidden';
-        if (!response.ok) {
-            throw new Error(data.error || 'Erro ao adicionar banco');
-        }
         showNotification('Banco adicionado com sucesso!', false);
         closeAddBankModal();
         await loadBanks();
-        await loadModalOptions(); // Atualiza opções de bancos nos modais de cartão
+        await loadModalOptions();
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
+        if (isDevMode) console.error('Erro em addBank:', err);
     }
 }
 
@@ -1000,19 +985,17 @@ async function updateBank() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(bank)
-        }, 5000);
+        }, 10000);
         const data = await response.json();
         document.getElementById('globalLoader').style.visibility = 'hidden';
-        if (!response.ok) {
-            throw new Error(data.error || 'Erro ao atualizar banco');
-        }
         showNotification('Banco atualizado com sucesso!', false);
         closeEditBankModal();
         await loadBanks();
-        await loadModalOptions(); // Atualiza opções de bancos nos modais de cartão
+        await loadModalOptions();
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
+        if (isDevMode) console.error('Erro em updateBank:', err);
     }
 }
 
@@ -1022,18 +1005,16 @@ async function deleteBank(id) {
         document.getElementById('globalLoader').style.visibility = 'visible';
         const response = await fetchWithTimeout(`/api/delete-bank?userId=${encodeURIComponent(localStorage.getItem('userId'))}&id=${encodeURIComponent(id)}`, {
             method: 'DELETE'
-        }, 5000);
+        }, 10000);
         const data = await response.json();
         document.getElementById('globalLoader').style.visibility = 'hidden';
-        if (!response.ok) {
-            throw new Error(data.error || 'Erro ao excluir banco');
-        }
         showNotification('Banco excluído com sucesso!', false);
         await loadBanks();
-        await loadModalOptions(); // Atualiza opções de bancos nos modais de cartão
+        await loadModalOptions();
     } catch (err) {
         document.getElementById('globalLoader').style.visibility = 'hidden';
         showNotification(`Erro: ${err.message}.`, true);
+        if (isDevMode) console.error('Erro em deleteBank:', err);
     }
 }
 
@@ -1077,7 +1058,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     document.getElementById('themeToggle').addEventListener('click', toggleTheme);
     setupTabs();
-    if (await checkEnvironment() && await checkAuth()) {
-        await loadCards();
+    if (await checkEnvironment()) {
+        if (await checkAuth()) {
+            await loadCards();
+        }
+    } else {
+        showNotification('Falha ao verificar ambiente do servidor. Tente novamente mais tarde.', true);
     }
 });

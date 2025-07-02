@@ -137,7 +137,8 @@
                 'visa': 'fa-cc-visa',
                 'mastercard': 'fa-cc-mastercard',
                 'amex': 'fa-cc-amex',
-                'discover': 'fa-cc-discover'
+                'discover': 'fa-cc-discover',
+                'maestro': 'fa-credit-card'
             };
             const key = bandeira.toLowerCase();
             return `<i class="fas ${brandIcons[key] || 'fa-credit-card'} brand-icon"></i>`;
@@ -147,27 +148,18 @@
             Debug.log('Verificando ambiente e conexão com MongoDB');
             try {
                 const response = await fetchWithTimeout('/api/check-env');
-                const text = await response.text();
-                Debug.log(`Resposta /api/check-env: Status ${response.status}`, { response: text });
-                const data = JSON.parse(text);
+                const data = await response.json();
+                Debug.log(`Resposta /api/check-env: Status ${response.status}`, data);
                 if (!response.ok) {
                     Debug.error(`Erro ao verificar ambiente: ${data.error || 'Desconhecido'}`);
-                    showDebugNotification(`Erro: ${data.error || 'Falha na verificação do ambiente'}`, true);
+                    showNotification(`Erro: ${data.error || 'Falha na verificação do ambiente'}`, true);
                     return;
                 }
                 Debug.log(`MongoDB conectado: ${data.mongodbConnected ? 'Sim' : 'Não'}`);
-                showDebugNotification(`MongoDB conectado: ${data.mongodbConnected ? 'Sim' : 'Não'}`, !data.mongodbConnected);
-                for (const [collection, status] of Object.entries(data.collections)) {
-                    Debug.log(`Coleção ${collection}: ${status.exists ? 'Acessível' : 'Inacessível'}`);
-                    showDebugNotification(`Coleção ${collection}: ${status.exists ? 'Acessível' : 'Inacessível'}`, !status.exists);
-                }
-                for (const [envVar, status] of Object.entries(data.environment)) {
-                    Debug.log(`Variável ${envVar}: ${status.exists ? 'Configurada' : 'Não configurada'}`);
-                    showDebugNotification(`Variável ${envVar}: ${status.exists ? 'Configurada' : 'Não configurada'}`, !status.exists);
-                }
+                showNotification(`MongoDB conectado: ${data.mongodbConnected ? 'Sim' : 'Não'}`, !data.mongodbConnected);
             } catch (err) {
                 Debug.error(`Erro ao verificar ambiente: ${err.message}`);
-                showDebugNotification(`Erro ao verificar ambiente: ${err.message}. Verifique a conexão de rede e o Netlify Functions log.`, true);
+                showNotification(`Erro ao verificar ambiente: ${err.message}. Verifique sua conexão.`, true);
             }
         }
 
@@ -175,30 +167,29 @@
             Debug.log('Verificando autenticação');
             const userId = localStorage.getItem('userId');
             if (!userId) {
-                showNotification('Usuário não autenticado.', true);
+                showNotification('Usuário não autenticado. Redirecionando para login...', true);
                 Debug.error('Nenhum userId encontrado no localStorage');
                 setTimeout(() => { window.location.href = '/index.html'; }, 1000);
                 return false;
             }
             try {
                 const response = await fetchWithTimeout(`/api/user?userId=${encodeURIComponent(userId)}`);
-                const text = await response.text();
-                Debug.log(`Resposta /api/user: Status ${response.status}`, { response: text });
-                const user = JSON.parse(text);
+                const data = await response.json();
+                Debug.log(`Resposta /api/user: Status ${response.status}`, data);
                 if (!response.ok) {
-                    showNotification('Erro ao verificar autenticação.', true);
-                    Debug.error(`Erro na API: ${user.error || 'Desconhecido'}`);
+                    showNotification('Erro ao verificar autenticação. Redirecionando...', true);
+                    Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
                     setTimeout(() => { window.location.href = '/index.html'; }, 1000);
                     return false;
                 }
-                document.getElementById('userBalance').textContent = `Saldo: ${formatCurrency(user.balance)}`;
-                if (user.isAdmin) {
+                document.getElementById('userBalance').textContent = `Saldo: ${formatCurrency(data.balance)}`;
+                if (data.isAdmin) {
                     document.getElementById('dashboardLink').classList.remove('hidden');
                 }
                 return true;
             } catch (err) {
                 Debug.error('Erro ao verificar autenticação: %s', err.message);
-                showNotification(`Erro: ${err.message}`, true);
+                showNotification(`Erro: ${err.message}. Redirecionando...`, true);
                 setTimeout(() => { window.location.href = '/index.html'; }, 1000);
                 return false;
             }
@@ -209,28 +200,33 @@
             const cardsGrid = document.getElementById('cardsGrid');
             cardsGrid.innerHTML = '<p class="text-gray-500 text-center"><i class="fas fa-spinner animate-spin mr-2"></i> Carregando...</p>';
             try {
+                document.getElementById('globalLoader').style.visibility = 'visible';
                 const [cardsResponse, pricesResponse] = await Promise.all([
                     fetchWithTimeout(`/api/get-cards?userId=${encodeURIComponent(localStorage.getItem('userId'))}`),
                     fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(localStorage.getItem('userId'))}`)
                 ]);
-                const cardsText = await cardsResponse.text();
-                const pricesText = await pricesResponse.text();
-                Debug.log(`Resposta /api/get-cards: Status ${cardsResponse.status}`, { response: cardsText });
-                Debug.log(`Resposta /api/get-card-prices: Status ${pricesResponse.status}`, { response: pricesText });
-                allCards = JSON.parse(cardsText);
-                allPrices = JSON.parse(pricesText);
-                if (!cardsResponse.ok) throw new Error(allCards.error || 'Erro ao carregar cartões');
-                if (!pricesResponse.ok) throw new Error(allPrices.error || 'Erro ao carregar preços');
-                if (!Array.isArray(allCards) || !Array.isArray(allPrices)) {
-                    Debug.error('Dados inválidos recebidos: cards=%O, prices=%O', allCards, allPrices);
-                    throw new Error('Formato de dados inválido');
+                const cardsData = await cardsResponse.json();
+                const pricesData = await pricesResponse.json();
+                Debug.log(`Resposta /api/get-cards: Status ${cardsResponse.status}`, cardsData);
+                Debug.log(`Resposta /api/get-card-prices: Status ${pricesResponse.status}`, pricesData);
+                document.getElementById('globalLoader').style.visibility = 'hidden';
+                if (!cardsResponse.ok || !pricesResponse.ok) {
+                    throw new Error(cardsData.error || pricesData.error || 'Erro ao carregar dados');
+                }
+                allCards = Array.isArray(cardsData) ? cardsData : [];
+                allPrices = Array.isArray(pricesData) ? pricesData : [];
+                if (allCards.length === 0) {
+                    Debug.warn('Nenhum cartão disponível na base de dados');
+                    cardsGrid.innerHTML = '<p class="no-results text-yellow-500">Nenhum cartão disponível no momento.</p>';
+                    return;
                 }
                 populateFilters();
                 applyFilters();
             } catch (err) {
+                document.getElementById('globalLoader').style.visibility = 'hidden';
                 Debug.error('Erro ao carregar cartões: %s', err.message);
-                cardsGrid.innerHTML = `<p class="text-center text-red-500">Erro: ${DOMPurify.sanitize(err.message)}</p>`;
-                showNotification(`Erro ao carregar cartões: ${err.message}`, true);
+                cardsGrid.innerHTML = `<p class="no-results text-red-500">Erro: ${DOMPurify.sanitize(err.message)}</p>`;
+                showNotification(`Erro ao carregar cartões: ${err.message}. Verifique sua conexão.`, true);
             }
         }
 
@@ -346,20 +342,24 @@
         async function buyCard(cardName) {
             Debug.log(`Tentando comprar cartão: ${cardName}`);
             try {
+                document.getElementById('globalLoader').style.visibility = 'visible';
                 const response = await fetchWithTimeout(`/api/buy-card?userId=${encodeURIComponent(localStorage.getItem('userId'))}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ nivel: cardName })
                 });
-                const text = await response.text();
-                Debug.log(`Resposta /api/buy-card: Status ${response.status}`, { response: text });
-                let data = JSON.parse(text);
-                if (!response.ok) throw new Error(data.error || 'Erro ao comprar cartão');
+                const data = await response.json();
+                Debug.log(`Resposta /api/buy-card: Status ${response.status}`, data);
+                document.getElementById('globalLoader').style.visibility = 'hidden';
+                if (!response.ok) {
+                    throw new Error(data.error || 'Erro ao comprar cartão');
+                }
                 showNotification(`Cartão ${cardName} comprado com sucesso!`);
                 Debug.success(`Cartão ${cardName} comprado com sucesso`);
                 document.getElementById('userBalance').textContent = `Saldo: ${formatCurrency(data.newBalance)}`;
                 await loadCards();
             } catch (err) {
+                document.getElementById('globalLoader').style.visibility = 'hidden';
                 Debug.error('Erro ao comprar cartão: %s', err.message);
                 showNotification(`Erro: ${err.message}`, true);
             }
@@ -374,7 +374,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
-            Debug.log('DOM carregado');
+            Debug.log('DOM carregado - shop.html');
             const debugDiv = document.getElementById('debug');
             debugDiv.style.display = 'block';
             document.getElementById('toggleDebug').addEventListener('click', () => {

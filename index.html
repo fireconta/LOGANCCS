@@ -98,13 +98,14 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
-                });
+                }, 5000);
                 const data = await response.json();
                 Debug.log(`Resposta ${endpoint}: Status ${response.status}`, data);
                 document.getElementById('globalLoader').style.visibility = 'hidden';
                 if (!response.ok) {
-                    showNotification(data.error || 'Erro ao processar a solicitação. Tente novamente.', true);
-                    Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
+                    const errorMsg = data.error || 'Erro ao processar a solicitação. Tente novamente.';
+                    showNotification(errorMsg, true);
+                    Debug.error(`Erro na API: ${errorMsg}`);
                     return;
                 }
                 localStorage.setItem('userId', data.userId);
@@ -113,7 +114,8 @@
                 setTimeout(() => { window.location.href = '/shop.html'; }, 1000);
             } catch (err) {
                 document.getElementById('globalLoader').style.visibility = 'hidden';
-                showNotification(`Erro: ${err.message}. Verifique sua conexão ou tente novamente.`, true);
+                const errorMsg = err.message.includes('timeout') ? 'Tempo de conexão esgotado. Verifique sua rede.' : `Erro: ${err.message}. Tente novamente.`;
+                showNotification(errorMsg, true);
                 Debug.error(`Erro ao chamar ${endpoint}: ${err.message}`);
             }
         }

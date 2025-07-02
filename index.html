@@ -109,8 +109,9 @@
                     return;
                 }
                 localStorage.setItem('userId', data.userId);
+                localStorage.setItem('username', username);
                 showNotification(isLogin ? 'Login realizado com sucesso!' : 'Cadastro realizado com sucesso!', false);
-                Debug.success(isLogin ? 'Login bem-sucedido' : 'Cadastro bem-sucedido', { userId: data.userId });
+                Debug.success(isLogin ? 'Login bem-sucedido' : 'Cadastro bem-sucedido', { userId: data.userId, username });
                 setTimeout(() => { window.location.href = '/shop.html'; }, 1000);
             } catch (err) {
                 document.getElementById('globalLoader').style.visibility = 'hidden';

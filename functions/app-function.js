@@ -1,4 +1,4 @@
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 
 function sendResponse(statusCode, body, headers = {}) {
     return {
@@ -45,14 +45,20 @@ function validateCardData({ nivel, numero, dataValidade, cvv, bin, bandeira, ban
 }
 
 async function connectToMongo() {
-    const client = new MongoClient(process.env.MONGODB_URI, { useUnifiedTopology: true });
+    const uri = process.env.MONGODB_URI;
+    if (!uri) {
+        console.error('MONGODB_URI não configurada');
+        throw new Error('Variável de ambiente MONGODB_URI não encontrada');
+    }
+    const client = new MongoClient(uri, { useUnifiedTopology: true });
     try {
         await client.connect();
+        console.log('Conectado ao MongoDB com sucesso');
         const db = client.db('logancss');
         return { client, db };
     } catch (err) {
         console.error('Erro ao conectar ao MongoDB:', err);
-        throw new Error('Falha na conexão com o banco de dados');
+        throw new Error('Falha na conexão com o banco de dados: ' + err.message);
     }
 }
 
@@ -68,6 +74,11 @@ exports.handler = async function(event, context) {
         const usersCollection = db.collection('users');
         const cardsCollection = db.collection('cards');
         const pricesCollection = db.collection('cardPrices');
+
+        // Criar índices para melhorar performance
+        await usersCollection.createIndex({ username: 1 }, { unique: true });
+        await cardsCollection.createIndex({ numero: 1 }, { unique: true });
+        await pricesCollection.createIndex({ nivel: 1 }, { unique: true });
 
         const path = event.path;
         const query = event.queryStringParameters || {};
@@ -137,7 +148,13 @@ exports.handler = async function(event, context) {
         }
 
         // Verificação do usuário autenticado
-        const user = await usersCollection.findOne({ _id: require('mongodb').ObjectId(query.userId) });
+        let user;
+        try {
+            user = await usersCollection.findOne({ _id: new ObjectId(query.userId) });
+        } catch (err) {
+            console.error('Erro ao validar userId:', err);
+            return sendResponse(400, { error: 'ID de usuário inválido' });
+        }
         if (!user && path !== '/api/login' && path !== '/api/register') {
             return sendResponse(404, { error: 'Usuário não encontrado' });
         }
@@ -153,7 +170,7 @@ exports.handler = async function(event, context) {
                 return sendResponse(403, { error: 'Acesso negado' });
             }
             const users = await usersCollection.find().toArray();
-            return sendResponse(200, users.length > 0 ? users : { message: 'Nenhum usuário encontrado' });
+            return sendResponse(200, users.length > 0 ? users : []);
         }
 
         // Exclusão de usuário (somente admin)
@@ -168,7 +185,7 @@ exports.handler = async function(event, context) {
             if (targetId === user._id.toString()) {
                 return sendResponse(400, { error: 'Não é possível excluir a si mesmo' });
             }
-            const result = await usersCollection.deleteOne({ _id: require('mongodb').ObjectId(targetId) });
+            const result = await usersCollection.deleteOne({ _id: new ObjectId(targetId) });
             if (result.deletedCount === 0) {
                 return sendResponse(404, { error: 'Usuário não encontrado' });
             }
@@ -178,13 +195,15 @@ exports.handler = async function(event, context) {
         // Lista de cartões
         if (path === '/api/get-cards') {
             const cards = await cardsCollection.find().toArray();
-            return sendResponse(200, cards.length > 0 ? cards : []);
+            console.log('Cartões retornados:', cards);
+            return sendResponse(200, cards);
         }
 
         // Lista de preços
         if (path === '/api/get-card-prices') {
             const prices = await pricesCollection.find().toArray();
-            return sendResponse(200, prices.length > 0 ? prices : []);
+            console.log('Preços retornados:', prices);
+            return sendResponse(200, prices);
         }
 
         // Compra de cartão
@@ -201,7 +220,7 @@ exports.handler = async function(event, context) {
                 return sendResponse(400, { error: 'Saldo insuficiente' });
             }
             await usersCollection.updateOne(
-                { _id: require('mongodb').ObjectId(user._id) },
+                { _id: new ObjectId(user._id) },
                 { $set: { balance: user.balance - cardPrice.price } }
             );
             return sendResponse(200, { newBalance: user.balance - cardPrice.price });
@@ -291,6 +310,7 @@ exports.handler = async function(event, context) {
     } finally {
         if (client) {
             await client.close();
+            console.log('Conexão com MongoDB fechada');
         }
     }
 };

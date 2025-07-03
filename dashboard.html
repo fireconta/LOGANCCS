@@ -80,9 +80,7 @@
             Debug.log('Verificando ambiente e conexão com MongoDB');
             try {
                 const response = await fetchWithTimeout('/api/check-env');
-                const text = await response.text();
-                Debug.log(`Resposta /api/check-env: Status ${response.status}`, { response: text });
-                const data = JSON.parse(text);
+                const data = await response.json();
                 if (!response.ok) {
                     Debug.error(`Erro ao verificar ambiente: ${data.error || 'Desconhecido'}`);
                     showDebugNotification(`Erro: ${data.error || 'Falha na verificação do ambiente'}`, true);
@@ -108,26 +106,24 @@
             Debug.log('Verificando autenticação');
             const userId = localStorage.getItem('userId');
             if (!userId) {
-                showNotification('Usuário não autenticado.', true);
                 Debug.error('Nenhum userId encontrado no localStorage');
+                showDebugNotification('Usuário não autenticado.', true);
                 setTimeout(() => { window.location.href = '/index.html'; }, 1000);
                 return false;
             }
             try {
                 const response = await fetchWithTimeout(`/api/user?userId=${encodeURIComponent(userId)}`);
-                const text = await response.text();
-                Debug.log(`Resposta /api/user: Status ${response.status}`, { response: text });
-                const user = JSON.parse(text);
+                const user = await response.json();
                 if (!response.ok || !user.isAdmin) {
-                    showNotification('Acesso negado. Apenas administradores.', true);
                     Debug.error(`Erro: ${user.error || 'Usuário não é administrador'}`);
+                    showDebugNotification('Acesso negado. Apenas administradores.', true);
                     setTimeout(() => { window.location.href = '/index.html'; }, 1000);
                     return false;
                 }
                 return true;
             } catch (err) {
                 Debug.error('Erro ao verificar autenticação: %s', err.message);
-                showNotification(`Erro: ${err.message}`, true);
+                showDebugNotification(`Erro: ${err.message}`, true);
                 setTimeout(() => { window.location.href = '/index.html'; }, 1000);
                 return false;
             }
@@ -139,9 +135,7 @@
             usersGrid.innerHTML = '<p class="text-gray-500 text-center"><i class="fas fa-spinner animate-spin mr-2"></i> Carregando...</p>';
             try {
                 const response = await fetchWithTimeout(`/api/users?userId=${encodeURIComponent(localStorage.getItem('userId'))}`);
-                const text = await response.text();
-                Debug.log(`Resposta /api/users: Status ${response.status}`, { response: text });
-                let users = JSON.parse(text);
+                const users = await response.json();
                 if (!response.ok) throw new Error(users.error || 'Erro ao carregar usuários');
                 usersGrid.innerHTML = '';
                 users.forEach(user => {
@@ -159,7 +153,7 @@
             } catch (err) {
                 Debug.error('Erro ao carregar usuários: %s', err.message);
                 usersGrid.innerHTML = `<p class="text-center text-red-500">Erro: ${DOMPurify.sanitize(err.message)}</p>`;
-                showNotification(`Erro: ${err.message}`, true);
+                showDebugNotification(`Erro: ${err.message}`, true);
             }
         }
 
@@ -170,15 +164,13 @@
                 const response = await fetchWithTimeout(`/api/delete-user?userId=${encodeURIComponent(localStorage.getItem('userId'))}&targetId=${encodeURIComponent(userId)}`, {
                     method: 'DELETE'
                 });
-                const text = await response.text();
-                Debug.log(`Resposta /api/delete-user: Status ${response.status}`, { response: text });
-                let data = JSON.parse(text);
+                const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Erro ao excluir usuário');
-                showNotification('Usuário excluído com sucesso!');
+                showDebugNotification('Usuário excluído com sucesso!');
                 loadUsers();
             } catch (err) {
                 Debug.error('Erro ao excluir usuário: %s', err.message);
-                showNotification(`Erro: ${err.message}`, true);
+                showDebugNotification(`Erro: ${err.message}`, true);
             }
         }
 
@@ -186,9 +178,7 @@
             Debug.log('Carregando preços de cartões');
             try {
                 const response = await fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(localStorage.getItem('userId'))}`);
-                const text = await response.text();
-                Debug.log(`Resposta /api/get-card-prices: Status ${response.status}`, { response: text });
-                let prices = JSON.parse(text);
+                const prices = await response.json();
                 if (!response.ok) throw new Error(prices.error || 'Erro ao carregar preços');
                 prices.forEach(price => {
                     const input = document.getElementById(`${price.nivel.toLowerCase()}Price`);
@@ -196,7 +186,7 @@
                 });
             } catch (err) {
                 Debug.error('Erro ao carregar preços: %s', err.message);
-                showNotification(`Erro: ${err.message}`, true);
+                showDebugNotification(`Erro: ${err.message}`, true);
             }
         }
 
@@ -221,14 +211,12 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ prices })
                 });
-                const text = await response.text();
-                Debug.log(`Resposta /api/set-card-prices: Status ${response.status}`, { response: text });
-                let data = JSON.parse(text);
+                const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Erro ao atualizar preços');
-                showNotification('Preços atualizados com sucesso!');
+                showDebugNotification('Preços atualizados com sucesso!');
             } catch (err) {
                 Debug.error('Erro ao atualizar preços: %s', err.message);
-                showNotification(`Erro: ${err.message}`, true);
+                showDebugNotification(`Erro: ${err.message}`, true);
             } finally {
                 button.disabled = false;
                 spinner.classList.add('hidden');

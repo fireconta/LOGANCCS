@@ -108,8 +108,11 @@
         const response = await fetchWithTimeout('/api/check-env', { timeout: 10000 });
         const data = await response.json();
         if (!response.ok) {
-          Debug.error(`Erro ao verificar ambiente: ${data.error || 'Desconhecido'}`);
-          showDebugNotification(`Erro ao verificar ambiente: ${data.error || 'Desconhecido'}`, true);
+          const errorMsg = data.error && data.error.includes('Timedout') 
+            ? 'Timeout na conexão com o servidor. Verifique a Netlify Functions e o MongoDB Atlas.'
+            : `Erro ao verificar ambiente: ${data.error || 'Desconhecido'}`;
+          Debug.error(errorMsg);
+          showDebugNotification(errorMsg, true);
           return;
         }
 
@@ -138,8 +141,11 @@
           showDebugNotification(`${envVar}: ${envStatus}`, !status.exists);
         }
       } catch (err) {
-        Debug.error(`Erro ao verificar ambiente: ${err.message}`);
-        showDebugNotification(`Erro ao verificar ambiente: ${err.message}`, true);
+        const errorMsg = err.message.includes('timeout') 
+          ? 'Timeout na conexão com o servidor. Verifique a Netlify Functions e o MongoDB Atlas.'
+          : `Erro ao verificar ambiente: ${err.message}`;
+        Debug.error(errorMsg);
+        showDebugNotification(errorMsg, true);
       }
     }
 
@@ -205,9 +211,12 @@
         Debug.log('Registro bem-sucedido');
         showLoginForm();
       } catch (err) {
-        errorDiv.textContent = `Erro: ${err.message}`;
+        const errorMsg = err.message.includes('timeout') 
+          ? 'Timeout ao tentar registrar. Verifique a conexão com o servidor.'
+          : `Erro ao registrar: ${err.message}`;
+        errorDiv.textContent = errorMsg;
         errorDiv.classList.remove('hidden');
-        Debug.error(`Erro ao registrar: ${err.message}`);
+        Debug.error(errorMsg);
       }
     }
 
@@ -244,9 +253,12 @@
         const redirect = data.is_admin ? '/dashboard' : '/shop';
         window.location.href = redirect;
       } catch (err) {
-        errorDiv.textContent = `Erro: ${err.message}`;
+        const errorMsg = err.message.includes('timeout') 
+          ? 'Timeout ao tentar logar. Verifique a conexão com o servidor.'
+          : `Erro ao logar: ${err.message}`;
+        errorDiv.textContent = errorMsg;
         errorDiv.classList.remove('hidden');
-        Debug.error(`Erro ao logar: ${err.message}`);
+        Debug.error(errorMsg);
       }
     }
 

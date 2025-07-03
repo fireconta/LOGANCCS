@@ -10,8 +10,8 @@ const app = express();
 app.use(express.json());
 
 let connectionAttempts = 0;
-const MAX_RETRIES = 5;
-const RETRY_INTERVAL_MS = 5000;
+const MAX_RETRIES = 3;
+const RETRY_INTERVAL_MS = 2000;
 
 async function connectToMongoDB() {
     if (!process.env.MONGODB_URI) {
@@ -27,8 +27,8 @@ async function connectToMongoDB() {
         await mongoose.connect(`${process.env.MONGODB_URI}/loganccs?retryWrites=true&w=majority`, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 10000,
-            maxPoolSize: 10
+            serverSelectionTimeoutMS: 5000, // Reduzido para evitar timeout
+            maxPoolSize: 5 // Reduzido para otimizar
         });
         debug('Conexão com MongoDB loganccs estabelecida com sucesso');
         connectionAttempts = 0;
@@ -88,22 +88,25 @@ async function checkCollections() {
             Purchase: { exists: collectionNames.includes('purchases'), accessible: false },
             Bank: { exists: collectionNames.includes('banks'), accessible: false }
         };
-        if (result.User.exists) {
-            result.User.accessible = await User.countDocuments().then(() => true).catch(() => false);
-            debug('Coleção users: %s, acessível: %s', result.User.exists ? 'existe' : 'não existe', result.User.accessible ? 'sim' : 'não');
-        }
-        if (result.CardPrice.exists) {
-            result.CardPrice.accessible = await CardPrice.countDocuments().then(() => true).catch(() => false);
-            debug('Coleção cardprices: %s, acessível: %s', result.CardPrice.exists ? 'existe' : 'não existe', result.CardPrice.accessible ? 'sim' : 'não');
-        }
-        if (result.Purchase.exists) {
-            result.Purchase.accessible = await Purchase.countDocuments().then(() => true).catch(() => false);
-            debug('Coleção purchases: %s, acessível: %s', result.Purchase.exists ? 'existe' : 'não existe', result.Purchase.accessible ? 'sim' : 'não');
-        }
-        if (result.Bank.exists) {
-            result.Bank.accessible = await Bank.countDocuments().then(() => true).catch(() => false);
-            debug('Coleção banks: %s, acessível: %s', result.Bank.exists ? 'existe' : 'não existe', result.Bank.accessible ? 'sim' : 'não');
-        }
+
+        // Verificar acessibilidade em paralelo para otimizar
+        const accessibilityChecks = [
+            result.User.exists ? User.countDocuments().then(() => true).catch(() => false) : false,
+            result.CardPrice.exists ? CardPrice.countDocuments().then(() => true).catch(() => false) : false,
+            result.Purchase.exists ? Purchase.countDocuments().then(() => true).catch(() => false) : false,
+            result.Bank.exists ? Bank.countDocuments().then(() => true).catch(() => false) : false
+        ];
+        const [userAccessible, cardPriceAccessible, purchaseAccessible, bankAccessible] = await Promise.all(accessibilityChecks);
+
+        result.User.accessible = userAccessible;
+        result.CardPrice.accessible = cardPriceAccessible;
+        result.Purchase.accessible = purchaseAccessible;
+        result.Bank.accessible = bankAccessible;
+
+        debug('Coleção users: %s, acessível: %s', result.User.exists ? 'existe' : 'não existe', result.User.accessible ? 'sim' : 'não');
+        debug('Coleção cardprices: %s, acessível: %s', result.CardPrice.exists ? 'existe' : 'não existe', result.CardPrice.accessible ? 'sim' : 'não');
+        debug('Coleção purchases: %s, acessível: %s', result.Purchase.exists ? 'existe' : 'não existe', result.Purchase.accessible ? 'sim' : 'não');
+        debug('Coleção banks: %s, acessível: %s', result.Bank.exists ? 'existe' : 'não existe', result.Bank.accessible ? 'sim' : 'não');
         return result;
     } catch (err) {
         debug('Erro ao verificar coleções: %s', err.message);
@@ -117,7 +120,7 @@ async function checkCollections() {
 }
 
 app.get('/api/check-env', async (req, res) => {
-    debug('Verificando ambiente e conexão com MongoDB');
+    debug('Iniciando verificação de ambiente e conexão com MongoDB');
     try {
         const mongodbConnected = await connectToMongoDB();
         const collections = await checkCollections();
@@ -125,6 +128,7 @@ app.get('/api/check-env', async (req, res) => {
             MONGODB_URI: { exists: !!process.env.MONGODB_URI },
             ADMIN_PASSWORD: { exists: !!process.env.ADMIN_PASSWORD }
         };
+        debug('Verificação concluída: MongoDB %s, coleções: %O', mongodbConnected ? 'conectado' : 'não conectado', collections);
         res.json({ mongodbConnected, collections, environment });
     } catch (err) {
         debug('Erro ao verificar ambiente: %s', err.message);

@@ -14,13 +14,17 @@ const MAX_RETRIES = 5;
 const RETRY_INTERVAL_MS = 5000;
 
 async function connectToMongoDB() {
+    if (!process.env.MONGODB_URI) {
+        debug('Erro: MONGODB_URI não configurada');
+        return false;
+    }
     if (mongoose.connection.readyState === 1) {
         debug('MongoDB already connected');
         return true;
     }
     try {
         debug('Attempting MongoDB connection (%d/%d)', connectionAttempts + 1, MAX_RETRIES);
-        await mongoose.connect(`${process.env.MONGODB_URI}/loganccs`, {
+        await mongoose.connect(`${process.env.MONGODB_URI}/loganccs?retryWrites=true&w=majority`, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
             serverSelectionTimeoutMS: 10000,
@@ -64,9 +68,14 @@ const PurchaseSchema = new mongoose.Schema({
     purchasedAt: { type: Date, default: Date.now }
 });
 
+const BankSchema = new mongoose.Schema({
+    name: { type: String, required: true }
+});
+
 const User = mongoose.model('User', UserSchema);
 const CardPrice = mongoose.model('CardPrice', CardPriceSchema);
 const Purchase = mongoose.model('Purchase', PurchaseSchema);
+const Bank = mongoose.model('Bank', BankSchema);
 
 async function checkCollections() {
     try {
@@ -75,11 +84,13 @@ async function checkCollections() {
         const result = {
             User: { exists: collectionNames.includes('users'), accessible: false },
             CardPrice: { exists: collectionNames.includes('cardprices'), accessible: false },
-            Purchase: { exists: collectionNames.includes('purchases'), accessible: false }
+            Purchase: { exists: collectionNames.includes('purchases'), accessible: false },
+            Bank: { exists: collectionNames.includes('banks'), accessible: false }
         };
         if (result.User.exists) result.User.accessible = await User.countDocuments().then(() => true).catch(() => false);
         if (result.CardPrice.exists) result.CardPrice.accessible = await CardPrice.countDocuments().then(() => true).catch(() => false);
         if (result.Purchase.exists) result.Purchase.accessible = await Purchase.countDocuments().then(() => true).catch(() => false);
+        if (result.Bank.exists) result.Bank.accessible = await Bank.countDocuments().then(() => true).catch(() => false);
         debug('Collections check: %O', result);
         return result;
     } catch (err) {
@@ -87,7 +98,8 @@ async function checkCollections() {
         return {
             User: { exists: false, accessible: false },
             CardPrice: { exists: false, accessible: false },
-            Purchase: { exists: false, accessible: false }
+            Purchase: { exists: false, accessible: false },
+            Bank: { exists: false, accessible: false }
         };
     }
 }
@@ -282,6 +294,7 @@ app.get('/api/get-card-prices', [
     try {
         const prices = await CardPrice.find();
         if (!prices.length) {
+            debug('No card prices found, initializing default prices');
             const defaultPrices = [
                 { nivel: 'Classic', price: 100 },
                 { nivel: 'Gold', price: 200 },
@@ -289,7 +302,6 @@ app.get('/api/get-card-prices', [
                 { nivel: 'Black', price: 500 }
             ];
             await CardPrice.insertMany(defaultPrices);
-            debug('Default card prices initialized');
             return res.json(defaultPrices);
         }
         res.json(prices);

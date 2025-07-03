@@ -103,28 +103,39 @@
   <script src="/debug.js"></script>
   <script>
     async function checkEnvironment() {
-      Debug.log('Verificando ambiente e conexão com MongoDB');
+      Debug.log('Iniciando verificação de ambiente e conexão com MongoDB');
       try {
-        const response = await fetchWithTimeout('/api/check-env');
+        const response = await fetchWithTimeout('/api/check-env', { timeout: 10000 });
         const data = await response.json();
         if (!response.ok) {
           Debug.error(`Erro ao verificar ambiente: ${data.error || 'Desconhecido'}`);
-          showDebugNotification(`Erro: ${data.error || 'Falha na verificação do ambiente'}`, true);
+          showDebugNotification(`Erro ao verificar ambiente: ${data.error || 'Desconhecido'}`, true);
           return;
         }
-        Debug.log(`Status da conexão MongoDB: ${data.mongodbConnected ? 'Conectado' : 'Não conectado'}`);
-        showDebugNotification(`MongoDB: ${data.mongodbConnected ? 'Conectado' : 'Não conectado'}`, !data.mongodbConnected);
+
+        // Status da conexão com MongoDB
+        const mongoStatus = data.mongodbConnected ? 'Conectado' : 'Não conectado';
+        Debug.log(`Conexão MongoDB: ${mongoStatus}`);
+        showDebugNotification(`Conexão MongoDB: ${mongoStatus}`, !data.mongodbConnected);
         if (!data.mongodbConnected) {
           Debug.error('MongoDB não conectado. Verifique MONGODB_URI e permissões no MongoDB Atlas.');
           showDebugNotification('MongoDB não conectado. Verifique MONGODB_URI e permissões.', true);
         }
+
+        // Status das coleções
+        Debug.log('Verificando status das coleções:');
         for (const [collection, status] of Object.entries(data.collections)) {
-          Debug.log(`Coleção ${collection}: ${status.exists && status.accessible ? 'Carregada' : 'Não carregada'}`);
-          showDebugNotification(`Coleção ${collection}: ${status.exists && status.accessible ? 'Carregada' : 'Não carregada'}`, !status.exists || !status.accessible);
+          const statusText = status.exists && status.accessible ? 'Carregada e acessível' : 'Não carregada ou inacessível';
+          Debug.log(`- Coleção ${collection}: ${statusText}`);
+          showDebugNotification(`Coleção ${collection}: ${statusText}`, !status.exists || !status.accessible);
         }
+
+        // Status das variáveis de ambiente
+        Debug.log('Verificando variáveis de ambiente:');
         for (const [envVar, status] of Object.entries(data.environment)) {
-          Debug.log(`Variável ${envVar}: ${status.exists ? 'Configurada' : 'Não configurada'}`);
-          showDebugNotification(`Variável ${envVar}: ${status.exists ? 'Configurada' : 'Não configurada'}`, !status.exists);
+          const envStatus = status.exists ? 'Configurada' : 'Não configurada';
+          Debug.log(`- ${envVar}: ${envStatus}`);
+          showDebugNotification(`${envVar}: ${envStatus}`, !status.exists);
         }
       } catch (err) {
         Debug.error(`Erro ao verificar ambiente: ${err.message}`);
@@ -139,6 +150,7 @@
       document.getElementById('login-username').value = '';
       document.getElementById('login-password').value = '';
       Debug.clear();
+      Debug.log('Formulário de registro exibido');
     }
 
     function showLoginForm() {
@@ -148,6 +160,7 @@
       document.getElementById('register-username').value = '';
       document.getElementById('register-password').value = '';
       Debug.clear();
+      Debug.log('Formulário de login exibido');
     }
 
     async function register() {
@@ -193,7 +206,7 @@
         showLoginForm();
       } catch (err) {
         errorDiv.textContent = `Erro: ${err.message}`;
-        errorDiv.classList.add('hidden');
+        errorDiv.classList.remove('hidden');
         Debug.error(`Erro ao registrar: ${err.message}`);
       }
     }

@@ -15,32 +15,26 @@ const RETRY_INTERVAL_MS = 5000;
 
 async function connectToMongoDB() {
     if (mongoose.connection.readyState === 1) {
-        debug('MongoDB already connected (readyState: %d)', mongoose.connection.readyState);
+        debug('MongoDB already connected');
         return true;
     }
     try {
         debug('Attempting MongoDB connection (%d/%d)', connectionAttempts + 1, MAX_RETRIES);
-        await mongoose.connect(process.env.MONGODB_URI, {
+        await mongoose.connect(`${process.env.MONGODB_URI}/loganccs`, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            dbName: 'loganccs',
             serverSelectionTimeoutMS: 10000,
             maxPoolSize: 10
         });
-        debug('Connected to MongoDB successfully');
+        debug('Connected to MongoDB loganccs database');
         connectionAttempts = 0;
         return true;
     } catch (err) {
         connectionAttempts++;
         debug('MongoDB connection failed: %s', err.message);
-        if (err.name === 'MongoServerSelectionError') {
-            debug('Possible causes: Invalid MONGODB_URI, network restrictions, or IP not whitelisted in MongoDB Atlas');
-        } else if (err.name === 'MongoNetworkError') {
-            debug('Network issue detected. Check internet connectivity or MongoDB Atlas status');
-        }
         if (connectionAttempts < MAX_RETRIES) {
             const delay = RETRY_INTERVAL_MS * Math.pow(2, connectionAttempts);
-            debug('Retrying MongoDB connection in %dms (%d/%d)', delay, connectionAttempts, MAX_RETRIES);
+            debug('Retrying MongoDB connection in %dms', delay);
             await new Promise(resolve => setTimeout(resolve, delay));
             return connectToMongoDB();
         } else {
@@ -105,10 +99,8 @@ app.get('/api/check-env', async (req, res) => {
         const collections = await checkCollections();
         const environment = {
             MONGODB_URI: { exists: !!process.env.MONGODB_URI },
-            ADMIN_PASSWORD: { exists: !!process.env.ADMIN_PASSWORD },
-            NODE_VERSION: { exists: !!process.env.NODE_VERSION }
+            ADMIN_PASSWORD: { exists: !!process.env.ADMIN_PASSWORD }
         };
-        debug('Environment check result: %O', { mongodbConnected, collections, environment });
         res.json({ mongodbConnected, collections, environment });
     } catch (err) {
         debug('Error checking environment: %s', err.message);
@@ -127,7 +119,7 @@ app.post('/api/register', [
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Validation errors: %O', errors.array());
+        debug('Validation errors');
         return res.status(400).json({ error: 'Dados inválidos' });
     }
     const { username, password } = req.body;
@@ -141,7 +133,7 @@ app.post('/api/register', [
         const isAdmin = username === 'LVz' && password === process.env.ADMIN_PASSWORD;
         const user = new User({ username, password: hashedPassword, isAdmin });
         await user.save();
-        debug('User registered: %s, isAdmin: %s', username, isAdmin);
+        debug('User registered: %s', username);
         res.status(201).json({ message: 'Usuário registrado' });
     } catch (err) {
         debug('Error registering user: %s', err.message);
@@ -160,22 +152,22 @@ app.post('/api/login', [
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Validation errors: %O', errors.array());
+        debug('Validation errors');
         return res.status(400).json({ error: 'Dados inválidos' });
     }
     const { username, password } = req.body;
     try {
         const user = await User.findOne({ username });
         if (!user) {
-            debug('Login failed: User not found: %s', username);
+            debug('Login failed: User not found');
             return res.status(401).json({ error: 'Credenciais inválidas' });
         }
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            debug('Login failed: Invalid password for %s', username);
+            debug('Login failed: Invalid password');
             return res.status(401).json({ error: 'Credenciais inválidas' });
         }
-        debug('Login successful: %s, isAdmin: %s', username, user.isAdmin);
+        debug('Login successful: %s', username);
         res.json({ userId: user._id, username: user.username, is_admin: user.isAdmin });
     } catch (err) {
         debug('Error logging in: %s', err.message);
@@ -193,7 +185,7 @@ app.get('/api/user', [
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Validation errors: %O', errors.array());
+        debug('Validation errors');
         return res.status(400).json({ error: 'ID de usuário inválido' });
     }
     try {
@@ -219,13 +211,13 @@ app.get('/api/users', [
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Validation errors: %O', errors.array());
+        debug('Validation errors');
         return res.status(400).json({ error: 'ID de usuário inválido' });
     }
     try {
         const admin = await User.findById(req.query.userId);
         if (!admin || !admin.isAdmin) {
-            debug('Access denied: Not admin or user not found: %s', req.query.userId);
+            debug('Access denied: Not admin');
             return res.status(403).json({ error: 'Acesso negado' });
         }
         const users = await User.find({}, 'username isAdmin balance createdAt');
@@ -247,13 +239,13 @@ app.delete('/api/delete-user', [
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Validation errors: %O', errors.array());
+        debug('Validation errors');
         return res.status(400).json({ error: 'ID de usuário inválido' });
     }
     try {
         const admin = await User.findById(req.query.userId);
         if (!admin || !admin.isAdmin) {
-            debug('Access denied: Not admin or user not found: %s', req.query.userId);
+            debug('Access denied: Not admin');
             return res.status(403).json({ error: 'Acesso negado' });
         }
         const target = await User.findById(req.query.targetId);
@@ -284,7 +276,7 @@ app.get('/api/get-card-prices', [
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Validation errors: %O', errors.array());
+        debug('Validation errors');
         return res.status(400).json({ error: 'ID de usuário inválido' });
     }
     try {
@@ -320,13 +312,13 @@ app.post('/api/set-card-prices', [
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Validation errors: %O', errors.array());
+        debug('Validation errors');
         return res.status(400).json({ error: 'Dados inválidos' });
     }
     try {
         const admin = await User.findById(req.query.userId);
         if (!admin || !admin.isAdmin) {
-            debug('Access denied: Not admin or user not found: %s', req.query.userId);
+            debug('Access denied: Not admin');
             return res.status(403).json({ error: 'Acesso negado' });
         }
         const { prices } = req.body;
@@ -356,7 +348,7 @@ app.post('/api/buy-card', [
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Validation errors: %O', errors.array());
+        debug('Validation errors');
         return res.status(400).json({ error: 'Dados inválidos' });
     }
     try {
@@ -371,7 +363,7 @@ app.post('/api/buy-card', [
             return res.status(404).json({ error: 'Cartão não encontrado' });
         }
         if (user.balance < card.price) {
-            debug('Insufficient balance for %s: %d < %d', user.username, user.balance, card.price);
+            debug('Insufficient balance for %s', user.username);
             return res.status(400).json({ error: 'Saldo insuficiente' });
         }
         user.balance -= card.price;

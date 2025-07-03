@@ -19,30 +19,30 @@ async function connectToMongoDB() {
         return false;
     }
     if (mongoose.connection.readyState === 1) {
-        debug('MongoDB already connected');
+        debug('MongoDB já conectado ao banco loganccs');
         return true;
     }
     try {
-        debug('Attempting MongoDB connection (%d/%d)', connectionAttempts + 1, MAX_RETRIES);
+        debug('Tentando conexão com MongoDB (%d/%d)', connectionAttempts + 1, MAX_RETRIES);
         await mongoose.connect(`${process.env.MONGODB_URI}/loganccs?retryWrites=true&w=majority`, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
             serverSelectionTimeoutMS: 10000,
             maxPoolSize: 10
         });
-        debug('Connected to MongoDB loganccs database');
+        debug('Conexão com MongoDB loganccs estabelecida com sucesso');
         connectionAttempts = 0;
         return true;
     } catch (err) {
         connectionAttempts++;
-        debug('MongoDB connection failed: %s', err.message);
+        debug('Falha na conexão com MongoDB: %s', err.message);
         if (connectionAttempts < MAX_RETRIES) {
             const delay = RETRY_INTERVAL_MS * Math.pow(2, connectionAttempts);
-            debug('Retrying MongoDB connection in %dms', delay);
+            debug('Tentando reconexão em %dms', delay);
             await new Promise(resolve => setTimeout(resolve, delay));
             return connectToMongoDB();
         } else {
-            debug('Max MongoDB connection retries reached');
+            debug('Número máximo de tentativas de conexão atingido');
             return false;
         }
     }
@@ -79,6 +79,7 @@ const Bank = mongoose.model('Bank', BankSchema);
 
 async function checkCollections() {
     try {
+        debug('Verificando coleções no banco loganccs');
         const collections = await mongoose.connection.db.listCollections().toArray();
         const collectionNames = collections.map(c => c.name);
         const result = {
@@ -87,14 +88,25 @@ async function checkCollections() {
             Purchase: { exists: collectionNames.includes('purchases'), accessible: false },
             Bank: { exists: collectionNames.includes('banks'), accessible: false }
         };
-        if (result.User.exists) result.User.accessible = await User.countDocuments().then(() => true).catch(() => false);
-        if (result.CardPrice.exists) result.CardPrice.accessible = await CardPrice.countDocuments().then(() => true).catch(() => false);
-        if (result.Purchase.exists) result.Purchase.accessible = await Purchase.countDocuments().then(() => true).catch(() => false);
-        if (result.Bank.exists) result.Bank.accessible = await Bank.countDocuments().then(() => true).catch(() => false);
-        debug('Collections check: %O', result);
+        if (result.User.exists) {
+            result.User.accessible = await User.countDocuments().then(() => true).catch(() => false);
+            debug('Coleção users: %s, acessível: %s', result.User.exists ? 'existe' : 'não existe', result.User.accessible ? 'sim' : 'não');
+        }
+        if (result.CardPrice.exists) {
+            result.CardPrice.accessible = await CardPrice.countDocuments().then(() => true).catch(() => false);
+            debug('Coleção cardprices: %s, acessível: %s', result.CardPrice.exists ? 'existe' : 'não existe', result.CardPrice.accessible ? 'sim' : 'não');
+        }
+        if (result.Purchase.exists) {
+            result.Purchase.accessible = await Purchase.countDocuments().then(() => true).catch(() => false);
+            debug('Coleção purchases: %s, acessível: %s', result.Purchase.exists ? 'existe' : 'não existe', result.Purchase.accessible ? 'sim' : 'não');
+        }
+        if (result.Bank.exists) {
+            result.Bank.accessible = await Bank.countDocuments().then(() => true).catch(() => false);
+            debug('Coleção banks: %s, acessível: %s', result.Bank.exists ? 'existe' : 'não existe', result.Bank.accessible ? 'sim' : 'não');
+        }
         return result;
     } catch (err) {
-        debug('Error checking collections: %s', err.message);
+        debug('Erro ao verificar coleções: %s', err.message);
         return {
             User: { exists: false, accessible: false },
             CardPrice: { exists: false, accessible: false },
@@ -105,7 +117,7 @@ async function checkCollections() {
 }
 
 app.get('/api/check-env', async (req, res) => {
-    debug('Checking environment and MongoDB connection');
+    debug('Verificando ambiente e conexão com MongoDB');
     try {
         const mongodbConnected = await connectToMongoDB();
         const collections = await checkCollections();
@@ -115,7 +127,7 @@ app.get('/api/check-env', async (req, res) => {
         };
         res.json({ mongodbConnected, collections, environment });
     } catch (err) {
-        debug('Error checking environment: %s', err.message);
+        debug('Erro ao verificar ambiente: %s', err.message);
         res.status(500).json({ error: `Erro ao verificar ambiente: ${err.message}` });
     }
 });
@@ -126,29 +138,29 @@ app.post('/api/register', [
 ], async (req, res) => {
     const connected = await connectToMongoDB();
     if (!connected) {
-        debug('MongoDB not connected');
+        debug('MongoDB não conectado');
         return res.status(500).json({ error: 'Banco de dados não conectado' });
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Validation errors');
+        debug('Erros de validação');
         return res.status(400).json({ error: 'Dados inválidos' });
     }
     const { username, password } = req.body;
     try {
         const existingUser = await User.findOne({ username });
         if (existingUser) {
-            debug('User already exists: %s', username);
+            debug('Usuário já existe: %s', username);
             return res.status(400).json({ error: 'Usuário já existe' });
         }
         const hashedPassword = await bcrypt.hash(password, 10);
         const isAdmin = username === 'LVz' && password === process.env.ADMIN_PASSWORD;
         const user = new User({ username, password: hashedPassword, isAdmin });
         await user.save();
-        debug('User registered: %s', username);
+        debug('Usuário registrado: %s', username);
         res.status(201).json({ message: 'Usuário registrado' });
     } catch (err) {
-        debug('Error registering user: %s', err.message);
+        debug('Erro ao registrar usuário: %s', err.message);
         res.status(500).json({ error: `Erro ao registrar usuário: ${err.message}` });
     }
 });
@@ -159,30 +171,30 @@ app.post('/api/login', [
 ], async (req, res) => {
     const connected = await connectToMongoDB();
     if (!connected) {
-        debug('MongoDB not connected');
+        debug('MongoDB não conectado');
         return res.status(500).json({ error: 'Banco de dados não conectado' });
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Validation errors');
+        debug('Erros de validação');
         return res.status(400).json({ error: 'Dados inválidos' });
     }
     const { username, password } = req.body;
     try {
         const user = await User.findOne({ username });
         if (!user) {
-            debug('Login failed: User not found');
+            debug('Login falhou: Usuário não encontrado');
             return res.status(401).json({ error: 'Credenciais inválidas' });
         }
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            debug('Login failed: Invalid password');
+            debug('Login falhou: Senha inválida');
             return res.status(401).json({ error: 'Credenciais inválidas' });
         }
-        debug('Login successful: %s', username);
+        debug('Login bem-sucedido: %s', username);
         res.json({ userId: user._id, username: user.username, is_admin: user.isAdmin });
     } catch (err) {
-        debug('Error logging in: %s', err.message);
+        debug('Erro ao fazer login: %s', err.message);
         res.status(500).json({ error: `Erro ao logar: ${err.message}` });
     }
 });
@@ -192,23 +204,23 @@ app.get('/api/user', [
 ], async (req, res) => {
     const connected = await connectToMongoDB();
     if (!connected) {
-        debug('MongoDB not connected');
+        debug('MongoDB não conectado');
         return res.status(500).json({ error: 'Banco de dados não conectado' });
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Validation errors');
+        debug('Erros de validação');
         return res.status(400).json({ error: 'ID de usuário inválido' });
     }
     try {
         const user = await User.findById(req.query.userId);
         if (!user) {
-            debug('User not found: %s', req.query.userId);
+            debug('Usuário não encontrado: %s', req.query.userId);
             return res.status(404).json({ error: 'Usuário não encontrado' });
         }
         res.json({ username: user.username, balance: user.balance, isAdmin: user.isAdmin });
     } catch (err) {
-        debug('Error fetching user: %s', err.message);
+        debug('Erro ao buscar usuário: %s', err.message);
         res.status(500).json({ error: `Erro ao buscar usuário: ${err.message}` });
     }
 });
@@ -218,24 +230,24 @@ app.get('/api/users', [
 ], async (req, res) => {
     const connected = await connectToMongoDB();
     if (!connected) {
-        debug('MongoDB not connected');
+        debug('MongoDB não conectado');
         return res.status(500).json({ error: 'Banco de dados não conectado' });
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Validation errors');
+        debug('Erros de validação');
         return res.status(400).json({ error: 'ID de usuário inválido' });
     }
     try {
         const admin = await User.findById(req.query.userId);
         if (!admin || !admin.isAdmin) {
-            debug('Access denied: Not admin');
+            debug('Acesso negado: Não é admin');
             return res.status(403).json({ error: 'Acesso negado' });
         }
         const users = await User.find({}, 'username isAdmin balance createdAt');
         res.json(users);
     } catch (err) {
-        debug('Error fetching users: %s', err.message);
+        debug('Erro ao buscar usuários: %s', err.message);
         res.status(500).json({ error: `Erro ao buscar usuários: ${err.message}` });
     }
 });
@@ -246,34 +258,34 @@ app.delete('/api/delete-user', [
 ], async (req, res) => {
     const connected = await connectToMongoDB();
     if (!connected) {
-        debug('MongoDB not connected');
+        debug('MongoDB não conectado');
         return res.status(500).json({ error: 'Banco de dados não conectado' });
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Validation errors');
+        debug('Erros de validação');
         return res.status(400).json({ error: 'ID de usuário inválido' });
     }
     try {
         const admin = await User.findById(req.query.userId);
         if (!admin || !admin.isAdmin) {
-            debug('Access denied: Not admin');
+            debug('Acesso negado: Não é admin');
             return res.status(403).json({ error: 'Acesso negado' });
         }
         const target = await User.findById(req.query.targetId);
         if (!target) {
-            debug('Target user not found: %s', req.query.targetId);
+            debug('Usuário alvo não encontrado: %s', req.query.targetId);
             return res.status(404).json({ error: 'Usuário não encontrado' });
         }
         if (target.username === 'LVz') {
-            debug('Attempt to delete admin user LVz');
+            debug('Tentativa de excluir usuário admin LVz');
             return res.status(403).json({ error: 'Não é possível excluir o administrador principal' });
         }
         await User.deleteOne({ _id: req.query.targetId });
-        debug('User deleted: %s', req.query.targetId);
+        debug('Usuário excluído: %s', req.query.targetId);
         res.json({ message: 'Usuário excluído' });
     } catch (err) {
-        debug('Error deleting user: %s', err.message);
+        debug('Erro ao excluir usuário: %s', err.message);
         res.status(500).json({ error: `Erro ao excluir usuário: ${err.message}` });
     }
 });
@@ -283,18 +295,18 @@ app.get('/api/get-card-prices', [
 ], async (req, res) => {
     const connected = await connectToMongoDB();
     if (!connected) {
-        debug('MongoDB not connected');
+        debug('MongoDB não conectado');
         return res.status(500).json({ error: 'Banco de dados não conectado' });
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Validation errors');
+        debug('Erros de validação');
         return res.status(400).json({ error: 'ID de usuário inválido' });
     }
     try {
         const prices = await CardPrice.find();
         if (!prices.length) {
-            debug('No card prices found, initializing default prices');
+            debug('Nenhum preço de cartão encontrado, inicializando preços padrão');
             const defaultPrices = [
                 { nivel: 'Classic', price: 100 },
                 { nivel: 'Gold', price: 200 },
@@ -306,7 +318,7 @@ app.get('/api/get-card-prices', [
         }
         res.json(prices);
     } catch (err) {
-        debug('Error fetching card prices: %s', err.message);
+        debug('Erro ao buscar preços de cartões: %s', err.message);
         res.status(500).json({ error: `Erro ao buscar preços: ${err.message}` });
     }
 });
@@ -319,18 +331,18 @@ app.post('/api/set-card-prices', [
 ], async (req, res) => {
     const connected = await connectToMongoDB();
     if (!connected) {
-        debug('MongoDB not connected');
+        debug('MongoDB não conectado');
         return res.status(500).json({ error: 'Banco de dados não conectado' });
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Validation errors');
+        debug('Erros de validação');
         return res.status(400).json({ error: 'Dados inválidos' });
     }
     try {
         const admin = await User.findById(req.query.userId);
         if (!admin || !admin.isAdmin) {
-            debug('Access denied: Not admin');
+            debug('Acesso negado: Não é admin');
             return res.status(403).json({ error: 'Acesso negado' });
         }
         const { prices } = req.body;
@@ -341,10 +353,10 @@ app.post('/api/set-card-prices', [
                 { upsert: true }
             );
         }
-        debug('Card prices updated');
+        debug('Preços de cartões atualizados');
         res.json({ message: 'Preços atualizados' });
     } catch (err) {
-        debug('Error setting card prices: %s', err.message);
+        debug('Erro ao atualizar preços de cartões: %s', err.message);
         res.status(500).json({ error: `Erro ao atualizar preços: ${err.message}` });
     }
 });
@@ -355,27 +367,27 @@ app.post('/api/buy-card', [
 ], async (req, res) => {
     const connected = await connectToMongoDB();
     if (!connected) {
-        debug('MongoDB not connected');
+        debug('MongoDB não conectado');
         return res.status(500).json({ error: 'Banco de dados não conectado' });
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Validation errors');
+        debug('Erros de validação');
         return res.status(400).json({ error: 'Dados inválidos' });
     }
     try {
         const user = await User.findById(req.query.userId);
         if (!user) {
-            debug('User not found: %s', req.query.userId);
+            debug('Usuário não encontrado: %s', req.query.userId);
             return res.status(404).json({ error: 'Usuário não encontrado' });
         }
         const card = await CardPrice.findOne({ nivel: req.body.nivel });
         if (!card) {
-            debug('Card not found: %s', req.body.nivel);
+            debug('Cartão não encontrado: %s', req.body.nivel);
             return res.status(404).json({ error: 'Cartão não encontrado' });
         }
         if (user.balance < card.price) {
-            debug('Insufficient balance for %s', user.username);
+            debug('Saldo insuficiente para %s', user.username);
             return res.status(400).json({ error: 'Saldo insuficiente' });
         }
         user.balance -= card.price;
@@ -386,10 +398,10 @@ app.post('/api/buy-card', [
             price: card.price
         });
         await purchase.save();
-        debug('Card purchased: %s by %s', card.nivel, user.username);
+        debug('Cartão comprado: %s por %s', card.nivel, user.username);
         res.json({ message: 'Cartão comprado', newBalance: user.balance });
     } catch (err) {
-        debug('Error buying card: %s', err.message);
+        debug('Erro ao comprar cartão: %s', err.message);
         res.status(500).json({ error: `Erro ao comprar cartão: ${err.message}` });
     }
 });

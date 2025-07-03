@@ -1,208 +1,256 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LOGAN CC's - Login</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <style>
-    #debug { position: fixed; bottom: 4rem; left: 1rem; background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; max-width: 400px; max-height: 300px; overflow-y: auto; z-index: 1000; font-size: 0.75rem; }
-    #toggleDebug { position: fixed; bottom: 1rem; left: 1rem; background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer; z-index: 1001; }
-    .debug-info { color: #10b981; }
-    .debug-warn { color: #f59e0b; }
-    .debug-error { color: #ef4444; }
-    .debug-success { color: #10b981; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOGAN CC's - Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" media="print" onload="this.media='all'">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.0/purify.min.js" defer></script>
+    <script src="/utils.js" defer></script>
+    <script src="/debug.js" defer></script>
+    <style>
+        body {
+            transition: background-color 0.3s, color 0.3s;
+            font-family: 'Inter', sans-serif;
+        }
+        body.light {
+            background: #f3f4f6;
+            color: #1f2937;
+        }
+        body.light .bg-gray-900 { background: #f3f4f6; }
+        body.light .bg-gray-800 { background: #e5e7eb; }
+        body.light .text-gray-100 { color: #1f2937; }
+        body.light .text-gray-300 { color: #4b5563; }
+        body.light .bg-gray-700 { background: #d1d5db; }
+        body.light .border-gray-600 { border-color: #9ca3af; }
+        #globalLoader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            visibility: hidden;
+        }
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid #10b981;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        body.light .spinner {
+            border-color: rgba(0,0,0,0.3);
+            border-top-color: #059669;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #notifications {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 10000;
+            max-width: 340px;
+        }
+        .notification {
+            background: #1f2937;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideIn 0.3s ease-out;
+        }
+        .notification-error { background: #ef4444; }
+        .notification-success { background: #10b981; }
+        body.light .notification { background: #4b5563; color: white; }
+        body.light .notification-error { background: #f87171; }
+        body.light .notification-success { background: #34d399; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .navbar {
+            backdrop-filter: blur(12px);
+            background: rgba(31, 41, 55, 0.9);
+        }
+        body.light .navbar {
+            background: rgba(243, 244, 246, 0.9);
+        }
+        .action-button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .action-button:disabled {
+            background: #6b7280;
+            cursor: not-allowed;
+        }
+        .login-button { background: #10b981; }
+        .login-button:hover { background: #059669; }
+        .register-button { background: #3b82f6; }
+        .register-button:hover { background: #2563eb; }
+    </style>
 </head>
-<body class="min-h-screen flex items-center justify-center text-gray-100 bg-gray-900">
-  <div class="w-full max-w-md p-8 bg-gray-800 rounded-lg shadow-lg">
-    <h1 class="text-3xl font-bold text-center mb-6">LOGAN CC's</h1>
-    <div id="login-form">
-      <h2 class="text-xl font-semibold mb-4">Login</h2>
-      <div class="mb-4">
-        <label for="login-username" class="block text-sm font-medium mb-1">Usuário</label>
-        <input id="login-username" type="text" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite seu usuário" oninput="restrictInput(this)">
-      </div>
-      <div class="mb-6">
-        <label for="login-password" class="block text-sm font-medium mb-1">Senha</label>
-        <input id="login-password" type="password" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite sua senha">
-      </div>
-      <p id="login-error" class="text-red-500 text-sm hidden" role="alert"></p>
-      <button onclick="login()" class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-md text-white mb-4">Entrar</button>
-      <p class="text-center text-sm">Não tem uma conta? <a href="#" onclick="showRegisterForm()" class="text-blue-400 hover:underline">Registre-se</a></p>
-    </div>
-    <div id="register-form" class="hidden">
-      <h2 class="text-xl font-semibold mb-4">Registro</h2>
-      <div class="mb-4">
-        <label for="register-username" class="block text-sm font-medium mb-1">Usuário</label>
-        <input id="register-username" type="text" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Escolha um usuário" oninput="restrictInput(this)">
-      </div>
-      <div class="mb-6">
-        <label for="register-password" class="block text-sm font-medium mb-1">Senha</label>
-        <input id="register-password" type="password" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Escolha uma senha">
-      </div>
-      <p id="register-error" class="text-red-500 text-sm hidden" role="alert"></p>
-      <button onclick="register()" class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-md text-white mb-4">Registrar</button>
-      <p class="text-center text-sm">Já tem uma conta? <a href="#" onclick="showLoginForm()" class="text-blue-400 hover:underline">Faça login</a></p>
-    </div>
-  </div>
-  <button id="toggleDebug" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg fixed bottom-4 left-4" aria-label="Alternar debug">Esconder Debug</button>
-  <div id="debug" aria-live="assertive"><div id="debug-output"></div></div>
-  <script src="/utils.js"></script>
-  <script src="/debug.js"></script>
-  <script>
-    async function checkEnvironment() {
-      Debug.log('Verificando ambiente e conexão com MongoDB');
-      try {
-        const response = await fetchWithTimeout('/api/check-env');
-        const text = await response.text();
-        Debug.log(`Resposta /api/check-env: Status ${response.status}`, { response: text });
-        const data = JSON.parse(text);
-        if (!response.ok) {
-          Debug.error(`Erro ao verificar ambiente: ${data.error || 'Desconhecido'}`);
-          showDebugNotification(`Erro: ${data.error || 'Falha na verificação do ambiente'}`, true);
-          return;
-        }
-        Debug.log(`MongoDB conectado: ${data.mongodbConnected ? 'Sim' : 'Não'}`);
-        if (!data.mongodbConnected) {
-          Debug.error('MongoDB não conectado. Possíveis causas: MONGODB_URI inválida, IP não permitido no MongoDB Atlas, ou banco de dados indisponível.');
-          showDebugNotification('MongoDB não conectado. Verifique MONGODB_URI e permissões no MongoDB Atlas.', true);
-        } else {
-          showDebugNotification('MongoDB conectado com sucesso.', false);
-        }
-        for (const [collection, status] of Object.entries(data.collections)) {
-          Debug.log(`Coleção ${collection}: ${status.exists ? 'Acessível' : 'Inacessível'}`);
-          showDebugNotification(`Coleção ${collection}: ${status.exists ? 'Acessível' : 'Inacessível'}`, !status.exists);
-        }
-        for (const [envVar, status] of Object.entries(data.environment)) {
-          Debug.log(`Variável ${envVar}: ${status.exists ? 'Configurada' : 'Não configurada'}`);
-          showDebugNotification(`Variável ${envVar}: ${status.exists ? 'Configurada' : 'Não configurada'}`, !status.exists);
-        }
-      } catch (err) {
-        Debug.error(`Erro ao verificar ambiente: ${err.message}`);
-        showDebugNotification(`Erro ao verificar ambiente: ${err.message}. Verifique a conexão de rede e o Netlify Functions log.`, true);
-      }
-    }
+<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center">
+    <div id="globalLoader" aria-hidden="true"><div class="spinner"></div></div>
+    <div id="notifications" class="space-y-2" aria-live="polite"></div>
+    <main class="container mx-auto p-6 max-w-md">
+        <div class="bg-gray-800 p-8 rounded-lg shadow-lg">
+            <h1 class="text-3xl font-bold text-green-500 mb-6 flex items-center justify-center">
+                <i class="fas fa-credit-card mr-2"></i> LOGAN CC's
+            </h1>
+            <form id="authForm" class="space-y-4">
+                <div>
+                    <label for="username" class="block text-sm font-medium">Usuário</label>
+                    <input type="text" id="username" name="username" class="mt-1 w-full p-2 bg-gray-700 border-b border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Digite seu usuário" aria-label="Nome de usuário" required pattern="[a-zA-Z0-9]{3,20}">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium">Senha</label>
+                    <input type="password" id="password" name="password" class="mt-1 w-full p-2 bg-gray-700 border-b border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Digite sua senha" aria-label="Senha" required minlength="6">
+                </div>
+                <div class="flex justify-between gap-2">
+                    <button type="button" id="loginButton" class="action-button login-button" onclick="login()">
+                        <i class="fas fa-sign-in-alt"></i> Entrar
+                    </button>
+                    <button type="button" id="registerButton" class="action-button register-button" onclick="register()">
+                        <i class="fas fa-user-plus"></i> Registrar
+                    </button>
+                </div>
+            </form>
+            <button id="themeToggle" class="mt-4 text-gray-300 hover:text-green-500" aria-label="Alternar tema claro/escuro">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+    </main>
+    <script>
+        const isDevMode = typeof process !== 'undefined' && process.env.NODE_ENV !== 'production';
 
-    function showRegisterForm() {
-      document.getElementById('login-form').classList.add('hidden');
-      document.getElementById('register-form').classList.remove('hidden');
-      document.getElementById('login-error').classList.add('hidden');
-      document.getElementById('login-username').value = '';
-      document.getElementById('login-password').value = '';
-      Debug.clear();
-    }
+        function showLoader(show) {
+            const loader = document.getElementById('globalLoader');
+            loader.style.visibility = show ? 'visible' : 'hidden';
+        }
 
-    function showLoginForm() {
-      document.getElementById('register-form').classList.add('hidden');
-      document.getElementById('login-form').classList.remove('hidden');
-      document.getElementById('register-error').classList.add('hidden');
-      document.getElementById('register-username').value = '';
-      document.getElementById('register-password').value = '';
-      Debug.clear();
-    }
+        async function checkAuth() {
+            const userId = sessionStorage.getItem('userId');
+            if (!userId) {
+                window.location.href = '/';
+                return false;
+            }
+            try {
+                const response = await fetchWithTimeout(`/api/user?userId=${userId}`, {});
+                const data = await response.json();
+                if (data.isAdmin) {
+                    window.location.href = '/dashboard';
+                } else {
+                    window.location.href = '/shop';
+                }
+                return true;
+            } catch (err) {
+                Debug.error('Erro ao verificar autenticação: %s', err.message);
+                showNotification('Sessão inválida. Faça login novamente.', true);
+                sessionStorage.clear();
+                return false;
+            }
+        }
 
-    async function register() {
-      const username = document.getElementById('register-username').value.trim();
-      const password = document.getElementById('register-password').value;
-      const errorDiv = document.getElementById('register-error');
-      errorDiv.classList.add('hidden');
-      Debug.clear();
-      Debug.log(`Tentando registrar usuário: ${username}`);
-      if (!username || username.length < 3 || username.length > 20) {
-        errorDiv.textContent = 'Usuário: 3-20 caracteres alfanuméricos';
-        errorDiv.classList.remove('hidden');
-        Debug.error('Erro de validação: Usuário inválido');
-        return;
-      }
-      if (!/^[a-zA-Z0-9]+$/.test(username)) {
-        errorDiv.textContent = 'Usuário: apenas letras e números';
-        errorDiv.classList.remove('hidden');
-        Debug.error('Erro de validação: Caracteres inválidos no usuário');
-        return;
-      }
-      if (!password || password.length < 6) {
-        errorDiv.textContent = 'Senha: mínimo 6 caracteres';
-        errorDiv.classList.remove('hidden');
-        Debug.error('Erro de validação: Senha inválida');
-        return;
-      }
-      try {
-        const response = await fetchWithTimeout('/api/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
+        async function login() {
+            const loginButton = document.getElementById('loginButton');
+            loginButton.disabled = true;
+            showLoader(true);
+            try {
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                if (!/^[a-zA-Z0-9]{3,20}$/.test(username)) {
+                    throw new Error('Usuário deve ter 3-20 caracteres alfanuméricos');
+                }
+                if (password.length < 6) {
+                    throw new Error('Senha deve ter no mínimo 6 caracteres');
+                }
+                const response = await fetchWithTimeout('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+                sessionStorage.setItem('userId', data.userId);
+                sessionStorage.setItem('username', data.username);
+                showNotification('Login bem-sucedido!', false);
+                if (data.is_admin) {
+                    window.location.href = '/dashboard';
+                } else {
+                    window.location.href = '/shop';
+                }
+            } catch (err) {
+                Debug.error('Erro ao logar: %s', err.message);
+                showNotification(`Erro ao logar: ${DOMPurify.sanitize(err.message)}`, true);
+            } finally {
+                showLoader(false);
+                loginButton.disabled = false;
+            }
+        }
+
+        async function register() {
+            const registerButton = document.getElementById('registerButton');
+            registerButton.disabled = true;
+            showLoader(true);
+            try {
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                if (!/^[a-zA-Z0-9]{3,20}$/.test(username)) {
+                    throw new Error('Usuário deve ter 3-20 caracteres alfanuméricos');
+                }
+                if (password.length < 6) {
+                    throw new Error('Senha deve ter no mínimo 6 caracteres');
+                }
+                const response = await fetchWithTimeout('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+                sessionStorage.setItem('userId', data.userId);
+                sessionStorage.setItem('username', data.username);
+                showNotification('Registro bem-sucedido! Redirecionando para a loja...', false);
+                setTimeout(() => { window.location.href = '/shop'; }, 1500);
+            } catch (err) {
+                Debug.error('Erro ao registrar: %s', err.message);
+                showNotification(`Erro ao registrar: ${DOMPurify.sanitize(err.message)}`, true);
+            } finally {
+                showLoader(false);
+                registerButton.disabled = false;
+            }
+        }
+
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            const isLight = document.body.classList.toggle('light');
+            const icon = isLight ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+            document.getElementById('themeToggle').innerHTML = icon;
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
         });
-        const text = await response.text();
-        Debug.log(`Resposta /api/register: Status ${response.status}`, { response: text });
-        const data = JSON.parse(text);
-        if (!response.ok) {
-          errorDiv.textContent = data.error || 'Erro ao registrar';
-          errorDiv.classList.remove('hidden');
-          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
-          return;
-        }
-        alert('Registro bem-sucedido! Faça login.');
-        Debug.log('Registro bem-sucedido');
-        showLoginForm();
-      } catch (err) {
-        errorDiv.textContent = `Erro: ${err.message}`;
-        errorDiv.classList.remove('hidden');
-        Debug.error(`Erro ao registrar: ${err.message}`);
-      }
-    }
 
-    async function login() {
-      const username = document.getElementById('login-username').value.trim();
-      const password = document.getElementById('login-password').value;
-      const errorDiv = document.getElementById('login-error');
-      errorDiv.classList.add('hidden');
-      Debug.clear();
-      Debug.log(`Tentando logar usuário: ${username}`);
-      if (!username || !password) {
-        errorDiv.textContent = 'Preencha usuário e senha';
-        errorDiv.classList.remove('hidden');
-        Debug.error('Erro de validação: Campos vazios');
-        return;
-      }
-      try {
-        const response = await fetchWithTimeout('/api/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            if (savedTheme === 'light') {
+                document.body.classList.add('light');
+                document.getElementById('themeToggle').innerHTML = '<i class="fas fa-sun"></i>';
+            }
+            checkAuth();
         });
-        const text = await response.text();
-        Debug.log(`Resposta /api/login: Status ${response.status}`, { response: text });
-        const data = JSON.parse(text);
-        if (!response.ok) {
-          errorDiv.textContent = data.error || 'Erro ao logar';
-          errorDiv.classList.remove('hidden');
-          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
-          return;
-        }
-        localStorage.setItem('userId', data.userId);
-        localStorage.setItem('username', data.username);
-        Debug.log(`Login bem-sucedido: ${data.username}, isAdmin: ${data.is_admin}`);
-        const redirect = data.is_admin ? '/dashboard' : '/shop';
-        window.location.href = redirect;
-      } catch (err) {
-        errorDiv.textContent = `Erro: ${err.message}`;
-        errorDiv.classList.remove('hidden');
-        Debug.error(`Erro ao logar: ${err.message}`);
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      Debug.log('DOM carregado');
-      const debugDiv = document.getElementById('debug');
-      debugDiv.style.display = 'block';
-      document.getElementById('toggleDebug').addEventListener('click', () => {
-        debugDiv.style.display = debugDiv.style.display === 'none' ? 'block' : 'none';
-        document.getElementById('toggleDebug').textContent = debugDiv.style.display === 'none' ? 'Mostrar Debug' : 'Esconder Debug';
-        Debug.log(`Debug ${debugDiv.style.display === 'none' ? 'desativado' : 'ativado'}`);
-      });
-      checkEnvironment();
-    });
-  </script>
+    </script>
 </body>
 </html>

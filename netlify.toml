@@ -1,7 +1,10 @@
 [build]
-  command = "npm run build"
-  publish = "public"
-  functions = "functions"
+  command = ""
+  publish = "."
+
+[functions]
+  directory = "functions"
+  node_bundler = "esbuild"
 
 [[redirects]]
   from = "/api/*"
@@ -10,13 +13,13 @@
   force = true
 
 [[redirects]]
-  from = "/shop"
-  to = "/shop.html"
+  from = "/dashboard"
+  to = "/dashboard.html"
   status = 200
 
 [[redirects]]
-  from = "/dashboard"
-  to = "/dashboard.html"
+  from = "/shop"
+  to = "/shop.html"
   status = 200
 
 [[redirects]]

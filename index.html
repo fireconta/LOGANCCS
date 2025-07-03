@@ -112,16 +112,15 @@
           showDebugNotification(`Erro: ${data.error || 'Falha na verificação do ambiente'}`, true);
           return;
         }
-        Debug.log(`MongoDB conectado: ${data.mongodbConnected ? 'Sim' : 'Não'}`);
+        Debug.log(`Status da conexão MongoDB: ${data.mongodbConnected ? 'Conectado' : 'Não conectado'}`);
+        showDebugNotification(`MongoDB: ${data.mongodbConnected ? 'Conectado' : 'Não conectado'}`, !data.mongodbConnected);
         if (!data.mongodbConnected) {
           Debug.error('MongoDB não conectado. Verifique MONGODB_URI e permissões no MongoDB Atlas.');
-          showDebugNotification('MongoDB não conectado. Verifique MONGODB_URI e permissões no MongoDB Atlas.', true);
-        } else {
-          showDebugNotification('MongoDB conectado com sucesso.', false);
+          showDebugNotification('MongoDB não conectado. Verifique MONGODB_URI e permissões.', true);
         }
         for (const [collection, status] of Object.entries(data.collections)) {
-          Debug.log(`Coleção ${collection}: ${status.exists ? 'Acessível' : 'Inacessível'}`);
-          showDebugNotification(`Coleção ${collection}: ${status.exists ? 'Acessível' : 'Inacessível'}`, !status.exists);
+          Debug.log(`Coleção ${collection}: ${status.exists && status.accessible ? 'Carregada' : 'Não carregada'}`);
+          showDebugNotification(`Coleção ${collection}: ${status.exists && status.accessible ? 'Carregada' : 'Não carregada'}`, !status.exists || !status.accessible);
         }
         for (const [envVar, status] of Object.entries(data.environment)) {
           Debug.log(`Variável ${envVar}: ${status.exists ? 'Configurada' : 'Não configurada'}`);
@@ -129,7 +128,7 @@
         }
       } catch (err) {
         Debug.error(`Erro ao verificar ambiente: ${err.message}`);
-        showDebugNotification(`Erro ao verificar ambiente: ${err.message}. Verifique a conexão de rede e o Netlify Functions log.`, true);
+        showDebugNotification(`Erro ao verificar ambiente: ${err.message}`, true);
       }
     }
 
@@ -189,12 +188,12 @@
           Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
           return;
         }
-        alert('Registro bem-sucedido! Faça login.');
+        showDebugNotification('Registro bem-sucedido! Faça login.', false);
         Debug.log('Registro bem-sucedido');
         showLoginForm();
       } catch (err) {
         errorDiv.textContent = `Erro: ${err.message}`;
-        errorDiv.classList.remove('hidden');
+        errorDiv.classList.add('hidden');
         Debug.error(`Erro ao registrar: ${err.message}`);
       }
     }
@@ -228,6 +227,7 @@
         localStorage.setItem('userId', data.userId);
         localStorage.setItem('username', data.username);
         Debug.log(`Login bem-sucedido: ${data.username}, isAdmin: ${data.is_admin}`);
+        showDebugNotification('Login bem-sucedido!', false);
         const redirect = data.is_admin ? '/dashboard' : '/shop';
         window.location.href = redirect;
       } catch (err) {

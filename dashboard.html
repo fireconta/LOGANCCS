@@ -43,6 +43,10 @@
             height: 40px;
             animation: spin 1s linear infinite;
         }
+        body.light .spinner {
+            border-color: rgba(0,0,0,0.3);
+            border-top-color: #059669;
+        }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -79,11 +83,15 @@
             backdrop-filter: blur(12px);
             background: rgba(31, 41, 55, 0.9);
         }
+        body.light .navbar {
+            background: rgba(243, 244, 246, 0.9);
+        }
         .tab-buttons {
             display: flex;
             border-bottom: 2px solid #4b5563;
             margin-bottom: 1.5rem;
         }
+        body.light .tab-buttons { border-bottom-color: #9ca3af; }
         .tab-button {
             padding: 0.75rem 1.5rem;
             font-weight: 600;
@@ -99,6 +107,8 @@
             color: #10b981;
             border-bottom: 2px solid #10b981;
         }
+        body.light .tab-button { color: #4b5563; }
+        body.light .tab-button:hover, body.light .tab-button.active { color: #059669; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .card-grid, .price-grid, .user-grid, .bank-grid {
@@ -157,7 +167,7 @@
             margin-bottom: 1.5rem;
         }
         body.light .filter-section { background: #e5e7eb; }
-        .filter-section select, filter-section input {
+        .filter-section select, .filter-section input {
             min-width: 160px;
             padding: 0.5rem;
             background: #374151;
@@ -224,11 +234,26 @@
             border-color: #10b981;
             outline: none;
         }
+        #serverStatus {
+            position: fixed;
+            top: 4.5rem;
+            right: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            z-index: 1000;
+            max-width: 340px;
+            background: #ef4444;
+            color: white;
+            display: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        body.light #serverStatus { background: #f87171; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen">
     <div id="globalLoader" aria-hidden="true"><div class="spinner"></div></div>
     <div id="notifications" class="space-y-2" aria-live="polite"></div>
+    <div id="serverStatus" aria-live="assertive"></div>
     <nav class="navbar sticky top-0 z-50 p-4 flex justify-between items-center">
         <h1 class="text-2xl font-bold text-green-500 flex items-center">
             <i class="fas fa-tachometer-alt mr-2" aria-hidden="true"></i> LOGAN CC's - Painel Admin
@@ -237,13 +262,13 @@
             <span id="usernameDisplay" class="text-gray-300 hover:text-green-500 flex items-center" aria-live="polite">
                 <i class="fas fa-user mr-2"></i> Carregando...
             </span>
-            <a href="/shop.html" class="text-gray-300 hover:text-green-500 flex items-center" aria-label="Loja">
+            <a href="/shop.html" class="text-gray-300 hover:text-green-500 flex items-center" aria-label="Ir para a Loja">
                 <i class="fas fa-store mr-1"></i> Loja
             </a>
-            <button id="logoutButton" class="text-gray-300 hover:text-green-500 flex items-center" aria-label="Sair">
+            <button id="logoutButton" class="text-gray-300 hover:text-green-500 flex items-center" aria-label="Sair do sistema">
                 <i class="fas fa-sign-out-alt mr-1"></i> Sair
             </button>
-            <button id="themeToggle" class="text-gray-300 hover:text-green-500" aria-label="Alternar tema">
+            <button id="themeToggle" class="text-gray-300 hover:text-green-500" aria-label="Alternar tema claro/escuro">
                 <i class="fas fa-moon"></i>
             </button>
         </div>
@@ -258,32 +283,32 @@
         <section id="cards" class="tab-content active">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold flex items-center"><i class="fas fa-credit-card mr-2"></i> Gerenciar Cartões</h2>
-                <button class="add-button" onclick="openAddCardModal()"><i class="fas fa-plus"></i> Adicionar Cartão</button>
+                <button class="add-button" onclick="openAddCardModal()" aria-label="Adicionar novo cartão"><i class="fas fa-plus"></i> Adicionar Cartão</button>
             </div>
             <div class="filter-section">
                 <div class="relative">
                     <i class="fas fa-search filter-icon absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                    <input type="text" id="cardSearch" class="pl-10 p-2 bg-gray-700 border-b border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Buscar por nível ou número" oninput="debounceFilterCards(this.value, 300)" aria-label="Buscar cartões">
+                    <input type="text" id="cardSearch" class="pl-10 p-2 bg-gray-700 border-b border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Buscar por nível ou número" oninput="debounceFilterCards(this.value)" aria-label="Buscar cartões por nível ou número">
                 </div>
                 <div class="relative">
                     <i class="fas fa-filter filter-icon absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                    <select id="cardLevelFilter" class="pl-10 p-2 bg-gray-700 border-b border-gray-600 rounded focus:ring-green-500 focus:border-green-500" onchange="applyCardFilters()" aria-label="Filtrar por nível">
+                    <select id="cardLevelFilter" class="pl-10 p-2 bg-gray-700 border-b border-gray-600 rounded focus:ring-green-500 focus:border-green-500" onchange="applyCardFilters()" aria-label="Filtrar cartões por nível">
                         <option value="">Todos os Níveis</option>
                     </select>
                 </div>
                 <div class="relative">
                     <i class="fas fa-credit-card filter-icon absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                    <select id="cardBrandFilter" class="pl-10 p-2 bg-gray-700 border-b border-gray-600 rounded focus:ring-green-500 focus:border-green-500" onchange="applyCardFilters()" aria-label="Filtrar por bandeira">
+                    <select id="cardBrandFilter" class="pl-10 p-2 bg-gray-700 border-b border-gray-600 rounded focus:ring-green-500 focus:border-green-500" onchange="applyCardFilters()" aria-label="Filtrar cartões por bandeira">
                         <option value="">Todas as Bandeiras</option>
                     </select>
                 </div>
                 <div class="relative">
                     <i class="fas fa-university filter-icon absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                    <select id="cardBankFilter" class="pl-10 p-2 bg-gray-700 border-b border-gray-600 rounded focus:ring-green-500 focus:border-green-500" onchange="applyCardFilters()" aria-label="Filtrar por banco">
+                    <select id="cardBankFilter" class="pl-10 p-2 bg-gray-700 border-b border-gray-600 rounded focus:ring-green-500 focus:border-green-500" onchange="applyCardFilters()" aria-label="Filtrar cartões por banco">
                         <option value="">Todos os Bancos</option>
                     </select>
                 </div>
-                <button onclick="clearCardFilters()" class="py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center" aria-label="Limpar filtros">
+                <button onclick="clearCardFilters()" class="py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center" aria-label="Limpar filtros de cartões">
                     <i class="fas fa-times mr-2"></i> Limpar Filtros
                 </button>
             </div>
@@ -292,14 +317,14 @@
         <section id="prices" class="tab-content">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold flex items-center"><i class="fas fa-tags mr-2"></i> Gerenciar Preços</h2>
-                <button class="add-button" onclick="openAddPriceModal()"><i class="fas fa-plus"></i> Adicionar Preço</button>
+                <button class="add-button" onclick="openAddPriceModal()" aria-label="Adicionar novo preço"><i class="fas fa-plus"></i> Adicionar Preço</button>
             </div>
             <div class="filter-section">
                 <div class="relative">
                     <i class="fas fa-search filter-icon absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                    <input type="text" id="priceSearch" class="pl-10 p-2 bg-gray-700 border-b border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Buscar por nível" oninput="debounceFilterPrices(this.value, 300)" aria-label="Buscar preços">
+                    <input type="text" id="priceSearch" class="pl-10 p-2 bg-gray-700 border-b border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Buscar por nível" oninput="debounceFilterPrices(this.value)" aria-label="Buscar preços por nível">
                 </div>
-                <button onclick="clearPriceFilters()" class="py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center" aria-label="Limpar filtros">
+                <button onclick="clearPriceFilters()" class="py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center" aria-label="Limpar filtros de preços">
                     <i class="fas fa-times mr-2"></i> Limpar Filtros
                 </button>
             </div>
@@ -308,14 +333,14 @@
         <section id="users" class="tab-content">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold flex items-center"><i class="fas fa-users mr-2"></i> Gerenciar Usuários</h2>
-                <button class="add-button" onclick="openAddUserModal()"><i class="fas fa-plus"></i> Adicionar Usuário</button>
+                <button class="add-button" onclick="openAddUserModal()" aria-label="Adicionar novo usuário"><i class="fas fa-plus"></i> Adicionar Usuário</button>
             </div>
             <div class="filter-section">
                 <div class="relative">
                     <i class="fas fa-search filter-icon absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                    <input type="text" id="userSearch" class="pl-10 p-2 bg-gray-700 border-b border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Buscar por nome de usuário" oninput="debounceFilterUsers(this.value, 300)" aria-label="Buscar usuários">
+                    <input type="text" id="userSearch" class="pl-10 p-2 bg-gray-700 border-b border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Buscar por nome de usuário" oninput="debounceFilterUsers(this.value)" aria-label="Buscar usuários por nome">
                 </div>
-                <button onclick="clearUserFilters()" class="py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center" aria-label="Limpar filtros">
+                <button onclick="clearUserFilters()" class="py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center" aria-label="Limpar filtros de usuários">
                     <i class="fas fa-times mr-2"></i> Limpar Filtros
                 </button>
             </div>
@@ -324,14 +349,14 @@
         <section id="banks" class="tab-content">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold flex items-center"><i class="fas fa-university mr-2"></i> Gerenciar Bancos</h2>
-                <button class="add-button" onclick="openAddBankModal()"><i class="fas fa-plus"></i> Adicionar Banco</button>
+                <button class="add-button" onclick="openAddBankModal()" aria-label="Adicionar novo banco"><i class="fas fa-plus"></i> Adicionar Banco</button>
             </div>
             <div class="filter-section">
                 <div class="relative">
                     <i class="fas fa-search filter-icon absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                    <input type="text" id="bankSearch" class="pl-10 p-2 bg-gray-700 border-b border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Buscar por nome do banco" oninput="debounceFilterBanks(this.value, 300)" aria-label="Buscar bancos">
+                    <input type="text" id="bankSearch" class="pl-10 p-2 bg-gray-700 border-b border-gray-600 rounded focus:ring-green-500 focus:border-green-500" placeholder="Buscar por nome do banco" oninput="debounceFilterBanks(this.value)" aria-label="Buscar bancos por nome">
                 </div>
-                <button onclick="clearBankFilters()" class="py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center" aria-label="Limpar filtros">
+                <button onclick="clearBankFilters()" class="py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center" aria-label="Limpar filtros de bancos">
                     <i class="fas fa-times mr-2"></i> Limpar Filtros
                 </button>
             </div>
@@ -340,22 +365,22 @@
         <div id="addCardModal" class="modal">
             <div class="modal-content">
                 <h3 class="text-lg font-semibold mb-4">Adicionar Cartão</h3>
-                <select id="cardNivel" aria-label="Nível do cartão">
+                <select id="cardNivel" aria-label="Nível do cartão" required>
                     <option value="">Selecione o Nível</option>
                 </select>
-                <input type="text" id="cardNumero" placeholder="Número (16 dígitos)" aria-label="Número do cartão">
-                <input type="text" id="cardDataValidade" placeholder="Validade (MM/AA)" aria-label="Data de validade">
-                <input type="text" id="cardCvv" placeholder="CVV (3-4 dígitos)" aria-label="CVV do cartão">
-                <input type="text" id="cardBin" placeholder="BIN (6 dígitos)" aria-label="BIN do cartão">
-                <select id="cardBandeira" aria-label="Bandeira do cartão">
+                <input type="text" id="cardNumero" placeholder="Número (16 dígitos)" aria-label="Número do cartão" required>
+                <input type="text" id="cardDataValidade" placeholder="Validade (MM/AA)" aria-label="Data de validade" required>
+                <input type="text" id="cardCvv" placeholder="CVV (3-4 dígitos)" aria-label="CVV do cartão" required>
+                <input type="text" id="cardBin" placeholder="BIN (6 dígitos)" aria-label="BIN do cartão" required>
+                <select id="cardBandeira" aria-label="Bandeira do cartão" required>
                     <option value="">Selecione a Bandeira</option>
                 </select>
-                <select id="cardBanco" aria-label="Banco do cartão">
+                <select id="cardBanco" aria-label="Banco do cartão" required>
                     <option value="">Selecione o Banco</option>
                 </select>
                 <div class="flex justify-end gap-2">
-                    <button class="action-button delete-button" onclick="closeAddCardModal()">Cancelar</button>
-                    <button class="action-button add-button" onclick="addCard()">Adicionar</button>
+                    <button class="action-button delete-button" onclick="closeAddCardModal()" aria-label="Cancelar adição de cartão">Cancelar</button>
+                    <button class="action-button add-button" onclick="addCard()" aria-label="Adicionar cartão">Adicionar</button>
                 </div>
             </div>
         </div>
@@ -363,33 +388,33 @@
             <div class="modal-content">
                 <h3 class="text-lg font-semibold mb-4">Editar Cartão</h3>
                 <input type="hidden" id="editCardId">
-                <select id="editCardNivel" aria-label="Nível do cartão">
+                <select id="editCardNivel" aria-label="Nível do cartão" required>
                     <option value="">Selecione o Nível</option>
                 </select>
-                <input type="text" id="editCardNumero" placeholder="Número (16 dígitos)" aria-label="Número do cartão">
-                <input type="text" id="editCardDataValidade" placeholder="Validade (MM/AA)" aria-label="Data de validade">
-                <input type="text" id="editCardCvv" placeholder="CVV (3-4 dígitos)" aria-label="CVV do cartão">
-                <input type="text" id="editCardBin" placeholder="BIN (6 dígitos)" aria-label="BIN do cartão">
-                <select id="editCardBandeira" aria-label="Bandeira do cartão">
+                <input type="text" id="editCardNumero" placeholder="Número (16 dígitos)" aria-label="Número do cartão" required>
+                <input type="text" id="editCardDataValidade" placeholder="Validade (MM/AA)" aria-label="Data de validade" required>
+                <input type="text" id="editCardCvv" placeholder="CVV (3-4 dígitos)" aria-label="CVV do cartão" required>
+                <input type="text" id="editCardBin" placeholder="BIN (6 dígitos)" aria-label="BIN do cartão" required>
+                <select id="editCardBandeira" aria-label="Bandeira do cartão" required>
                     <option value="">Selecione a Bandeira</option>
                 </select>
-                <select id="editCardBanco" aria-label="Banco do cartão">
+                <select id="editCardBanco" aria-label="Banco do cartão" required>
                     <option value="">Selecione o Banco</option>
                 </select>
                 <div class="flex justify-end gap-2">
-                    <button class="action-button delete-button" onclick="closeEditCardModal()">Cancelar</button>
-                    <button class="action-button add-button" onclick="updateCard()">Salvar</button>
+                    <button class="action-button delete-button" onclick="closeEditCardModal()" aria-label="Cancelar edição de cartão">Cancelar</button>
+                    <button class="action-button add-button" onclick="updateCard()" aria-label="Salvar alterações do cartão">Salvar</button>
                 </div>
             </div>
         </div>
         <div id="addPriceModal" class="modal">
             <div class="modal-content">
                 <h3 class="text-lg font-semibold mb-4">Adicionar Preço</h3>
-                <input type="text" id="priceNivel" placeholder="Nível (ex.: Classic)" aria-label="Nível do preço">
-                <input type="number" id="priceValor" placeholder="Preço (ex.: 500)" aria-label="Preço">
+                <input type="text" id="priceNivel" placeholder="Nível (ex.: Classic)" aria-label="Nível do preço" required>
+                <input type="number" id="priceValor" placeholder="Preço (ex.: 500)" step="0.01" min="0" aria-label="Preço" required>
                 <div class="flex justify-end gap-2">
-                    <button class="action-button delete-button" onclick="closeAddPriceModal()">Cancelar</button>
-                    <button class="action-button add-button" onclick="addPrice()">Adicionar</button>
+                    <button class="action-button delete-button" onclick="closeAddPriceModal()" aria-label="Cancelar adição de preço">Cancelar</button>
+                    <button class="action-button add-button" onclick="addPrice()" aria-label="Adicionar preço">Adicionar</button>
                 </div>
             </div>
         </div>
@@ -397,27 +422,27 @@
             <div class="modal-content">
                 <h3 class="text-lg font-semibold mb-4">Editar Preço</h3>
                 <input type="hidden" id="editPriceId">
-                <input type="text" id="editPriceNivel" placeholder="Nível (ex.: Classic)" aria-label="Nível do preço">
-                <input type="number" id="editPriceValor" placeholder="Preço (ex.: 500)" aria-label="Preço">
+                <input type="text" id="editPriceNivel" placeholder="Nível (ex.: Classic)" aria-label="Nível do preço" required>
+                <input type="number" id="editPriceValor" placeholder="Preço (ex.: 500)" step="0.01" min="0" aria-label="Preço" required>
                 <div class="flex justify-end gap-2">
-                    <button class="action-button delete-button" onclick="closeEditPriceModal()">Cancelar</button>
-                    <button class="action-button add-button" onclick="updatePrice()">Salvar</button>
+                    <button class="action-button delete-button" onclick="closeEditPriceModal()" aria-label="Cancelar edição de preço">Cancelar</button>
+                    <button class="action-button add-button" onclick="updatePrice()" aria-label="Salvar alterações do preço">Salvar</button>
                 </div>
             </div>
         </div>
         <div id="addUserModal" class="modal">
             <div class="modal-content">
                 <h3 class="text-lg font-semibold mb-4">Adicionar Usuário</h3>
-                <input type="text" id="userUsername" placeholder="Nome de usuário" aria-label="Nome de usuário">
-                <input type="password" id="userPassword" placeholder="Senha" aria-label="Senha">
-                <input type="number" id="userBalance" placeholder="Saldo inicial" aria-label="Saldo inicial">
-                <select id="userIsAdmin" aria-label="Tipo de usuário">
+                <input type="text" id="userUsername" placeholder="Nome de usuário" aria-label="Nome de usuário" required>
+                <input type="password" id="userPassword" placeholder="Senha" aria-label="Senha" required>
+                <input type="number" id="userBalance" placeholder="Saldo inicial" step="0.01" min="0" aria-label="Saldo inicial" required>
+                <select id="userIsAdmin" aria-label="Tipo de usuário" required>
                     <option value="false">Usuário Comum</option>
                     <option value="true">Administrador</option>
                 </select>
                 <div class="flex justify-end gap-2">
-                    <button class="action-button delete-button" onclick="closeAddUserModal()">Cancelar</button>
-                    <button class="action-button add-button" onclick="addUser()">Adicionar</button>
+                    <button class="action-button delete-button" onclick="closeAddUserModal()" aria-label="Cancelar adição de usuário">Cancelar</button>
+                    <button class="action-button add-button" onclick="addUser()" aria-label="Adicionar usuário">Adicionar</button>
                 </div>
             </div>
         </div>
@@ -425,25 +450,32 @@
             <div class="modal-content">
                 <h3 class="text-lg font-semibold mb-4">Editar Usuário</h3>
                 <input type="hidden" id="editUserId">
-                <input type="text" id="editUserUsername" placeholder="Nome de usuário" aria-label="Nome de usuário">
-                <input type="number" id="editUserBalance" placeholder="Saldo" aria-label="Saldo">
-                <select id="editUserIsAdmin" aria-label="Tipo de usuário">
+                <input type="text" id="editUserUsername" placeholder="Nome de usuário" aria-label="Nome de usuário" required>
+                <input type="number" id="editUserBalance" placeholder="Saldo" step="0.01" min="0" aria-label="Saldo" required>
+                <select id="editUserIsAdmin" aria-label="Tipo de usuário" required>
                     <option value="false">Usuário Comum</option>
                     <option value="true">Administrador</option>
                 </select>
                 <div class="flex justify-end gap-2">
-                    <button class="action-button delete-button" onclick="closeEditUserModal()">Cancelar</button>
-                    <button class="action-button add-button" onclick="updateUser()">Salvar</button>
+                    <button class="action-button delete-button" onclick="closeEditUserModal()" aria-label="Cancelar edição de usuário">Cancelar</button>
+                    <button class="action-button add-button" onclick="updateUser()" aria-label="Salvar alterações do usuário">Salvar</button>
                 </div>
             </div>
         </div>
         <div id="addBankModal" class="modal">
             <div class="modal-content">
                 <h3 class="text-lg font-semibold mb-4">Adicionar Banco</h3>
-                <input type="text" id="bankName" placeholder="Nome do banco (ex.: Banco do Brasil)" aria-label="Nome do banco">
+                <input type="text" id="bankName" placeholder="Nome do banco (ex.: Banco do Brasil)" aria-label="Nome do banco" required>
+                <select id="bankType" aria-label="Tipo de banco" required>
+                    <option value="">Selecione o Tipo</option>
+                    <option value="Estatal">Estatal</option>
+                    <option value="Privado">Privado</option>
+                    <option value="Estrangeiro">Estrangeiro</option>
+                    <option value="Neobanco">Neobanco</option>
+                </select>
                 <div class="flex justify-end gap-2">
-                    <button class="action-button delete-button" onclick="closeAddBankModal()">Cancelar</button>
-                    <button class="action-button add-button" onclick="addBank()">Adicionar</button>
+                    <button class="action-button delete-button" onclick="closeAddBankModal()" aria-label="Cancelar adição de banco">Cancelar</button>
+                    <button class="action-button add-button" onclick="addBank()" aria-label="Adicionar banco">Adicionar</button>
                 </div>
             </div>
         </div>
@@ -451,14 +483,132 @@
             <div class="modal-content">
                 <h3 class="text-lg font-semibold mb-4">Editar Banco</h3>
                 <input type="hidden" id="editBankId">
-                <input type="text" id="editBankName" placeholder="Nome do banco (ex.: Banco do Brasil)" aria-label="Nome do banco">
+                <input type="text" id="editBankName" placeholder="Nome do banco (ex.: Banco do Brasil)" aria-label="Nome do banco" required>
+                <select id="editBankType" aria-label="Tipo de banco" required>
+                    <option value="">Selecione o Tipo</option>
+                    <option value="Estatal">Estatal</option>
+                    <option value="Privado">Privado</option>
+                    <option value="Estrangeiro">Estrangeiro</option>
+                    <option value="Neobanco">Neobanco</option>
+                </select>
                 <div class="flex justify-end gap-2">
-                    <button class="action-button delete-button" onclick="closeEditBankModal()">Cancelar</button>
-                    <button class="action-button add-button" onclick="updateBank()">Salvar</button>
+                    <button class="action-button delete-button" onclick="closeEditBankModal()" aria-label="Cancelar edição de banco">Cancelar</button>
+                    <button class="action-button add-button" onclick="updateBank()" aria-label="Salvar alterações do banco">Salvar</button>
                 </div>
             </div>
         </div>
     </main>
-    <script src="/app-function.js"></script>
+    <script>
+        const isDevMode = typeof process !== 'undefined' && process.env.NODE_ENV !== 'production';
+
+        async function fetchWithTimeout(url, options, timeout = 15000) {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            const startTime = performance.now();
+            try {
+                const response = await fetch(url, { ...options, signal: controller.signal });
+                const endTime = performance.now();
+                clearTimeout(id);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Erro HTTP ${response.status}`);
+                }
+                if (isDevMode) {
+                    console.log(`[API] ${url} - Sucesso | Tempo: ${(endTime - startTime).toFixed(2)}ms | Status: ${response.status}`);
+                }
+                return response;
+            } catch (error) {
+                const endTime = performance.now();
+                clearTimeout(id);
+                if (isDevMode) {
+                    console.error(`[API] ${url} - Falha | Tempo: ${(endTime - startTime).toFixed(2)}ms | Erro: ${error.message}`);
+                }
+                if (error.name === 'AbortError') {
+                    throw new Error('Tempo de resposta do servidor excedido. Tente novamente.');
+                }
+                throw error;
+            }
+        }
+
+        async function checkServerStatus() {
+            const serverStatus = document.getElementById('serverStatus');
+            try {
+                if (isDevMode) console.log('[DEBUG] Verificando status do servidor e APIs...');
+                const envResponse = await fetchWithTimeout('/api/check-env', {}, 15000);
+                const envData = await envResponse.json();
+                if (!envData.mongodbConnected) {
+                    if (isDevMode) console.error('[DEBUG] MongoDB não conectado');
+                    serverStatus.style.display = 'block';
+                    serverStatus.innerHTML = '<i class="fas fa-exclamation-circle mr-2"></i> MongoDB não conectado.';
+                    return false;
+                }
+                if (!envData.collections?.cards?.exists || !envData.collections?.cardPrices?.exists || 
+                    !envData.collections?.users?.exists || !envData.collections?.banks?.exists) {
+                    if (isDevMode) {
+                        console.error('[DEBUG] Coleções ausentes:', {
+                            cards: envData.collections?.cards?.exists,
+                            cardPrices: envData.collections?.cardPrices?.exists,
+                            users: envData.collections?.users?.exists,
+                            banks: envData.collections?.banks?.exists
+                        });
+                    }
+                    serverStatus.style.display = 'block';
+                    serverStatus.innerHTML = '<i class="fas fa-exclamation-circle mr-2"></i> Coleções do banco de dados ausentes.';
+                    return false;
+                }
+                if (isDevMode) {
+                    console.log('[DEBUG] MongoDB conectado com sucesso');
+                    console.log('[DEBUG] Coleções verificadas:', {
+                        cards: envData.collections.cards.exists,
+                        cardPrices: envData.collections.cardPrices.exists,
+                        users: envData.collections.users.exists,
+                        banks: envData.collections.banks.exists
+                    });
+                }
+
+                const apiEndpoints = [
+                    '/api/get-cards?userId=test',
+                    '/api/get-card-prices?userId=test',
+                    '/api/get-users?userId=test',
+                    '/api/get-banks?userId=test'
+                ];
+                const apiChecks = await Promise.allSettled(apiEndpoints.map(url => 
+                    fetchWithTimeout(url, {}, 15000).then(res => res.json())
+                ));
+                const failedApis = apiChecks.filter(check => check.status === 'rejected');
+                if (failedApis.length > 0) {
+                    if (isDevMode) console.error('[DEBUG] APIs com falha:', failedApis);
+                    serverStatus.style.display = 'block';
+                    serverStatus.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i> Algumas APIs estão indisponíveis.`;
+                    return false;
+                }
+                if (isDevMode) console.log('[DEBUG] Todas as APIs estão funcionando corretamente');
+                serverStatus.style.display = 'none';
+                return true;
+            } catch (err) {
+                if (isDevMode) console.error('[DEBUG] Erro ao verificar status do servidor:', err);
+                serverStatus.style.display = 'block';
+                serverStatus.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i> Erro ao verificar servidor: ${DOMPurify.sanitize(err.message)}`;
+                return false;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            if (savedTheme === 'light') {
+                document.body.classList.add('light');
+                document.getElementById('themeToggle').innerHTML = `<i class="fas fa-sun"></i>`;
+            }
+            if (!(await checkServerStatus())) {
+                showNotification('Servidor ou banco de dados indisponível. Tente novamente mais tarde.', true);
+                return;
+            }
+            if (!(await checkAuth())) {
+                return;
+            }
+            await loadCards();
+        });
+    </script>
+    <script src="/functions/app-function.js"></script>
 </body>
 </html>

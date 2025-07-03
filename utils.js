@@ -1,67 +1,63 @@
-const TIMEOUT = 15000;
+const isDevMode = typeof process !== 'undefined' && process.env.NODE_ENV !== 'production';
 
-async function fetchWithTimeout(url, options = {}) {
+async function fetchWithTimeout(url, options, timeout = 15000) {
     const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), TIMEOUT);
+    const id = setTimeout(() => controller.abort(), timeout);
+    const startTime = performance.now();
     try {
         const response = await fetch(url, { ...options, signal: controller.signal });
+        const endTime = performance.now();
         clearTimeout(id);
         if (!response.ok) {
-            const text = await response.text();
-            throw new Error(`HTTP ${response.status}: ${text}`);
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Erro HTTP ${response.status}`);
+        }
+        if (isDevMode) {
+            Debug.info(`[API] ${url} - Sucesso | Tempo: ${(endTime - startTime).toFixed(2)}ms | Status: ${response.status}`);
         }
         return response;
-    } catch (err) {
+    } catch (error) {
+        const endTime = performance.now();
         clearTimeout(id);
-        if (err.name === 'AbortError') {
-            throw new Error('Request timed out');
+        if (isDevMode) {
+            Debug.error(`[API] ${url} - Falha | Tempo: ${(endTime - startTime).toFixed(2)}ms | Erro: ${error.message}`);
         }
-        throw err;
+        if (error.name === 'AbortError') {
+            throw new Error('Tempo de resposta do servidor excedido. Tente novamente.');
+        }
+        throw error;
     }
 }
 
-function formatCurrency(amount) {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(amount);
-}
-
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('pt-BR', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    }).format(date);
+function formatCurrency(value) {
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(value);
 }
 
 function showNotification(message, isError = false) {
     const notifications = document.getElementById('notifications');
-    if (!notifications) return;
     const notification = document.createElement('div');
     notification.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
-    notification.innerHTML = `<span>${DOMPurify.sanitize(message)}</span><button onclick="this.parentElement.remove()" class="ml-2 text-white" aria-label="Fechar">✕</button>`;
+    notification.innerHTML = `
+        ${DOMPurify.sanitize(message)}
+        <button class="text-white hover:text-gray-200" onclick="this.parentElement.remove()" aria-label="Fechar notificação">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
     notifications.appendChild(notification);
     setTimeout(() => notification.remove(), 5000);
 }
 
-function showDebugNotification(message, isError = false) {
-    const notifications = document.getElementById('notifications');
-    if (!notifications) return;
-    const notification = document.createElement('div');
-    notification.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
-    notification.innerHTML = `<span>${DOMPurify.sanitize(message)}</span><button onclick="this.parentElement.remove()" class="ml-2 text-white" aria-label="Fechar">✕</button>`;
-    notifications.appendChild(notification);
-    setTimeout(() => notification.remove(), 7000);
-}
-
-function logout() {
-    localStorage.removeItem('userId');
-    localStorage.removeItem('username');
-    window.location.href = '/index.html';
-}
-
-function restrictInput(input) {
-    input.value = input.value.replace(/[^a-zA-Z0-9]/g, '');
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
 }

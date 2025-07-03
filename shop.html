@@ -55,9 +55,7 @@
             Debug.log('Verificando ambiente e conexão com MongoDB');
             try {
                 const response = await fetchWithTimeout('/api/check-env');
-                const text = await response.text();
-                Debug.log(`Resposta /api/check-env: Status ${response.status}`, { response: text });
-                const data = JSON.parse(text);
+                const data = await response.json();
                 if (!response.ok) {
                     Debug.error(`Erro ao verificar ambiente: ${data.error || 'Desconhecido'}`);
                     showDebugNotification(`Erro: ${data.error || 'Falha na verificação do ambiente'}`, true);
@@ -83,19 +81,17 @@
             Debug.log('Verificando autenticação');
             const userId = localStorage.getItem('userId');
             if (!userId) {
-                showNotification('Usuário não autenticado.', true);
                 Debug.error('Nenhum userId encontrado no localStorage');
+                showDebugNotification('Usuário não autenticado.', true);
                 setTimeout(() => { window.location.href = '/index.html'; }, 1000);
                 return false;
             }
             try {
                 const response = await fetchWithTimeout(`/api/user?userId=${encodeURIComponent(userId)}`);
-                const text = await response.text();
-                Debug.log(`Resposta /api/user: Status ${response.status}`, { response: text });
-                const user = JSON.parse(text);
+                const user = await response.json();
                 if (!response.ok) {
-                    showNotification('Erro ao verificar autenticação.', true);
                     Debug.error(`Erro na API: ${user.error || 'Desconhecido'}`);
+                    showDebugNotification('Erro ao verificar autenticação.', true);
                     setTimeout(() => { window.location.href = '/index.html'; }, 1000);
                     return false;
                 }
@@ -103,7 +99,7 @@
                 return true;
             } catch (err) {
                 Debug.error('Erro ao verificar autenticação: %s', err.message);
-                showNotification(`Erro: ${err.message}`, true);
+                showDebugNotification(`Erro: ${err.message}`, true);
                 setTimeout(() => { window.location.href = '/index.html'; }, 1000);
                 return false;
             }
@@ -115,9 +111,7 @@
             cardsGrid.innerHTML = '<p class="text-gray-500 text-center"><i class="fas fa-spinner animate-spin mr-2"></i> Carregando...</p>';
             try {
                 const response = await fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(localStorage.getItem('userId'))}`);
-                const text = await response.text();
-                Debug.log(`Resposta /api/get-card-prices: Status ${response.status}`, { response: text });
-                let cards = JSON.parse(text);
+                const cards = await response.json();
                 if (!response.ok) throw new Error(cards.error || 'Erro ao carregar cartões');
                 cardsGrid.innerHTML = '';
                 cards.forEach(card => {
@@ -133,7 +127,7 @@
             } catch (err) {
                 Debug.error('Erro ao carregar cartões: %s', err.message);
                 cardsGrid.innerHTML = `<p class="text-center text-red-500">Erro: ${DOMPurify.sanitize(err.message)}</p>`;
-                showNotification(`Erro: ${err.message}`, true);
+                showDebugNotification(`Erro: ${err.message}`, true);
             }
         }
 
@@ -145,21 +139,19 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ nivel })
                 });
-                const text = await response.text();
-                Debug.log(`Resposta /api/buy-card: Status ${response.status}`, { response: text });
-                let data = JSON.parse(text);
+                const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Erro ao comprar cartão');
-                showNotification('Cartão comprado com sucesso!');
                 document.getElementById('userBalance').textContent = `Saldo: ${formatCurrency(data.newBalance)}`;
+                showDebugNotification('Cartão comprado com sucesso!');
             } catch (err) {
                 Debug.error('Erro ao comprar cartão: %s', err.message);
-                showNotification(`Erro: ${err.message}`, true);
+                showDebugNotification(`Erro: ${err.message}`, true);
             }
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
             Debug.log('DOM carregado');
-            const debugDiv = document.getElementById('debug');
+            const debugDiv = document.getetElementById('debug');
             debugDiv.style.display = 'block';
             document.getElementById('toggleDebug').addEventListener('click', () => {
                 debugDiv.style.display = debugDiv.style.display === 'none' ? 'block' : 'none';

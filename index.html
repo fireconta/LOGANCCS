@@ -116,7 +116,6 @@
           return;
         }
 
-        // Status da conexão com MongoDB
         const mongoStatus = data.mongodbConnected ? 'Conectado' : 'Não conectado';
         Debug.log(`Conexão MongoDB: ${mongoStatus}`);
         showDebugNotification(`Conexão MongoDB: ${mongoStatus}`, !data.mongodbConnected);
@@ -125,7 +124,6 @@
           showDebugNotification('MongoDB não conectado. Verifique MONGODB_URI e permissões.', true);
         }
 
-        // Status das coleções
         Debug.log('Verificando status das coleções:');
         for (const [collection, status] of Object.entries(data.collections)) {
           const statusText = status.exists && status.accessible ? 'Carregada e acessível' : 'Não carregada ou inacessível';
@@ -133,7 +131,6 @@
           showDebugNotification(`Coleção ${collection}: ${statusText}`, !status.exists || !status.accessible);
         }
 
-        // Status das variáveis de ambiente
         Debug.log('Verificando variáveis de ambiente:');
         for (const [envVar, status] of Object.entries(data.environment)) {
           const envStatus = status.exists ? 'Configurada' : 'Não configurada';

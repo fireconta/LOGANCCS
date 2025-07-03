@@ -19,16 +19,19 @@ async function connectToMongoDB() {
         return false;
     }
     if (mongoose.connection.readyState === 1) {
-        debug('MongoDB já conectado ao banco loganccs');
+        debug('MongoDB já conectado ao banco loganccs (readyState: %d)', mongoose.connection.readyState);
         return true;
     }
     try {
         debug('Tentando conexão com MongoDB (%d/%d)', connectionAttempts + 1, MAX_RETRIES);
-        await mongoose.connect(`${process.env.MONGODB_URI}/loganccs?retryWrites=true&w=majority`, {
+        await mongoose.connect(process.env.MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 5000, // Reduzido para evitar timeout
-            maxPoolSize: 5 // Reduzido para otimizar
+            dbName: 'loganccs',
+            serverSelectionTimeoutMS: 5000,
+            maxPoolSize: 5,
+            retryWrites: true,
+            w: 'majority'
         });
         debug('Conexão com MongoDB loganccs estabelecida com sucesso');
         connectionAttempts = 0;
@@ -36,9 +39,14 @@ async function connectToMongoDB() {
     } catch (err) {
         connectionAttempts++;
         debug('Falha na conexão com MongoDB: %s', err.message);
+        if (err.name === 'MongoServerSelectionError') {
+            debug('Possíveis causas: MONGODB_URI inválida, restrições de rede, ou IP não autorizado no MongoDB Atlas');
+        } else if (err.name === 'MongoNetworkError') {
+            debug('Problema de rede detectado. Verifique a conectividade ou status do MongoDB Atlas');
+        }
         if (connectionAttempts < MAX_RETRIES) {
             const delay = RETRY_INTERVAL_MS * Math.pow(2, connectionAttempts);
-            debug('Tentando reconexão em %dms', delay);
+            debug('Tentando reconexão em %dms (%d/%d)', delay, connectionAttempts, MAX_RETRIES);
             await new Promise(resolve => setTimeout(resolve, delay));
             return connectToMongoDB();
         } else {
@@ -89,7 +97,6 @@ async function checkCollections() {
             Bank: { exists: collectionNames.includes('banks'), accessible: false }
         };
 
-        // Verificar acessibilidade em paralelo para otimizar
         const accessibilityChecks = [
             result.User.exists ? User.countDocuments().then(() => true).catch(() => false) : false,
             result.CardPrice.exists ? CardPrice.countDocuments().then(() => true).catch(() => false) : false,
@@ -126,7 +133,8 @@ app.get('/api/check-env', async (req, res) => {
         const collections = await checkCollections();
         const environment = {
             MONGODB_URI: { exists: !!process.env.MONGODB_URI },
-            ADMIN_PASSWORD: { exists: !!process.env.ADMIN_PASSWORD }
+            ADMIN_PASSWORD: { exists: !!process.env.ADMIN_PASSWORD },
+            NODE_VERSION: { exists: !!process.env.NODE_VERSION }
         };
         debug('Verificação concluída: MongoDB %s, coleções: %O', mongodbConnected ? 'conectado' : 'não conectado', collections);
         res.json({ mongodbConnected, collections, environment });
@@ -147,7 +155,7 @@ app.post('/api/register', [
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Erros de validação');
+        debug('Erros de validação: %O', errors.array());
         return res.status(400).json({ error: 'Dados inválidos' });
     }
     const { username, password } = req.body;
@@ -161,7 +169,7 @@ app.post('/api/register', [
         const isAdmin = username === 'LVz' && password === process.env.ADMIN_PASSWORD;
         const user = new User({ username, password: hashedPassword, isAdmin });
         await user.save();
-        debug('Usuário registrado: %s', username);
+        debug('Usuário registrado: %s, isAdmin: %s', username, isAdmin);
         res.status(201).json({ message: 'Usuário registrado' });
     } catch (err) {
         debug('Erro ao registrar usuário: %s', err.message);
@@ -180,22 +188,22 @@ app.post('/api/login', [
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Erros de validação');
+        debug('Erros de validação: %O', errors.array());
         return res.status(400).json({ error: 'Dados inválidos' });
     }
     const { username, password } = req.body;
     try {
         const user = await User.findOne({ username });
         if (!user) {
-            debug('Login falhou: Usuário não encontrado');
+            debug('Login falhou: Usuário não encontrado: %s', username);
             return res.status(401).json({ error: 'Credenciais inválidas' });
         }
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            debug('Login falhou: Senha inválida');
+            debug('Login falhou: Senha inválida para %s', username);
             return res.status(401).json({ error: 'Credenciais inválidas' });
         }
-        debug('Login bem-sucedido: %s', username);
+        debug('Login bem-sucedido: %s, isAdmin: %s', username, user.isAdmin);
         res.json({ userId: user._id, username: user.username, is_admin: user.isAdmin });
     } catch (err) {
         debug('Erro ao fazer login: %s', err.message);
@@ -213,7 +221,7 @@ app.get('/api/user', [
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Erros de validação');
+        debug('Erros de validação: %O', errors.array());
         return res.status(400).json({ error: 'ID de usuário inválido' });
     }
     try {
@@ -239,13 +247,13 @@ app.get('/api/users', [
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Erros de validação');
+        debug('Erros de validação: %O', errors.array());
         return res.status(400).json({ error: 'ID de usuário inválido' });
     }
     try {
         const admin = await User.findById(req.query.userId);
         if (!admin || !admin.isAdmin) {
-            debug('Acesso negado: Não é admin');
+            debug('Acesso negado: Não é admin ou usuário não encontrado: %s', req.query.userId);
             return res.status(403).json({ error: 'Acesso negado' });
         }
         const users = await User.find({}, 'username isAdmin balance createdAt');
@@ -267,13 +275,13 @@ app.delete('/api/delete-user', [
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Erros de validação');
+        debug('Erros de validação: %O', errors.array());
         return res.status(400).json({ error: 'ID de usuário inválido' });
     }
     try {
         const admin = await User.findById(req.query.userId);
         if (!admin || !admin.isAdmin) {
-            debug('Acesso negado: Não é admin');
+            debug('Acesso negado: Não é admin ou usuário não encontrado: %s', req.query.userId);
             return res.status(403).json({ error: 'Acesso negado' });
         }
         const target = await User.findById(req.query.targetId);
@@ -304,7 +312,7 @@ app.get('/api/get-card-prices', [
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Erros de validação');
+        debug('Erros de validação: %O', errors.array());
         return res.status(400).json({ error: 'ID de usuário inválido' });
     }
     try {
@@ -340,13 +348,13 @@ app.post('/api/set-card-prices', [
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Erros de validação');
+        debug('Erros de validação: %O', errors.array());
         return res.status(400).json({ error: 'Dados inválidos' });
     }
     try {
         const admin = await User.findById(req.query.userId);
         if (!admin || !admin.isAdmin) {
-            debug('Acesso negado: Não é admin');
+            debug('Acesso negado: Não é admin ou usuário não encontrado: %s', req.query.userId);
             return res.status(403).json({ error: 'Acesso negado' });
         }
         const { prices } = req.body;
@@ -376,7 +384,7 @@ app.post('/api/buy-card', [
     }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        debug('Erros de validação');
+        debug('Erros de validação: %O', errors.array());
         return res.status(400).json({ error: 'Dados inválidos' });
     }
     try {
@@ -391,7 +399,7 @@ app.post('/api/buy-card', [
             return res.status(404).json({ error: 'Cartão não encontrado' });
         }
         if (user.balance < card.price) {
-            debug('Saldo insuficiente para %s', user.username);
+            debug('Saldo insuficiente para %s: %d < %d', user.username, user.balance, card.price);
             return res.status(400).json({ error: 'Saldo insuficiente' });
         }
         user.balance -= card.price;
@@ -404,7 +412,7 @@ app.post('/api/buy-card', [
         await purchase.save();
         debug('Cartão comprado: %s por %s', card.nivel, user.username);
         res.json({ message: 'Cartão comprado', newBalance: user.balance });
-    } catch (err) {
+    } fetch (err) {
         debug('Erro ao comprar cartão: %s', err.message);
         res.status(500).json({ error: `Erro ao comprar cartão: ${err.message}` });
     }

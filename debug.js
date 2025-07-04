@@ -1,53 +1,45 @@
-const Debug = {
-  log: (message) => {
-    const debugOutput = document.getElementById('debug-output');
-    if (debugOutput) {
-      const logEntry = document.createElement('div');
-      logEntry.className = 'debug-info';
-      logEntry.textContent = DOMPurify.sanitize(`[${new Date().toLocaleTimeString()}] ${message}`);
-      debugOutput.appendChild(logEntry);
-      debugOutput.scrollTop = debugOutput.scrollHeight;
+const debug = {
+  init: function(id, enabled) {
+    this.enabled = enabled;
+    if (enabled) {
+      const panel = document.createElement('div');
+      panel.id = id;
+      panel.style.position = 'fixed';
+      panel.style.bottom = '10px';
+      panel.style.right = '10px';
+      panel.style.background = '#333';
+      panel.style.color = '#fff';
+      panel.style.padding = '10px';
+      panel.style.maxHeight = '200px';
+      panel.style.overflowY = 'auto';
+      panel.style.zIndex = '1000';
+      panel.style.fontSize = '12px';
+      document.body.appendChild(panel);
     }
   },
-  warn: (message) => {
-    const debugOutput = document.getElementById('debug-output');
-    if (debugOutput) {
-      const logEntry = document.createElement('div');
-      logEntry.className = 'debug-warn';
-      logEntry.textContent = DOMPurify.sanitize(`[${new Date().toLocaleTimeString()}] WARN: ${message}`);
-      debugOutput.appendChild(logEntry);
-      debugOutput.scrollTop = debugOutput.scrollHeight;
+  log: function(message) {
+    if (this.enabled) {
+      const panel = document.getElementById('debug-panel');
+      if (panel) {
+        const log = document.createElement('div');
+        log.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        panel.appendChild(log);
+        panel.scrollTop = panel.scrollHeight;
+      }
+      console.log(message);
     }
   },
-  error: (message) => {
-    const debugOutput = document.getElementById('debug-output');
-    if (debugOutput) {
-      const logEntry = document.createElement('div');
-      logEntry.className = 'debug-error';
-      logEntry.textContent = DOMPurify.sanitize(`[${new Date().toLocaleTimeString()}] ERROR: ${message}`);
-      debugOutput.appendChild(logEntry);
-      debugOutput.scrollTop = debugOutput.scrollHeight;
-    }
-  },
-  clear: () => {
-    const debugOutput = document.getElementById('debug-output');
-    if (debugOutput) {
-      debugOutput.innerHTML = '';
+  error: function(message) {
+    if (this.enabled) {
+      const panel = document.getElementById('debug-panel');
+      if (panel) {
+        const log = document.createElement('div');
+        log.textContent = `[${new Date().toLocaleTimeString()}] ERROR: ${message}`;
+        log.style.color = '#ff4444';
+        panel.appendChild(log);
+        panel.scrollTop = panel.scrollHeight;
+      }
+      console.error(message);
     }
   }
 };
-
-function showDebugNotification(message, isError = false) {
-  const notifications = document.getElementById('notifications');
-  if (notifications) {
-    const notification = document.createElement('div');
-    notification.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
-    notification.innerHTML = DOMPurify.sanitize(message) + '<button onclick="this.parentElement.remove()" class="text-white hover:text-gray-300">✖</button>';
-    notifications.appendChild(notification);
-    setTimeout(() => {
-      if (notification.parentElement) {
-        notification.remove();
-      }
-    }, 5000);
-  }
-}

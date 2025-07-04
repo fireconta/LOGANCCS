@@ -247,7 +247,7 @@
         localStorage.setItem('username', data.username);
         Debug.log(`Login bem-sucedido: ${data.username}, isAdmin: ${data.is_admin}`);
         showDebugNotification('Login bem-sucedido!', false);
-        const redirect = data.is_admin ? '/dashboard' : '/shop';
+        const redirect = data.is_admin ? '/dashboard.html' : '/shop.html';
         window.location.href = redirect;
       } catch (err) {
         const errorMsg = err.message.includes('timeout') 

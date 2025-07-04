@@ -101,6 +101,15 @@
     debug.init('debug-panel', true);
     debug.log('Inicializando dashboard.html');
 
+    // Função para formatar o número do cartão (exibir primeiros 6 dígitos e últimos 4, mascarando o meio)
+    function formatBin(cardNumber) {
+      if (!cardNumber || cardNumber.length < 10) {
+        debug.warn('Número do cartão inválido para formatação: ' + cardNumber);
+        return '**** **** **** ****';
+      }
+      return cardNumber.slice(0, 6) + '******' + cardNumber.slice(-4);
+    }
+
     function switchTab(tabId) {
       document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.add('hidden'));
       document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
@@ -163,17 +172,24 @@
         });
         if (!response.ok) {
           debug.error(`Erro na API /banks: Status ${response.status} - ${response.statusText}`);
-          document.getElementById('card-bank').innerHTML = '<option value="" disabled selected>Erro ao carregar bancos</option>';
+          document.getElementById('card-bank').innerHTML = `<option value="" disabled selected>Erro ao carregar bancos: ${response.status} - ${response.statusText}</option>`;
+          alert(`Erro ao carregar bancos: ${response.status} - ${response.statusText}. Verifique o console para mais detalhes.`);
           return [];
         }
         const banks = await response.json();
         if (!Array.isArray(banks)) {
           debug.error('Resposta da API /banks não é um array: ' + JSON.stringify(banks));
-          document.getElementById('card-bank').innerHTML = '<option value="" disabled selected>Erro nos dados de bancos</option>';
+          document.getElementById('card-bank').innerHTML = '<option value="" disabled selected>Erro: Dados de bancos inválidos</option>';
+          alert('Erro nos dados de bancos. Contate o suporte.');
           return [];
         }
         const bankSelect = document.getElementById('card-bank');
         bankSelect.innerHTML = '<option value="" disabled selected>Selecione o Banco</option>';
+        if (banks.length === 0) {
+          debug.log('Nenhum banco encontrado na coleção banks');
+          bankSelect.innerHTML = '<option value="" disabled selected>Nenhum banco disponível</option>';
+          return [];
+        }
         banks.forEach(bank => {
           const option = document.createElement('option');
           option.value = bank.name;
@@ -184,7 +200,8 @@
         return banks;
       } catch (error) {
         debug.error('Erro ao carregar bancos: ' + error.message);
-        document.getElementById('card-bank').innerHTML = '<option value="" disabled selected>Erro ao carregar bancos</option>';
+        document.getElementById('card-bank').innerHTML = `<option value="" disabled selected>Erro: ${error.message}</option>`;
+        alert(`Erro ao carregar bancos: ${error.message}. Verifique o console para mais detalhes.`);
         return [];
       }
     }
@@ -203,14 +220,14 @@
         });
         if (!response.ok) {
           debug.error(`Erro na API /cardprices: Status ${response.status} - ${response.statusText}`);
-          document.getElementById('card-level').innerHTML = '<option value="" disabled selected>Erro ao carregar níveis</option>';
+          document.getElementById('card-level').innerHTML = `<option value="" disabled selected>Erro: ${response.status} - ${response.statusText}</option>`;
           document.getElementById('levels-list').innerHTML = `<p class="error-message">Erro ao carregar níveis: ${response.status} - ${response.statusText}</p>`;
           return [];
         }
         const prices = await response.json();
         if (!Array.isArray(prices)) {
           debug.error('Resposta da API /cardprices não é um array: ' + JSON.stringify(prices));
-          document.getElementById('card-level').innerHTML = '<option value="" disabled selected>Erro nos dados de níveis</option>';
+          document.getElementById('card-level').innerHTML = '<option value="" disabled selected>Erro: Dados de níveis inválidos</option>';
           document.getElementById('levels-list').innerHTML = '<p class="error-message">Erro nos dados de níveis. Contate o suporte.</p>';
           return [];
         }
@@ -226,7 +243,7 @@
         return prices;
       } catch (error) {
         debug.error('Erro ao carregar níveis de preços: ' + error.message);
-        document.getElementById('card-level').innerHTML = '<option value="" disabled selected>Erro ao carregar níveis</option>';
+        document.getElementById('card-level').innerHTML = `<option value="" disabled selected>Erro: ${error.message}</option>`;
         document.getElementById('levels-list').innerHTML = `<p class="error-message">Erro ao carregar níveis: ${error.message}</p>`;
         return [];
       }
@@ -510,12 +527,14 @@
         if (!response.ok) {
           debug.error(`Erro na API /cards: Status ${response.status} - ${response.statusText}`);
           document.getElementById('cards-list').innerHTML = `<p class="error-message">Erro ao carregar cartões: ${response.status} - ${response.statusText}</p>`;
+          alert(`Erro ao carregar cartões: ${response.status} - ${response.statusText}. Verifique o console para mais detalhes.`);
           return;
         }
         const cards = await response.json();
         if (!Array.isArray(cards)) {
           debug.error('Resposta da API /cards não é um array: ' + JSON.stringify(cards));
           document.getElementById('cards-list').innerHTML = '<p class="error-message">Erro nos dados de cartões. Contate o suporte.</p>';
+          alert('Erro nos dados de cartões. Contate o suporte.');
           return;
         }
         const container = document.getElementById('cards-list');
@@ -541,6 +560,7 @@
       } catch (error) {
         debug.error('Erro ao carregar cartões: ' + error.message);
         document.getElementById('cards-list').innerHTML = `<p class="error-message">Erro ao carregar cartões: ${error.message}</p>`;
+        alert(`Erro ao carregar cartões: ${error.message}. Verifique o console para mais detalhes.`);
       }
     }
 

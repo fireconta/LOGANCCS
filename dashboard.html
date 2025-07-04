@@ -107,7 +107,9 @@
       document.getElementById(tabId).classList.remove('hidden');
       document.querySelector(`.tab[data-tab="${tabId}"]`).classList.add('active');
       debug.log(`Alternando para aba: ${tabId}`);
-      if (tabId === 'cards') loadCards(); // Recarrega cartões ao abrir a aba
+      if (tabId === 'users') loadUsers();
+      if (tabId === 'cards') loadCards();
+      if (tabId === 'levels') loadLevels();
     }
 
     document.querySelectorAll('.tab').forEach(tab => {
@@ -152,7 +154,7 @@
         const token = localStorage.getItem('token');
         if (!token) {
           debug.error('Token JWT não encontrado ao carregar bancos');
-          alert('Erro de autenticação. Faça login novamente.');
+          document.getElementById('card-bank').innerHTML = '<option value="" disabled selected>Erro: Faça login novamente</option>';
           return [];
         }
         debug.log('Iniciando chamada à API /banks');
@@ -161,13 +163,13 @@
         });
         if (!response.ok) {
           debug.error(`Erro na API /banks: Status ${response.status} - ${response.statusText}`);
-          alert('Erro ao carregar bancos. Tente novamente.');
+          document.getElementById('card-bank').innerHTML = '<option value="" disabled selected>Erro ao carregar bancos</option>';
           return [];
         }
         const banks = await response.json();
         if (!Array.isArray(banks)) {
           debug.error('Resposta da API /banks não é um array: ' + JSON.stringify(banks));
-          alert('Erro nos dados de bancos. Contate o suporte.');
+          document.getElementById('card-bank').innerHTML = '<option value="" disabled selected>Erro nos dados de bancos</option>';
           return [];
         }
         const bankSelect = document.getElementById('card-bank');
@@ -182,7 +184,7 @@
         return banks;
       } catch (error) {
         debug.error('Erro ao carregar bancos: ' + error.message);
-        alert('Erro ao carregar bancos. Tente novamente.');
+        document.getElementById('card-bank').innerHTML = '<option value="" disabled selected>Erro ao carregar bancos</option>';
         return [];
       }
     }
@@ -192,7 +194,7 @@
         const token = localStorage.getItem('token');
         if (!token) {
           debug.error('Token JWT não encontrado ao carregar níveis');
-          alert('Erro de autenticação. Faça login novamente.');
+          document.getElementById('card-level').innerHTML = '<option value="" disabled selected>Erro: Faça login novamente</option>';
           return [];
         }
         debug.log('Iniciando chamada à API /cardprices');
@@ -201,13 +203,15 @@
         });
         if (!response.ok) {
           debug.error(`Erro na API /cardprices: Status ${response.status} - ${response.statusText}`);
-          alert('Erro ao carregar níveis de preços. Tente novamente.');
+          document.getElementById('card-level').innerHTML = '<option value="" disabled selected>Erro ao carregar níveis</option>';
+          document.getElementById('levels-list').innerHTML = `<p class="error-message">Erro ao carregar níveis: ${response.status} - ${response.statusText}</p>`;
           return [];
         }
         const prices = await response.json();
         if (!Array.isArray(prices)) {
           debug.error('Resposta da API /cardprices não é um array: ' + JSON.stringify(prices));
-          alert('Erro nos dados de níveis. Contate o suporte.');
+          document.getElementById('card-level').innerHTML = '<option value="" disabled selected>Erro nos dados de níveis</option>';
+          document.getElementById('levels-list').innerHTML = '<p class="error-message">Erro nos dados de níveis. Contate o suporte.</p>';
           return [];
         }
         const cardLevelSelect = document.getElementById('card-level');
@@ -222,7 +226,8 @@
         return prices;
       } catch (error) {
         debug.error('Erro ao carregar níveis de preços: ' + error.message);
-        alert('Erro ao carregar níveis de preços. Tente novamente.');
+        document.getElementById('card-level').innerHTML = '<option value="" disabled selected>Erro ao carregar níveis</option>';
+        document.getElementById('levels-list').innerHTML = `<p class="error-message">Erro ao carregar níveis: ${error.message}</p>`;
         return [];
       }
     }
@@ -233,6 +238,7 @@
         const container = document.getElementById('levels-list');
         container.innerHTML = '';
         if (prices.length === 0) {
+          debug.log('Nenhum nível encontrado na coleção cardprices');
           container.innerHTML = '<p class="text-gray-500">Nenhum nível cadastrado.</p>';
           return;
         }
@@ -255,7 +261,7 @@
         debug.log('Níveis carregados: ' + prices.length);
       } catch (error) {
         debug.error('Erro ao carregar níveis: ' + error.message);
-        alert('Erro ao carregar níveis. Tente novamente.');
+        document.getElementById('levels-list').innerHTML = `<p class="error-message">Erro ao carregar níveis: ${error.message}</p>`;
       }
     }
 
@@ -270,6 +276,7 @@
         return;
       }
       try {
+        debug.log('Iniciando chamada à API /cardprices para adicionar nível');
         const response = await fetch('/.netlify/functions/app-function/cardprices', {
           method: 'POST',
           headers: {
@@ -306,6 +313,7 @@
         return;
       }
       try {
+        debug.log('Iniciando chamada à API /cardprices para atualizar nível: ' + nivel);
         const response = await fetch('/.netlify/functions/app-function/cardprices', {
           method: 'PUT',
           headers: {
@@ -337,6 +345,7 @@
     async function deleteLevel(nivel) {
       if (!confirm(`Tem certeza que deseja excluir o nível "${nivel}"?`)) return;
       try {
+        debug.log('Iniciando chamada à API /cardprices para excluir nível: ' + nivel);
         const response = await fetch('/.netlify/functions/app-function/cardprices', {
           method: 'DELETE',
           headers: {
@@ -370,7 +379,7 @@
         const token = localStorage.getItem('token');
         if (!token) {
           debug.error('Token JWT não encontrado ao carregar usuários');
-          alert('Erro de autenticação. Faça login novamente.');
+          document.getElementById('users-list').innerHTML = '<p class="error-message">Erro de autenticação. Faça login novamente.</p>';
           return;
         }
         debug.log('Iniciando chamada à API /users');
@@ -379,18 +388,19 @@
         });
         if (!response.ok) {
           debug.error(`Erro na API /users: Status ${response.status} - ${response.statusText}`);
-          alert('Erro ao carregar usuários. Tente novamente.');
+          document.getElementById('users-list').innerHTML = `<p class="error-message">Erro ao carregar usuários: ${response.status} - ${response.statusText}</p>`;
           return;
         }
         const users = await response.json();
         if (!Array.isArray(users)) {
           debug.error('Resposta da API /users não é um array: ' + JSON.stringify(users));
-          alert('Erro nos dados de usuários. Contate o suporte.');
+          document.getElementById('users-list').innerHTML = '<p class="error-message">Erro nos dados de usuários. Contate o suporte.</p>';
           return;
         }
         const container = document.getElementById('users-list');
         container.innerHTML = '';
         if (users.length === 0) {
+          debug.log('Nenhum usuário encontrado na coleção users');
           container.innerHTML = '<p class="text-gray-500">Nenhum usuário cadastrado.</p>';
           return;
         }
@@ -413,7 +423,7 @@
         debug.log('Usuários carregados: ' + users.length);
       } catch (error) {
         debug.error('Erro ao carregar usuários: ' + error.message);
-        alert('Erro ao carregar usuários. Tente novamente.');
+        document.getElementById('users-list').innerHTML = `<p class="error-message">Erro ao carregar usuários: ${error.message}</p>`;
       }
     }
 
@@ -424,6 +434,7 @@
         return;
       }
       try {
+        debug.log('Iniciando chamada à API /users para atualizar usuário: ' + userId);
         const response = await fetch('/.netlify/functions/app-function/users', {
           method: 'PUT',
           headers: {
@@ -455,6 +466,7 @@
     async function deleteUser(userId) {
       if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
       try {
+        debug.log('Iniciando chamada à API /delete-user para excluir usuário: ' + userId);
         const response = await fetch('/.netlify/functions/app-function/delete-user', {
           method: 'DELETE',
           headers: {
@@ -497,7 +509,7 @@
         });
         if (!response.ok) {
           debug.error(`Erro na API /cards: Status ${response.status} - ${response.statusText}`);
-          document.getElementById('cards-list').innerHTML = `<p class="error-message">Erro ao carregar cartões: ${response.status} - ${response.statusText}. Verifique o console para mais detalhes.</p>`;
+          document.getElementById('cards-list').innerHTML = `<p class="error-message">Erro ao carregar cartões: ${response.status} - ${response.statusText}</p>`;
           return;
         }
         const cards = await response.json();
@@ -528,7 +540,7 @@
         debug.log('Cartões carregados: ' + cards.length);
       } catch (error) {
         debug.error('Erro ao carregar cartões: ' + error.message);
-        document.getElementById('cards-list').innerHTML = '<p class="error-message">Erro ao carregar cartões: ' + error.message + '. Verifique o console para mais detalhes.</p>';
+        document.getElementById('cards-list').innerHTML = `<p class="error-message">Erro ao carregar cartões: ${error.message}</p>`;
       }
     }
 

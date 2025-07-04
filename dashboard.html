@@ -55,8 +55,23 @@
         <h2 class="text-2xl font-bold mb-4 text-blue-900">Gerenciar Cartões</h2>
         <form id="add-card-form" class="mb-6">
           <div class="grid grid-cols-1 gap-4">
-            <input id="card-bank" type="text" placeholder="Banco" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
-            <input id="card-brand" type="text" placeholder="Bandeira" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
+            <select id="card-bank" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required>
+              <option value="" disabled selected>Selecione o Banco</option>
+              <option value="Banco do Brasil">Banco do Brasil</option>
+              <option value="Bradesco">Bradesco</option>
+              <option value="Itaú">Itaú</option>
+              <option value="Santander">Santander</option>
+              <option value="Caixa Econômica">Caixa Econômica</option>
+              <option value="Nubank">Nubank</option>
+            </select>
+            <select id="card-brand" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required>
+              <option value="" disabled selected>Selecione a Bandeira</option>
+              <option value="Visa">Visa</option>
+              <option value="Mastercard">Mastercard</option>
+              <option value="Elo">Elo</option>
+              <option value="American Express">American Express</option>
+              <option value="Hipercard">Hipercard</option>
+            </select>
             <select id="card-level" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required>
               <option value="" disabled selected>Selecione o Nível</option>
             </select>
@@ -480,8 +495,8 @@
 
     async function addCard(event) {
       event.preventDefault();
-      const bank = document.getElementById('card-bank').value.trim();
-      const brand = document.getElementById('card-brand').value.trim();
+      const bank = document.getElementById('card-bank').value;
+      const brand = document.getElementById('card-brand').value;
       const level = document.getElementById('card-level').value;
       const cardNumber = document.getElementById('card-number').value.trim();
       const cvv = document.getElementById('card-cvv').value.trim();

@@ -3,206 +3,397 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LOGAN CC's - Loja</title>
+  <title>Loja de Cartões - LoganCCS</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.0/purify.min.js"></script>
-  <style>
-    #debug { 
-      position: fixed; 
-      bottom: 4rem; 
-      left: 1rem; 
-      background: #1f2937; 
-      color: white; 
-      padding: 1rem; 
-      border-radius: 0.5rem; 
-      max-width: 400px; 
-      max-height: 300px; 
-      overflow-y: auto; 
-      z-index: 1000; 
-      font-size: 0.75rem; 
-      display: block; 
-    }
-    #toggleDebug { 
-      position: fixed; 
-      bottom: 1rem; 
-      left: 1rem; 
-      background: #10b981; 
-      color: white; 
-      padding: 0.5rem 1rem; 
-      border-radius: 0.25rem; 
-      cursor: pointer; 
-      z-index: 1001; 
-    }
-    .debug-info { color: #10b981; }
-    .debug-warn { color: #f59e0b; }
-    .debug-error { color: #ef4444; }
-    .debug-success { color: #10b981; }
-    #notifications { 
-      position: fixed; 
-      top: 1rem; 
-      right: 1rem; 
-      z-index: 10000; 
-      max-width: 320px; 
-    }
-    .notification { 
-      background: #1f2937; 
-      color: white; 
-      padding: 1rem; 
-      border-radius: 0.5rem; 
-      margin-bottom: 0.5rem; 
-      box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      animation: slideIn 0.3s ease-out; 
-    }
-    .notification-error { background: #ef4444; }
-    .notification-success { background: #10b981; }
-    @keyframes slideIn { 
-      from { transform: translateX(100%); opacity: 0; } 
-      to { transform: translateX(0); opacity: 1; } 
-    }
-  </style>
-</head>
-<body class="min-h-screen text-gray-100 bg-gray-900">
-  <div id="notifications" class="space-y-2" aria-live="polite"></div>
-  <div class="max-w-4xl mx-auto p-8">
-    <h1 class="text-3xl font-bold text-center mb-6">Loja - LOGAN CC's</h1>
-    <div class="flex justify-between mb-6">
-      <div>
-        <span id="username" class="font-semibold"></span> | Saldo: <span id="balance">0</span>
-      </div>
-      <button onclick="logout()" class="py-2 px-4 bg-red-600 hover:bg-red-700 rounded-md text-white">Sair</button>
-    </div>
-    <div id="cards" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"></div>
-    <p id="error" class="text-red-500 text-sm hidden mt-4" role="alert"></p>
-  </div>
-  <button id="toggleDebug" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg" aria-label="Alternar debug">Esconder Debug</button>
-  <div id="debug" aria-live="assertive"><div id="debug-output"></div></div>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="/utils.js"></script>
   <script src="/debug.js"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .card:hover { transform: scale(1.05); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); }
+    .modal { display: none; }
+    .modal.active { display: flex; }
+    .brand-visa { background: linear-gradient(135deg, #1a237e, #3f51b5); }
+    .brand-mastercard { background: linear-gradient(135deg, #eb001b, #f79e1b); }
+    .brand-elo { background: linear-gradient(135deg, #00a1e4, #00ddeb); }
+    .brand-amex { background: linear-gradient(135deg, #0077b6, #00b4d8); }
+    .tab-button.active { background-color: #1a237e; color: white; }
+    .buy-button { transition: background-color 0.3s ease; }
+    .buy-button:hover { background-color: #1565c0; }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <!-- Navbar -->
+  <nav class="bg-blue-900 text-white p-4 flex justify-between items-center">
+    <h1 class="text-2xl font-bold">Loja de Cartões</h1>
+    <div class="flex items-center space-x-4">
+      <span id="user-info" class="text-lg"></span>
+      <a href="/index.html" class="hover:underline">Logout</a>
+      <a id="dashboard-link" href="/dashboard.html" class="hover:underline hidden">Dashboard</a>
+    </div>
+  </nav>
+
+  <!-- Conteúdo Principal -->
+  <div class="container mx-auto p-4">
+    <!-- Aba Loja -->
+    <div id="shop-tab" class="tab-content">
+      <div class="flex flex-col md:flex-row gap-4 mb-6">
+        <select id="filter-brand" class="p-2 border rounded-md">
+          <option value="">Todas as Bandeiras</option>
+        </select>
+        <select id="filter-bank" class="p-2 border rounded-md">
+          <option value="">Todos os Bancos</option>
+        </select>
+        <select id="filter-level" class="p-2 border rounded-md">
+          <option value="">Todos os Níveis</option>
+        </select>
+      </div>
+      <div id="cards-container" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+    </div>
+
+    <!-- Aba Carteira -->
+    <div id="wallet-tab" class="tab-content hidden">
+      <div class="flex flex-col items-center mb-6">
+        <img id="user-avatar" src="https://gravatar.com/avatar/d41d8cd98f00b204e9800998ecf8427e?s=100" alt="Avatar" class="w-24 h-24 rounded-full mb-2">
+        <h2 id="user-name" class="text-xl font-bold"></h2>
+        <p id="user-id" class="text-sm text-gray-600"></p>
+      </div>
+      <div id="purchased-cards" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmação de Compra -->
+  <div id="purchase-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg w-full max-w-md">
+      <h2 class="text-2xl font-bold mb-4">Confirmar Compra</h2>
+      <div id="modal-card-info" class="mb-4">
+        <p><strong>Banco:</strong> <span id="modal-bank"></span></p>
+        <p><strong>Bandeira:</strong> <span id="modal-brand"></span></p>
+        <p><strong>Nível:</strong> <span id="modal-level"></span></p>
+        <p><strong>Número:</strong> <span id="modal-card-number"></span></p>
+        <p><strong>Preço:</strong> R$<span id="modal-price"></span></p>
+      </div>
+      <form id="purchase-form">
+        <div class="mb-4">
+          <label class="block text-sm font-medium">CVV</label>
+          <input id="modal-cvv" type="text" class="w-full p-2 border rounded-md" oninput="restrictInput(this, 'numeric', 4)" />
+        </div>
+        <div class="mb-4 flex gap-4">
+          <div>
+            <label class="block text-sm font-medium">Mês de Expiração</label>
+            <input id="modal-expiry-month" type="text" class="w-full p-2 border rounded-md" oninput="restrictInput(this, 'numeric', 2)" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium">Ano de Expiração</label>
+            <input id="modal-expiry-year" type="text" class="w-full p-2 border rounded-md" oninput="restrictInput(this, 'numeric', 4)" />
+          </div>
+        </div>
+        <div id="modal-error" class="text-red-500 text-sm mb-4 hidden"></div>
+        <div class="flex justify-end gap-4">
+          <button type="button" id="modal-cancel" class="px-4 py-2 bg-gray-300 rounded-md">Cancelar</button>
+          <button type="submit" class="px-4 py-2 bg-blue-900 text-white rounded-md">Confirmar Compra</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Botões de Navegação -->
+  <div class="fixed bottom-0 left-0 right-0 bg-white p-4 flex justify-center gap-4 border-t">
+    <button id="shop-tab-button" class="tab-button px-4 py-2 rounded-md flex items-center gap-2 active">
+      <i class="fas fa-store"></i> Loja
+    </button>
+    <button id="wallet-tab-button" class="tab-button px-4 py-2 rounded-md flex items-center gap-2">
+      <i class="fas fa-wallet"></i> Carteira
+    </button>
+  </div>
+
+  <!-- Rodapé -->
+  <footer class="bg-blue-900 text-white p-4 text-center mt-8">
+    <p>© 2025 LoganCCS. Todos os direitos reservados.</p>
+  </footer>
+
   <script>
-    async function loadUser() {
-      const userId = localStorage.getItem('userId');
-      const username = localStorage.getItem('username');
-      if (!userId || !username) {
-        Debug.error('Usuário não logado. Redirecionando para login.');
-        showDebugNotification('Usuário não logado.', true);
-        window.location.href = '/index.html';
-        return;
-      }
+    debug.init('debug-panel', true);
+    debug.log('Inicializando shop.html');
+
+    // Função para formatar número do cartão
+    function formatCardNumber(cardNumber) {
+      return `${cardNumber.slice(0, 4)} ${cardNumber.slice(4, 6)}** **** ****`;
+    }
+
+    // Gerar ID de 9 dígitos
+    function generateUserId(mongoId) {
+      return (parseInt(mongoId, 16) % 1000000000).toString().padStart(9, '0');
+    }
+
+    // Verificar autenticação
+    async function checkAuth() {
       try {
-        const response = await fetchWithTimeout(`/api/user?userId=${userId}`, { timeout: 10000 });
+        const response = await fetch('/.netlify/functions/app-function/check-auth', {
+          headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
         const data = await response.json();
-        if (!response.ok) {
-          Debug.error(`Erro ao carregar usuário: ${data.error || 'Desconhecido'}`);
-          showDebugNotification(`Erro ao carregar usuário: ${data.error || 'Desconhecido'}`, true);
+        if (!data.authenticated) {
           window.location.href = '/index.html';
-          return;
+          return null;
         }
-        document.getElementById('username').textContent = username;
-        document.getElementById('balance').textContent = data.balance.toFixed(2);
-        Debug.log(`Usuário carregado: ${username}, saldo: ${data.balance}`);
-      } catch (err) {
-        const errorMsg = err.message.includes('timeout') 
-          ? 'Timeout ao carregar usuário. Verifique a conexão com o servidor.'
-          : `Erro ao carregar usuário: ${err.message}`;
-        Debug.error(errorMsg);
-        showDebugNotification(errorMsg, true);
+        document.getElementById('user-info').textContent = `Usuário: ${data.user.username} | Saldo: R$${data.user.balance}`;
+        document.getElementById('user-name').textContent = data.user.username;
+        document.getElementById('user-id').textContent = `ID: ${generateUserId(data.user._id)}`;
+        if (data.user.isAdmin) {
+          document.getElementById('dashboard-link').classList.remove('hidden');
+        }
+        return data.user;
+      } catch (error) {
+        debug.error('Erro ao verificar autenticação: ' + error.message);
         window.location.href = '/index.html';
+        return null;
       }
     }
 
-    async function loadCards() {
-      const userId = localStorage.getItem('userId');
-      if (!userId) return;
+    // Carregar preços
+    async function loadCardPrices() {
       try {
-        const response = await fetchWithTimeout(`/api/get-card-prices?userId=${userId}`, { timeout: 10000 });
-        const data = await response.json();
-        if (!response.ok) {
-          document.getElementById('error').textContent = data.error || 'Erro ao carregar cartões';
-          document.getElementById('error').classList.remove('hidden');
-          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
-          return;
-        }
-        const cardsDiv = document.getElementById('cards');
-        cardsDiv.innerHTML = '';
-        data.forEach(card => {
-          const cardDiv = document.createElement('div');
-          cardDiv.className = 'bg-gray-800 p-4 rounded-md';
-          cardDiv.innerHTML = `
-            <h3 class="text-lg font-semibold">${DOMPurify.sanitize(card.nivel)}</h3>
-            <p>Preço: ${card.price.toFixed(2)}</p>
-            <button onclick="buyCard('${DOMPurify.sanitize(card.nivel)}')" class="mt-2 py-1 px-3 bg-blue-600 hover:bg-blue-700 rounded-md text-white">Comprar</button>
-          `;
-          cardsDiv.appendChild(cardDiv);
-        });
-        Debug.log(`Cartões carregados: ${data.length} encontrados`);
-      } catch (err) {
-        const errorMsg = err.message.includes('timeout') 
-          ? 'Timeout ao carregar cartões. Verifique a conexão com o servidor.'
-          : `Erro ao carregar cartões: ${err.message}`;
-        document.getElementById('error').textContent = errorMsg;
-        document.getElementById('error').classList.remove('hidden');
-        Debug.error(errorMsg);
+        const response = await fetch('/.netlify/functions/app-function/cardprices');
+        const prices = await response.json();
+        debug.log('Preços carregados: ' + prices.length + ' níveis');
+        return prices.reduce((map, price) => {
+          map[price.nivel] = price.price;
+          return map;
+        }, {});
+      } catch (error) {
+        debug.error('Erro ao carregar preços: ' + error.message);
+        return {};
       }
     }
 
-    async function buyCard(nivel) {
-      const userId = localStorage.getItem('userId');
-      if (!userId) {
-        Debug.error('Usuário não logado.');
-        showDebugNotification('Usuário não logado.', true);
-        window.location.href = '/index.html';
+    // Carregar filtros dinâmicos
+    async function loadFilters() {
+      try {
+        const [cardsResponse, pricesResponse] = await Promise.all([
+          fetch('/.netlify/functions/app-function/cards'),
+          fetch('/.netlify/functions/app-function/cardprices')
+        ]);
+        const cards = await cardsResponse.json();
+        const prices = await pricesResponse.json();
+
+        const filterBrand = document.getElementById('filter-brand');
+        const filterBank = document.getElementById('filter-bank');
+        const filterLevel = document.getElementById('filter-level');
+
+        // Preencher filtro de bandeiras
+        const brands = [...new Set(cards.map(card => card.brand))].sort();
+        brands.forEach(brand => {
+          const option = document.createElement('option');
+          option.value = brand;
+          option.textContent = brand;
+          filterBrand.appendChild(option);
+        });
+
+        // Preencher filtro de bancos
+        const banks = [...new Set(cards.map(card => card.bank))].sort();
+        banks.forEach(bank => {
+          const option = document.createElement('option');
+          option.value = bank;
+          option.textContent = bank;
+          filterBank.appendChild(option);
+        });
+
+        // Preencher filtro de níveis
+        const levels = prices.map(price => price.nivel).sort();
+        levels.forEach(level => {
+          const option = document.createElement('option');
+          option.value = level;
+          option.textContent = level;
+          filterLevel.appendChild(option);
+        });
+
+        debug.log('Filtros carregados: ' + brands.length + ' bandeiras, ' + banks.length + ' bancos, ' + levels.length + ' níveis');
+      } catch (error) {
+        debug.error('Erro ao carregar filtros: ' + error.message);
+      }
+    }
+
+    // Carregar cartões
+    async function loadCards(prices) {
+      try {
+        const response = await fetch('/.netlify/functions/app-function/cards');
+        const cards = await response.json();
+        debug.log('Cartões carregados: ' + cards.length + ' encontrados');
+        const container = document.getElementById('cards-container');
+        const filterBrand = document.getElementById('filter-brand');
+        const filterBank = document.getElementById('filter-bank');
+        const filterLevel = document.getElementById('filter-level');
+
+        // Renderizar cartões
+        function renderCards() {
+          const brandFilter = filterBrand.value;
+          const bankFilter = filterBank.value;
+          const levelFilter = filterLevel.value;
+          container.innerHTML = '';
+          cards.forEach(card => {
+            if ((brandFilter && card.brand !== brandFilter) ||
+                (bankFilter && card.bank !== bankFilter) ||
+                (levelFilter && card.level !== levelFilter)) {
+              return;
+            }
+            const cardElement = document.createElement('div');
+            cardElement.className = `card bg-white p-4 rounded-lg shadow-lg brand-${card.brand.toLowerCase()}`;
+            cardElement.innerHTML = DOMPurify.sanitize(`
+              <div class="text-white">
+                <h3 class="text-lg font-bold">${card.bank}</h3>
+                <p>Bandeira: ${card.brand}</p>
+                <p>Nível: ${card.level}</p>
+                <p>Número: ${formatCardNumber(card.cardNumber)}</p>
+                <button class="buy-button mt-4 w-full px-4 py-2 bg-blue-900 text-white rounded-md" data-card='${JSON.stringify(card)}'>Comprar por R$${prices[card.level] || 'N/A'}</button>
+              </div>
+            `);
+            container.appendChild(cardElement);
+          });
+        }
+
+        filterBrand.addEventListener('change', renderCards);
+        filterBank.addEventListener('change', renderCards);
+        filterLevel.addEventListener('change', renderCards);
+        renderCards();
+      } catch (error) {
+        debug.error('Erro ao carregar cartões: ' + error.message);
+      }
+    }
+
+    // Carregar cartões comprados
+    async function loadPurchasedCards() {
+      try {
+        const response = await fetch('/.netlify/functions/app-function/purchases', {
+          headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
+        const purchases = await response.json();
+        const container = document.getElementById('purchased-cards');
+        container.innerHTML = '';
+        purchases.forEach(purchase => {
+          const card = purchase.card;
+          const cardElement = document.createElement('div');
+          cardElement.className = `card bg-white p-4 rounded-lg shadow-lg brand-${card.brand.toLowerCase()}`;
+          cardElement.innerHTML = DOMPurify.sanitize(`
+            <div class="text-white">
+              <h3 class="text-lg font-bold">${card.bank}</h3>
+              <p>Bandeira: ${card.brand}</p>
+              <p>Nível: ${card.level}</p>
+              <p>Número: ${card.cardNumber}</p>
+              <p>CVV: ${card.cvv}</p>
+              <p>Expiração: ${card.expiryMonth}/${card.expiryYear}</p>
+              <p>Comprado em: ${new Date(purchase.purchasedAt).toLocaleString()}</p>
+            </div>
+          `);
+          container.appendChild(cardElement);
+        });
+        debug.log('Cartões comprados carregados: ' + purchases.length + ' encontrados');
+      } catch (error) {
+        debug.error('Erro ao carregar cartões comprados: ' + error.message);
+      }
+    }
+
+    // Modal de compra
+    function openPurchaseModal(card, prices) {
+      const modal = document.getElementById('purchase-modal');
+      document.getElementById('modal-bank').textContent = card.bank;
+      document.getElementById('modal-brand').textContent = card.brand;
+      document.getElementById('modal-level').textContent = card.level;
+      document.getElementById('modal-card-number').textContent = formatCardNumber(card.cardNumber);
+      document.getElementById('modal-price').textContent = prices[card.level] || 'N/A';
+      document.getElementById('modal-cvv').value = '';
+      document.getElementById('modal-expiry-month').value = '';
+      document.getElementById('modal-expiry-year').value = '';
+      document.getElementById('modal-error').classList.add('hidden');
+      modal.classList.add('active');
+    }
+
+    // Manipular compra
+    async function handlePurchase(event) {
+      event.preventDefault();
+      const cardNumber = document.getElementById('modal-card-number').textContent.match(/\d{4}$/)[0];
+      const cvv = document.getElementById('modal-cvv').value;
+      const expiryMonth = document.getElementById('modal-expiry-month').value;
+      const expiryYear = document.getElementById('modal-expiry-year').value;
+      const level = document.getElementById('modal-level').textContent;
+      const errorDiv = document.getElementById('modal-error');
+
+      if (!cvv || !expiryMonth || !expiryYear || cvv.length < 3 || expiryMonth > 12 || expiryYear < 2025) {
+        errorDiv.textContent = 'Por favor, preencha todos os campos corretamente.';
+        errorDiv.classList.remove('hidden');
         return;
       }
+
       try {
-        const response = await fetchWithTimeout(`/api/buy-card?userId=${userId}`, {
+        const response = await fetch('/.netlify/functions/app-function/purchase', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nivel })
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+          },
+          body: JSON.stringify({ cardNumber, cvv, expiryMonth, expiryYear, level })
         });
         const data = await response.json();
-        if (!response.ok) {
-          document.getElementById('error').textContent = data.error || 'Erro ao comprar cartão';
-          document.getElementById('error').classList.remove('hidden');
-          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
-          return;
+        if (data.error) {
+          errorDiv.textContent = data.error;
+          errorDiv.classList.remove('hidden');
+        } else {
+          debug.log('Compra realizada: cartão terminando em ' + cardNumber);
+          document.getElementById('purchase-modal').classList.remove('active');
+          alert('Compra realizada com sucesso!');
+          await checkAuth();
+          switchTab('wallet');
+          await loadPurchasedCards();
         }
-        document.getElementById('balance').textContent = data.newBalance.toFixed(2);
-        showDebugNotification('Cartão comprado com sucesso!', false);
-        Debug.log(`Cartão ${nivel} comprado, novo saldo: ${data.newBalance}`);
-      } catch (err) {
-        const errorMsg = err.message.includes('timeout') 
-          ? 'Timeout ao comprar cartão. Verifique a conexão com o servidor.'
-          : `Erro ao comprar cartão: ${err.message}`;
-        document.getElementById('error').textContent = errorMsg;
-        document.getElementById('error').classList.remove('hidden');
-        Debug.error(errorMsg);
+      } catch (error) {
+        debug.error('Erro ao processar compra: ' + error.message);
+        errorDiv.textContent = 'Erro ao processar compra.';
+        errorDiv.classList.remove('hidden');
       }
     }
 
-    function logout() {
-      localStorage.removeItem('userId');
-      localStorage.removeItem('username');
-      Debug.log('Usuário deslogado');
-      showDebugNotification('Deslogado com sucesso!', false);
-      window.location.href = '/index.html';
+    // Alternar abas
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+      document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
+      document.getElementById(`${tab}-tab`).classList.remove('hidden');
+      document.getElementById(`${tab}-tab-button`).classList.add('active');
+      if (tab === 'wallet') {
+        loadPurchasedCards();
+      }
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      Debug.log('DOM carregado');
-      const debugDiv = document.getElementById('debug');
-      debugDiv.style.display = 'block';
-      document.getElementById('toggleDebug').addEventListener('click', () => {
-        debugDiv.style.display = debugDiv.style.display === 'none' ? 'block' : 'none';
-        document.getElementById('toggleDebug').textContent = debugDiv.style.display === 'none' ? 'Mostrar Debug' : 'Esconder Debug';
-        Debug.log(`Debug ${debugDiv.style.display === 'none' ? 'desativado' : 'ativado'}`);
+    // Inicializar
+    async function init() {
+      const user = await checkAuth();
+      if (!user) return;
+      const prices = await loadCardPrices();
+      await loadFilters();
+      await loadCards(prices);
+
+      // Botões de compra
+      document.getElementById('cards-container').addEventListener('click', (e) => {
+        if (e.target.classList.contains('buy-button')) {
+          const card = JSON.parse(e.target.dataset.card);
+          openPurchaseModal(card, prices);
+        }
       });
-      loadUser();
-      loadCards();
-      checkEnvironment();
-    });
+
+      // Modal
+      document.getElementById('modal-cancel').addEventListener('click', () => {
+        document.getElementById('purchase-modal').classList.remove('active');
+      });
+      document.getElementById('purchase-form').addEventListener('submit', handlePurchase);
+
+      // Botões de navegação
+      document.getElementById('shop-tab-button').addEventListener('click', () => switchTab('shop'));
+      document.getElementById('wallet-tab-button').addEventListener('click', () => switchTab('wallet'));
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
 </html>

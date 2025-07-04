@@ -1,242 +1,443 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Admin - LOGANCCS</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.0/purify.min.js"></script>
-    <style>
-        #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; visibility: hidden; }
-        .spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid #10b981; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.3s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #notifications { position: fixed; top: 1rem; right: 1rem; z-index: 1000; max-width: 320px; }
-        .notification { background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; justify-content: space-between; align-items: center; animation: slideIn 0.3s ease-out; }
-        .notification-error { background: #ef4444; }
-        .notification-success { background: #10b981; }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        #debug { position: fixed; bottom: 4rem; left: 1rem; background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; max-width: 400px; max-height: 300px; overflow-y: auto; z-index: 1000; font-size: 0.75rem; }
-        #toggleDebug { position: fixed; bottom: 1rem; left: 1rem; background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer; z-index: 1001; }
-        .debug-info { color: #10b981; }
-        .debug-warn { color: #f59e0b; }
-        .debug-error { color: #ef4444; }
-        .debug-success { color: #10b981; }
-        .user-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
-        .user-item { background: #1f2937; padding: 1rem; border-radius: 0.5rem; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LOGAN CC's - Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.0/purify.min.js"></script>
+  <style>
+    #debug { 
+      position: fixed; 
+      bottom: 4rem; 
+      left: 1rem; 
+      background: #1f2937; 
+      color: white; 
+      padding: 1rem; 
+      border-radius: 0.5rem; 
+      max-width: 400px; 
+      max-height: 300px; 
+      overflow-y: auto; 
+      z-index: 1000; 
+      font-size: 0.75rem; 
+      display: block; 
+    }
+    #toggleDebug { 
+      position: fixed; 
+      bottom: 1rem; 
+      left: 1rem; 
+      background: #10b981; 
+      color: white; 
+      padding: 0.5rem 1rem; 
+      border-radius: 0.25rem; 
+      cursor: pointer; 
+      z-index: 1001; 
+    }
+    .debug-info { color: #10b981; }
+    .debug-warn { color: #f59e0b; }
+    .debug-error { color: #ef4444; }
+    .debug-success { color: #10b981; }
+    #notifications { 
+      position: fixed; 
+      top: 1rem; 
+      right: 1rem; 
+      z-index: 10000; 
+      max-width: 320px; 
+    }
+    .notification { 
+      background: #1f2937; 
+      color: white; 
+      padding: 1rem; 
+      border-radius: 0.5rem; 
+      margin-bottom: 0.5rem; 
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      animation: slideIn 0.3s ease-out; 
+    }
+    .notification-error { background: #ef4444; }
+    .notification-success { background: #10b981; }
+    @keyframes slideIn { 
+      from { transform: translateX(100%); opacity: 0; } 
+      to { transform: translateX(0); opacity: 1; } 
+    }
+  </style>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen container mx-auto p-6">
-    <div id="globalLoader" aria-hidden="true"><div class="spinner"></div></div>
-    <div id="notifications" class="space-y-2" aria-live="polite"></div>
-    <header class="bg-gray-800 p-4 flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-green-500 flex items-center">
-            <i class="fas fa-credit-card mr-2" aria-hidden="true"></i> LOGAN CC's - Painel Admin
-        </h1>
-        <button id="logoutButton" onclick="logout()" class="text-gray-300 hover:text-red-500 flex items-center" aria-label="Sair">
-            <i class="fas fa-sign-out-alt mr-2" aria-hidden="true"></i> Sair
-        </button>
-    </header>
-    <main>
-        <section class="mb-8">
-            <h2 class="text-xl font-semibold mb-4">Gerenciar Preços de Cartões</h2>
-            <div id="pricesForm" class="bg-gray-800 p-4 rounded-lg">
-                <div class="mb-4">
-                    <label for="classicPrice" class="block text-sm font-medium text-gray-300">Classic</label>
-                    <input type="number" id="classicPrice" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Preço Classic" min="0.01" step="0.01">
-                </div>
-                <div class="mb-4">
-                    <label for="goldPrice" class="block text-sm font-medium text-gray-300">Gold</label>
-                    <input type="number" id="goldPrice" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Preço Gold" min="0.01" step="0.01">
-                </div>
-                <div class="mb-4">
-                    <label for="platinumPrice" class="block text-sm font-medium text-gray-300">Platinum</label>
-                    <input type="number" id="platinumPrice" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Preço Platinum" min="0.01" step="0.01">
-                </div>
-                <div class="mb-4">
-                    <label for="blackPrice" class="block text-sm font-medium text-gray-300">Black</label>
-                    <input type="number" id="blackPrice" class="mt-1 p-2 bg-gray-700 border-b border-gray-600 rounded w-full focus:ring-green-500 focus:border-green-500" placeholder="Preço Black" min="0.01" step="0.01">
-                </div>
-                <button id="pricesButton" onclick="updatePrices()" class="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center" aria-label="Atualizar preços">
-                    <span>Atualizar Preços</span>
-                    <svg id="pricesSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                    </svg>
-                </button>
-            </div>
-        </section>
-        <section>
-            <h2 class="text-xl font-semibold mb-4">Usuários</h2>
-            <div id="usersGrid" class="user-grid"></div>
-        </section>
-    </main>
-    <button id="toggleDebug" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg fixed bottom-4 left-4" aria-label="Alternar debug">Esconder Debug</button>
-    <div id="debug" aria-live="assertive"><div id="debug-output"></div></div>
-    <script src="/debug.js"></script>
-    <script src="/utils.js"></script>
-    <script>
-        async function checkEnvironment() {
-            Debug.log('Verificando ambiente e conexão com MongoDB');
-            try {
-                const response = await fetchWithTimeout('/api/check-env');
-                const data = await response.json();
-                if (!response.ok) {
-                    Debug.error(`Erro ao verificar ambiente: ${data.error || 'Desconhecido'}`);
-                    showDebugNotification(`Erro: ${data.error || 'Falha na verificação do ambiente'}`, true);
-                    return;
-                }
-                Debug.log(`MongoDB conectado: ${data.mongodbConnected ? 'Sim' : 'Não'}`);
-                showDebugNotification(`MongoDB conectado: ${data.mongodbConnected ? 'Sim' : 'Não'}`, !data.mongodbConnected);
-                for (const [collection, status] of Object.entries(data.collections)) {
-                    Debug.log(`Coleção ${collection}: ${status.exists ? 'Acessível' : 'Inacessível'}`);
-                    showDebugNotification(`Coleção ${collection}: ${status.exists ? 'Acessível' : 'Inacessível'}`, !status.exists);
-                }
-                for (const [envVar, status] of Object.entries(data.environment)) {
-                    Debug.log(`Variável ${envVar}: ${status.exists ? 'Configurada' : 'Não configurada'}`);
-                    showDebugNotification(`Variável ${envVar}: ${status.exists ? 'Configurada' : 'Não configurada'}`, !status.exists);
-                }
-            } catch (err) {
-                Debug.error(`Erro ao verificar ambiente: ${err.message}`);
-                showDebugNotification(`Erro: ${err.message}`, true);
-            }
+<body class="min-h-screen text-gray-100 bg-gray-900">
+  <div id="notifications" class="space-y-2" aria-live="polite"></div>
+  <div class="max-w-4xl mx-auto p-8">
+    <h1 class="text-3xl font-bold text-center mb-6">Dashboard - LOGAN CC's</h1>
+    <div class="flex justify-between mb-6">
+      <div>
+        <span id="username" class="font-semibold"></span> | Saldo: <span id="balance">0</span>
+      </div>
+      <button onclick="logout()" class="py-2 px-4 bg-red-600 hover:bg-red-700 rounded-md text-white">Sair</button>
+    </div>
+    <h2 class="text-xl font-semibold mb-4">Gerenciar Usuários</h2>
+    <div id="users" class="mb-6"></div>
+    <h2 class="text-xl font-semibold mb-4">Gerenciar Preços de Cartões</h2>
+    <div id="card-prices" class="mb-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="price-classic" class="block text-sm font-medium mb-1">Classic</label>
+          <input id="price-classic" type="number" min="0.01" step="0.01" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md">
+        </div>
+        <div>
+          <label for="price-gold" class="block text-sm font-medium mb-1">Gold</label>
+          <input id="price-gold" type="number" min="0.01" step="0.01" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md">
+        </div>
+        <div>
+          <label for="price-platinum" class="block text-sm font-medium mb-1">Platinum</label>
+          <input id="price-platinum" type="number" min="0.01" step="0.01" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md">
+        </div>
+        <div>
+          <label for="price-black" class="block text-sm font-medium mb-1">Black</label>
+          <input id="price-black" type="number" min="0.01" step="0.01" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md">
+        </div>
+      </div>
+      <button onclick="updateCardPrices()" class="mt-4 py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-md text-white">Atualizar Preços</button>
+    </div>
+    <h2 class="text-xl font-semibold mb-4">Gerenciar Bancos</h2>
+    <div id="banks" class="mb-6">
+      <div class="mb-4">
+        <label for="new-bank" class="block text-sm font-medium mb-1">Novo Banco</label>
+        <input id="new-bank" type="text" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md" placeholder="Nome do banco" oninput="restrictInput(this)">
+        <button onclick="addBank()" class="mt-2 py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-md text-white">Adicionar Banco</button>
+      </div>
+      <div id="bank-list"></div>
+    </div>
+    <p id="error" class="text-red-500 text-sm hidden mt-4" role="alert"></p>
+  </div>
+  <button id="toggleDebug" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg" aria-label="Alternar debug">Esconder Debug</button>
+  <div id="debug" aria-live="assertive"><div id="debug-output"></div></div>
+  <script src="/utils.js"></script>
+  <script src="/debug.js"></script>
+  <script>
+    async function checkEnvironment() {
+      Debug.log('Iniciando verificação de ambiente e conexão com MongoDB');
+      try {
+        const response = await fetchWithTimeout('/api/check-env', { timeout: 10000 });
+        const data = await response.json();
+        if (!response.ok) {
+          const errorMsg = data.error && data.error.includes('Timedout') 
+            ? 'Timeout na conexão com o servidor. Verifique a Netlify Functions e o MongoDB Atlas.'
+            : `Erro ao verificar ambiente: ${data.error || 'Desconhecido'}`;
+          Debug.error(errorMsg);
+          showDebugNotification(errorMsg, true);
+          return;
         }
-
-        async function checkAuth() {
-            Debug.log('Verificando autenticação');
-            const userId = localStorage.getItem('userId');
-            if (!userId) {
-                Debug.error('Nenhum userId encontrado no localStorage');
-                showDebugNotification('Usuário não autenticado.', true);
-                setTimeout(() => { window.location.href = '/index.html'; }, 1000);
-                return false;
-            }
-            try {
-                const response = await fetchWithTimeout(`/api/user?userId=${encodeURIComponent(userId)}`);
-                const user = await response.json();
-                if (!response.ok || !user.isAdmin) {
-                    Debug.error(`Erro: ${user.error || 'Usuário não é administrador'}`);
-                    showDebugNotification('Acesso negado. Apenas administradores.', true);
-                    setTimeout(() => { window.location.href = '/index.html'; }, 1000);
-                    return false;
-                }
-                return true;
-            } catch (err) {
-                Debug.error('Erro ao verificar autenticação: %s', err.message);
-                showDebugNotification(`Erro: ${err.message}`, true);
-                setTimeout(() => { window.location.href = '/index.html'; }, 1000);
-                return false;
-            }
+        const mongoStatus = data.mongodbConnected ? 'Conectado' : 'Não conectado';
+        Debug.log(`Conexão MongoDB: ${mongoStatus}`);
+        showDebugNotification(`Conexão MongoDB: ${mongoStatus}`, !data.mongodbConnected);
+        if (!data.mongodbConnected) {
+          Debug.error('MongoDB não conectado. Verifique MONGODB_URI e permissões no MongoDB Atlas.');
+          showDebugNotification('MongoDB não conectado. Verifique MONGODB_URI e permissões.', true);
         }
-
-        async function loadUsers() {
-            Debug.log('Carregando usuários');
-            const usersGrid = document.getElementById('usersGrid');
-            usersGrid.innerHTML = '<p class="text-gray-500 text-center"><i class="fas fa-spinner animate-spin mr-2"></i> Carregando...</p>';
-            try {
-                const response = await fetchWithTimeout(`/api/users?userId=${encodeURIComponent(localStorage.getItem('userId'))}`);
-                const users = await response.json();
-                if (!response.ok) throw new Error(users.error || 'Erro ao carregar usuários');
-                usersGrid.innerHTML = '';
-                users.forEach(user => {
-                    const userDiv = document.createElement('div');
-                    userDiv.className = 'user-item';
-                    userDiv.innerHTML = `
-                        <p class="text-gray-300">Usuário: ${DOMPurify.sanitize(user.username)}</p>
-                        <p class="text-gray-300">Admin: ${user.isAdmin ? 'Sim' : 'Não'}</p>
-                        <p class="text-gray-300">Saldo: ${formatCurrency(user.balance)}</p>
-                        <p class="text-gray-300">Criado: ${formatDate(user.createdAt)}</p>
-                        ${user.username !== 'LVz' ? `<button onclick="deleteUser('${user._id}')" class="mt-2 py-1 px-2 bg-red-600 text-white rounded hover:bg-red-700">Excluir</button>` : ''}
-                    `;
-                    usersGrid.appendChild(userDiv);
-                });
-            } catch (err) {
-                Debug.error('Erro ao carregar usuários: %s', err.message);
-                usersGrid.innerHTML = `<p class="text-center text-red-500">Erro: ${DOMPurify.sanitize(err.message)}</p>`;
-                showDebugNotification(`Erro: ${err.message}`, true);
-            }
+        Debug.log('Verificando status das coleções:');
+        for (const [collection, status] of Object.entries(data.collections)) {
+          const statusText = status.exists && status.accessible ? 'Carregada e acessível' : 'Não carregada ou inacessível';
+          Debug.log(`- Coleção ${collection}: ${statusText}`);
+          showDebugNotification(`Coleção ${collection}: ${statusText}`, !status.exists || !status.accessible);
         }
-
-        async function deleteUser(userId) {
-            if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
-            Debug.log(`Tentando excluir usuário: ${userId}`);
-            try {
-                const response = await fetchWithTimeout(`/api/delete-user?userId=${encodeURIComponent(localStorage.getItem('userId'))}&targetId=${encodeURIComponent(userId)}`, {
-                    method: 'DELETE'
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || 'Erro ao excluir usuário');
-                showDebugNotification('Usuário excluído com sucesso!');
-                loadUsers();
-            } catch (err) {
-                Debug.error('Erro ao excluir usuário: %s', err.message);
-                showDebugNotification(`Erro: ${err.message}`, true);
-            }
+        Debug.log('Verificando variáveis de ambiente:');
+        for (const [envVar, status] of Object.entries(data.environment)) {
+          const envStatus = status.exists ? 'Configurada' : 'Não configurada';
+          Debug.log(`- ${envVar}: ${envStatus}`);
+          showDebugNotification(`${envVar}: ${envStatus}`, !status.exists);
         }
+      } catch (err) {
+        const errorMsg = err.message.includes('timeout') 
+          ? 'Timeout na conexão com o servidor. Verifique a Netlify Functions e o MongoDB Atlas.'
+          : `Erro ao verificar ambiente: ${err.message}`;
+        Debug.error(errorMsg);
+        showDebugNotification(errorMsg, true);
+      }
+    }
 
-        async function loadPrices() {
-            Debug.log('Carregando preços de cartões');
-            try {
-                const response = await fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(localStorage.getItem('userId'))}`);
-                const prices = await response.json();
-                if (!response.ok) throw new Error(prices.error || 'Erro ao carregar preços');
-                prices.forEach(price => {
-                    const input = document.getElementById(`${price.nivel.toLowerCase()}Price`);
-                    if (input) input.value = price.price;
-                });
-            } catch (err) {
-                Debug.error('Erro ao carregar preços: %s', err.message);
-                showDebugNotification(`Erro: ${err.message}`, true);
-            }
+    async function loadUser() {
+      const userId = localStorage.getItem('userId');
+      const username = localStorage.getItem('username');
+      if (!userId || !username) {
+        Debug.error('Usuário não logado. Redirecionando para login.');
+        showDebugNotification('Usuário não logado.', true);
+        window.location.href = '/index.html';
+        return;
+      }
+      try {
+        const response = await fetchWithTimeout(`/api/user?userId=${userId}`, { timeout: 10000 });
+        const data = await response.json();
+        if (!response.ok || !data.isAdmin) {
+          Debug.error(`Erro: ${data.error || 'Acesso negado, não é admin'}`);
+          showDebugNotification('Acesso negado.', true);
+          window.location.href = '/index.html';
+          return;
         }
+        document.getElementById('username').textContent = username;
+        document.getElementById('balance').textContent = data.balance.toFixed(2);
+        Debug.log(`Usuário carregado: ${username}, saldo: ${data.balance}`);
+      } catch (err) {
+        const errorMsg = err.message.includes('timeout') 
+          ? 'Timeout ao carregar usuário. Verifique a conexão com o servidor.'
+          : `Erro ao carregar usuário: ${err.message}`;
+        Debug.error(errorMsg);
+        showDebugNotification(errorMsg, true);
+        window.location.href = '/index.html';
+      }
+    }
 
-        async function updatePrices() {
-            Debug.log('Atualizando preços de cartões');
-            const button = document.getElementById('pricesButton');
-            const spinner = document.getElementById('pricesSpinner');
-            button.disabled = true;
-            spinner.classList.remove('hidden');
-            try {
-                const prices = [
-                    { nivel: 'Classic', price: parseFloat(document.getElementById('classicPrice').value) || 0 },
-                    { nivel: 'Gold', price: parseFloat(document.getElementById('goldPrice').value) || 0 },
-                    { nivel: 'Platinum', price: parseFloat(document.getElementById('platinumPrice').value) || 0 },
-                    { nivel: 'Black', price: parseFloat(document.getElementById('blackPrice').value) || 0 }
-                ];
-                if (prices.some(p => p.price < 0.01)) {
-                    throw new Error('Preços devem ser pelo menos 0.01');
-                }
-                const response = await fetchWithTimeout(`/api/set-card-prices?userId=${encodeURIComponent(localStorage.getItem('userId'))}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prices })
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || 'Erro ao atualizar preços');
-                showDebugNotification('Preços atualizados com sucesso!');
-            } catch (err) {
-                Debug.error('Erro ao atualizar preços: %s', err.message);
-                showDebugNotification(`Erro: ${err.message}`, true);
-            } finally {
-                button.disabled = false;
-                spinner.classList.add('hidden');
-            }
+    async function loadUsers() {
+      const userId = localStorage.getItem('userId');
+      if (!userId) return;
+      try {
+        const response = await fetchWithTimeout(`/api/users?userId=${userId}`, { timeout: 10000 });
+        const data = await response.json();
+        if (!response.ok) {
+          document.getElementById('error').textContent = data.error || 'Erro ao carregar usuários';
+          document.getElementById('error').classList.remove('hidden');
+          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
+          return;
         }
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            Debug.log('DOM carregado');
-            const debugDiv = document.getElementById('debug');
-            debugDiv.style.display = 'block';
-            document.getElementById('toggleDebug').addEventListener('click', () => {
-                debugDiv.style.display = debugDiv.style.display === 'none' ? 'block' : 'none';
-                document.getElementById('toggleDebug').textContent = debugDiv.style.display === 'none' ? 'Mostrar Debug' : 'Esconder Debug';
-                Debug.log(`Debug ${debugDiv.style.display === 'none' ? 'desativado' : 'ativado'}`);
-            });
-            await checkEnvironment();
-            if (await checkAuth()) {
-                await Promise.all([loadUsers(), loadPrices()]);
-            }
+        const usersDiv = document.getElementById('users');
+        usersDiv.innerHTML = '';
+        data.forEach(user => {
+          const userDiv = document.createElement('div');
+          userDiv.className = 'bg-gray-800 p-4 rounded-md mb-2 flex justify-between';
+          userDiv.innerHTML = `
+            <span>${DOMPurify.sanitize(user.username)} | Saldo: ${user.balance.toFixed(2)} | Admin: ${user.isAdmin ? 'Sim' : 'Não'}</span>
+            ${user.username !== 'LVz' ? `<button onclick="deleteUser('${user._id}')" class="py-1 px-3 bg-red-600 hover:bg-red-700 rounded-md text-white">Excluir</button>` : ''}
+          `;
+          usersDiv.appendChild(userDiv);
         });
-    </script>
+        Debug.log(`Usuários carregados: ${data.length} encontrados`);
+      } catch (err) {
+        const errorMsg = err.message.includes('timeout') 
+          ? 'Timeout ao carregar usuários. Verifique a conexão com o servidor.'
+          : `Erro ao carregar usuários: ${err.message}`;
+        document.getElementById('error').textContent = errorMsg;
+        document.getElementById('error').classList.remove('hidden');
+        Debug.error(errorMsg);
+      }
+    }
+
+    async function deleteUser(targetId) {
+      const userId = localStorage.getItem('userId');
+      if (!userId) return;
+      try {
+        const response = await fetchWithTimeout(`/api/delete-user?userId=${userId}&targetId=${targetId}`, {
+          method: 'DELETE',
+          timeout: 10000
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          document.getElementById('error').textContent = data.error || 'Erro ao excluir usuário';
+          document.getElementById('error').classList.remove('hidden');
+          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
+          return;
+        }
+        showDebugNotification('Usuário excluído com sucesso!', false);
+        Debug.log(`Usuário ${targetId} excluído`);
+        loadUsers();
+      } catch (err) {
+        const errorMsg = err.message.includes('timeout') 
+          ? 'Timeout ao excluir usuário. Verifique a conexão com o servidor.'
+          : `Erro ao excluir usuário: ${err.message}`;
+        document.getElementById('error').textContent = errorMsg;
+        document.getElementById('error').classList.remove('hidden');
+        Debug.error(errorMsg);
+      }
+    }
+
+    async function loadCardPrices() {
+      const userId = localStorage.getItem('userId');
+      if (!userId) return;
+      try {
+        const response = await fetchWithTimeout(`/api/get-card-prices?userId=${userId}`, { timeout: 10000 });
+        const data = await response.json();
+        if (!response.ok) {
+          document.getElementById('error').textContent = data.error || 'Erro ao carregar preços';
+          document.getElementById('error').classList.remove('hidden');
+          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
+          return;
+        }
+        data.forEach(card => {
+          const input = document.getElementById(`price-${card.nivel.toLowerCase()}`);
+          if (input) input.value = card.price.toFixed(2);
+        });
+        Debug.log(`Preços de cartões carregados: ${data.length} encontrados`);
+      } catch (err) {
+        const errorMsg = err.message.includes('timeout') 
+          ? 'Timeout ao carregar preços. Verifique a conexão com o servidor.'
+          : `Erro ao carregar preços: ${err.message}`;
+        document.getElementById('error').textContent = errorMsg;
+        document.getElementById('error').classList.remove('hidden');
+        Debug.error(errorMsg);
+      }
+    }
+
+    async function updateCardPrices() {
+      const userId = localStorage.getItem('userId');
+      if (!userId) return;
+      const prices = [
+        { nivel: 'Classic', price: parseFloat(document.getElementById('price-classic').value) },
+        { nivel: 'Gold', price: parseFloat(document.getElementById('price-gold').value) },
+        { nivel: 'Platinum', price: parseFloat(document.getElementById('price-platinum').value) },
+        { nivel: 'Black', price: parseFloat(document.getElementById('price-black').value) }
+      ];
+      if (prices.some(p => isNaN(p.price) || p.price <= 0)) {
+        document.getElementById('error').textContent = 'Preços devem ser números positivos';
+        document.getElementById('error').classList.remove('hidden');
+        Debug.error('Erro de validação: Preços inválidos');
+        return;
+      }
+      try {
+        const response = await fetchWithTimeout(`/api/set-card-prices?userId=${userId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prices }),
+          timeout: 10000
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          document.getElementById('error').textContent = data.error || 'Erro ao atualizar preços';
+          document.getElementById('error').classList.remove('hidden');
+          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
+          return;
+        }
+        showDebugNotification('Preços atualizados com sucesso!', false);
+        Debug.log('Preços de cartões atualizados');
+      } catch (err) {
+        const errorMsg = err.message.includes('timeout') 
+          ? 'Timeout ao atualizar preços. Verifique a conexão com o servidor.'
+          : `Erro ao atualizar preços: ${err.message}`;
+        document.getElementById('error').textContent = errorMsg;
+        document.getElementById('error').classList.remove('hidden');
+        Debug.error(errorMsg);
+      }
+    }
+
+    async function loadBanks() {
+      const userId = localStorage.getItem('userId');
+      if (!userId) return;
+      try {
+        const response = await fetchWithTimeout(`/api/banks?userId=${userId}`, { timeout: 10000 });
+        const data = await response.json();
+        if (!response.ok) {
+          document.getElementById('error').textContent = data.error || 'Erro ao carregar bancos';
+          document.getElementById('error').classList.remove('hidden');
+          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
+          return;
+        }
+        const bankList = document.getElementById('bank-list');
+        bankList.innerHTML = '';
+        data.forEach(bank => {
+          const bankDiv = document.createElement('div');
+          bankDiv.className = 'bg-gray-800 p-4 rounded-md mb-2 flex justify-between';
+          bankDiv.innerHTML = `
+            <span>${DOMPurify.sanitize(bank.name)}</span>
+            <button onclick="deleteBank('${bank._id}')" class="py-1 px-3 bg-red-600 hover:bg-red-700 rounded-md text-white">Excluir</button>
+          `;
+          bankList.appendChild(bankDiv);
+        });
+        Debug.log(`Bancos carregados: ${data.length} encontrados`);
+      } catch (err) {
+        const errorMsg = err.message.includes('timeout') 
+          ? 'Timeout ao carregar bancos. Verifique a conexão com o servidor.'
+          : `Erro ao carregar bancos: ${err.message}`;
+        document.getElementById('error').textContent = errorMsg;
+        document.getElementById('error').classList.remove('hidden');
+        Debug.error(errorMsg);
+      }
+    }
+
+    async function addBank() {
+      const userId = localStorage.getItem('userId');
+      const name = document.getElementById('new-bank').value.trim();
+      if (!userId || !name) {
+        document.getElementById('error').textContent = 'Nome do banco é obrigatório';
+        document.getElementById('error').classList.remove('hidden');
+        Debug.error('Erro de validação: Nome do banco vazio');
+        return;
+      }
+      try {
+        const response = await fetchWithTimeout(`/api/banks?userId=${userId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name }),
+          timeout: 10000
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          document.getElementById('error').textContent = data.error || 'Erro ao adicionar banco';
+          document.getElementById('error').classList.remove('hidden');
+          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
+          return;
+        }
+        document.getElementById('new-bank').value = '';
+        showDebugNotification('Banco adicionado com sucesso!', false);
+        Debug.log(`Banco adicionado: ${name}`);
+        loadBanks();
+      } catch (err) {
+        const errorMsg = err.message.includes('timeout') 
+          ? 'Timeout ao adicionar banco. Verifique a conexão com o servidor.'
+          : `Erro ao adicionar banco: ${err.message}`;
+        document.getElementById('error').textContent = errorMsg;
+        document.getElementById('error').classList.remove('hidden');
+        Debug.error(errorMsg);
+      }
+    }
+
+    async function deleteBank(bankId) {
+      const userId = localStorage.getItem('userId');
+      if (!userId) return;
+      try {
+        const response = await fetchWithTimeout(`/api/banks?userId=${userId}&bankId=${bankId}`, {
+          method: 'DELETE',
+          timeout: 10000
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          document.getElementById('error').textContent = data.error || 'Erro ao excluir banco';
+          document.getElementById('error').classList.remove('hidden');
+          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
+          return;
+        }
+        showDebugNotification('Banco excluído com sucesso!', false);
+        Debug.log(`Banco ${bankId} excluído`);
+        loadBanks();
+      } catch (err) {
+        const errorMsg = err.message.includes('timeout') 
+          ? 'Timeout ao excluir banco. Verifique a conexão com o servidor.'
+          : `Erro ao excluir banco: ${err.message}`;
+        document.getElementById('error').textContent = errorMsg;
+        document.getElementById('error').classList.remove('hidden');
+        Debug.error(errorMsg);
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('userId');
+      localStorage.removeItem('username');
+      Debug.log('Usuário deslogado');
+      showDebugNotification('Deslogado com sucesso!', false);
+      window.location.href = '/index.html';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Debug.log('DOM carregado');
+      const debugDiv = document.getElementById('debug');
+      debugDiv.style.display = 'block';
+      document.getElementById('toggleDebug').addEventListener('click', () => {
+        debugDiv.style.display = debugDiv.style.display === 'none' ? 'block' : 'none';
+        document.getElementById('toggleDebug').textContent = debugDiv.style.display === 'none' ? 'Mostrar Debug' : 'Esconder Debug';
+        Debug.log(`Debug ${debugDiv.style.display === 'none' ? 'desativado' : 'ativado'}`);
+      });
+      loadUser();
+      loadUsers();
+      loadCardPrices();
+      loadBanks();
+      checkEnvironment();
+    });
+  </script>
 </body>
 </html>

@@ -1,416 +1,331 @@
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
-let db;
-
-// Função para conectar ao MongoDB Atlas
-async function connectToDB() {
-  if (db) return db;
-  try {
-    const client = new MongoClient(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
-    await client.connect();
-    console.log('Conexão com MongoDB Atlas estabelecida');
-    db = client.db('loganccs');
-    const collections = await db.listCollections().toArray();
-    console.log('Coleções disponíveis:', collections.map(c => c.name));
-    return db;
-  } catch (error) {
-    console.error('Erro ao conectar ao MongoDB:', error.message);
-    throw new Error('Erro ao conectar ao banco de dados');
-  }
-}
-
-// Middleware para verificar JWT
-function verifyJWT(req, res, requireAdmin = false) {
-  const token = req.headers.authorization?.split('Bearer ')[1];
-  if (!token) {
-    console.error('Token JWT não fornecido na requisição:', req.path);
-    return res.status(401).json({ success: false, error: 'Token não fornecido' });
-  }
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (requireAdmin && !decoded.isAdmin) {
-      console.error('Usuário não é admin:', decoded.username);
-      return res.status(403).json({ success: false, error: 'Acesso negado: usuário não é admin' });
-    }
-    return decoded;
-  } catch (error) {
-    console.error('Erro ao verificar JWT:', error.message);
-    return res.status(401).json({ success: false, error: 'Token inválido ou expirado' });
-  }
-}
-
-// Configuração do Express
-const express = require('express');
-const serverless = require('serverless-http');
-const cors = require('cors');
-const app = express();
-app.use(express.json());
-app.use(cors({ origin: '*' })); // Permite requisições de qualquer origem
-
-// Middleware para log de requisições
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] Recebida requisição ${req.method} ${req.path}`);
-  next();
-});
-
-// Rota para login (index.html)
-app.post('/login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      console.error('Dados incompletos na rota /login:', req.body);
-      return res.status(400).json({ success: false, error: 'Usuário e senha são obrigatórios' });
-    }
-    const db = await connectToDB();
-    console.log(`Buscando usuário ${username} na coleção loganccs.users`);
-    const user = await db.collection('users').findOne({ username });
-    if (!user) {
-      console.error('Usuário não encontrado:', username);
-      return res.status(401).json({ success: false, error: 'Usuário ou senha inválidos' });
-    }
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      console.error('Senha inválida para usuário:', username);
-      return res.status(401).json({ success: false, error: 'Usuário ou senha inválidos' });
-    }
-    const token = jwt.sign(
-      { _id: user._id, username: user.username, balance: user.balance, isAdmin: user.isAdmin },
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' }
-    );
-    console.log(`Login bem-sucedido para usuário: ${username}`);
-    res.json({ success: true, token, user: { username: user.username, balance: user.balance, isAdmin: user.isAdmin } });
-  } catch (error) {
-    console.error('Erro na rota /login:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Rota para registro (index.html)
-app.post('/register', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      console.error('Dados incompletos na rota /register:', req.body);
-      return res.status(400).json({ success: false, error: 'Usuário e senha são obrigatórios' });
-    }
-    const db = await connectToDB();
-    console.log(`Verificando se usuário ${username} já existe`);
-    const existingUser = await db.collection('users').findOne({ username });
-    if (existingUser) {
-      console.error('Usuário já existe:', username);
-      return res.status(400).json({ success: false, error: 'Usuário já existe' });
-    }
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = {
-      username,
-      password: hashedPassword,
-      balance: 0,
-      isAdmin: false
+exports.handler = async function(event, context) {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    console.error('Erro: MONGODB_URI não está definido');
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ error: 'Configuração do servidor incompleta: MONGODB_URI não definido' })
     };
-    console.log('Registrando novo usuário:', username);
-    const result = await db.collection('users').insertOne(user);
-    const token = jwt.sign(
-      { _id: result.insertedId, username, balance: 0, isAdmin: false },
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' }
-    );
-    res.json({ success: true, token, user: { username, balance: 0, isAdmin: false } });
-  } catch (error) {
-    console.error('Erro na rota /register:', error.message);
-    res.status(500).json({ success: false, error: error.message });
   }
-});
 
-// Rota para verificar autenticação (dashboard.html)
-app.get('/check-auth', async (req, res) => {
+  const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+  const db = client.db('loganccs');
+  const path = event.path.replace('/.netlify/functions/app-function', '');
+  const tokenSecret = process.env.JWT_SECRET || 'your_jwt_secret';
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+  };
+
   try {
-    const user = verifyJWT(req, res, true);
-    if (!user) return;
-    console.log('Autenticação bem-sucedida para usuário:', user.username);
-    res.json({ success: true, authenticated: true, user: { username: user.username, balance: user.balance, isAdmin: user.isAdmin } });
+    await client.connect();
+
+    // Verificar ambiente
+    if (path === '/check-env' && event.httpMethod === 'GET') {
+      const collections = await db.listCollections().toArray();
+      const collectionNames = collections.map(c => c.name);
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          mongodbConnected: true,
+          collections: {
+            users: collectionNames.includes('users'),
+            cards: collectionNames.includes('cards'),
+            cardprices: collectionNames.includes('cardprices'),
+            purchases: collectionNames.includes('purchases')
+          },
+          environment: {
+            MONGODB_URI: !!process.env.MONGODB_URI,
+            JWT_SECRET: !!process.env.JWT_SECRET
+          }
+        })
+      };
+    }
+
+    // Registro
+    if (path === '/register' && event.httpMethod === 'POST') {
+      const { username, password } = JSON.parse(event.body);
+      if (!username || !password || username.length < 3 || password.length < 6 || !/^[a-zA-Z0-9]+$/.test(username)) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Usuário (mín. 3 caracteres, alfanumérico) e senha (mín. 6 caracteres) são obrigatórios' }) };
+      }
+      const existingUser = await db.collection('users').findOne({ username });
+      if (existingUser) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Usuário já existe' }) };
+      }
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const isAdmin = username === 'LVz' && password === process.env.ADMIN_PASSWORD;
+      await db.collection('users').insertOne({
+        username,
+        password: hashedPassword,
+        balance: 1000,
+        isAdmin,
+        createdAt: new Date()
+      });
+      console.log(`Usuário registrado: ${username}, isAdmin: ${isAdmin}`);
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, message: 'Usuário registrado com sucesso' }) };
+    }
+
+    // Login
+    if (path === '/login' && event.httpMethod === 'POST') {
+      const { username, password } = JSON.parse(event.body);
+      if (!username || !password) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Usuário e senha são obrigatórios' }) };
+      }
+      const user = await db.collection('users').findOne({ username });
+      if (!user || !(await bcrypt.compare(password, user.password))) {
+        console.log(`Tentativa de login falhou para usuário: ${username}`);
+        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Credenciais inválidas' }) };
+      }
+      const token = jwt.sign({ userId: user._id.toString() }, tokenSecret, { expiresIn: '1h' });
+      console.log(`Login bem-sucedido para usuário: ${username}`);
+      return { statusCode: 200, headers, body: JSON.stringify({ token, username: user.username, isAdmin: user.isAdmin }) };
+    }
+
+    // Verificar autenticação
+    if (path === '/check-auth' && event.httpMethod === 'GET') {
+      const token = event.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return { statusCode: 401, headers, body: JSON.stringify({ authenticated: false, error: 'Token não fornecido' }) };
+      }
+      try {
+        const decoded = jwt.verify(token, tokenSecret);
+        const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
+        if (!user) {
+          return { statusCode: 401, headers, body: JSON.stringify({ authenticated: false, error: 'Usuário não encontrado' }) };
+        }
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ authenticated: true, user: { _id: user._id, username: user.username, balance: user.balance, isAdmin: user.isAdmin } })
+        };
+      } catch (error) {
+        return { statusCode: 401, headers, body: JSON.stringify({ authenticated: false, error: 'Token inválido' }) };
+      }
+    }
+
+    // Listar cartões
+    if (path === '/cards' && event.httpMethod === 'GET') {
+      const cards = await db.collection('cards').find({}).toArray();
+      return { statusCode: 200, headers, body: JSON.stringify(cards) };
+    }
+
+    // Adicionar cartão
+    if (path === '/cards' && event.httpMethod === 'POST') {
+      const token = event.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) };
+      }
+      const decoded = jwt.verify(token, tokenSecret);
+      const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
+      if (!user || !user.isAdmin) {
+        return { statusCode: 403, headers, body: JSON.stringify({ error: 'Acesso negado' }) };
+      }
+      const { bank, brand, level, cardNumber, cvv, expiryMonth, expiryYear } = JSON.parse(event.body);
+      if (!bank || !brand || !level || !cardNumber || !cvv || !expiryMonth || !expiryYear) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Todos os campos são obrigatórios' }) };
+      }
+      const existingCard = await db.collection('cards').findOne({ cardNumber });
+      if (existingCard) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Cartão já existe' }) };
+      }
+      await db.collection('cards').insertOne({
+        bank,
+        brand,
+        level,
+        cardNumber,
+        cvv,
+        expiryMonth: String(expiryMonth).padStart(2, '0'),
+        expiryYear: String(expiryYear)
+      });
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
+    }
+
+    // Remover cartão
+    if (path === '/cards' && event.httpMethod === 'DELETE') {
+      const token = event.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) };
+      }
+      const decoded = jwt.verify(token, tokenSecret);
+      const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
+      if (!user || !user.isAdmin) {
+        return { statusCode: 403, headers, body: JSON.stringify({ error: 'Acesso negado' }) };
+      }
+      const { cardNumber } = JSON.parse(event.body);
+      const result = await db.collection('cards').deleteOne({ cardNumber });
+      if (result.deletedCount === 0) {
+        return { statusCode: 404, headers, body: JSON.stringify({ error: 'Cartão não encontrado' }) };
+      }
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
+    }
+
+    // Listar preços
+    if (path === '/cardprices' && event.httpMethod === 'GET') {
+      const prices = await db.collection('cardprices').find({}).toArray();
+      return { statusCode: 200, headers, body: JSON.stringify(prices) };
+    }
+
+    // Atualizar preço ou link de pagamento
+    if (path === '/cardprices' && event.httpMethod === 'PUT') {
+      const token = event.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) };
+      }
+      const decoded = jwt.verify(token, tokenSecret);
+      const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
+      if (!user || !user.isAdmin) {
+        return { statusCode: 403, headers, body: JSON.stringify({ error: 'Acesso negado' }) };
+      }
+      const { nivel, price, paymentLink } = JSON.parse(event.body);
+      if (!nivel) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nível é obrigatório' }) };
+      }
+      const updateFields = {};
+      if (price !== undefined) updateFields.price = price;
+      if (paymentLink !== undefined) updateFields.paymentLink = paymentLink;
+      const result = await db.collection('cardprices').updateOne(
+        { nivel },
+        { $set: updateFields },
+        { upsert: true }
+      );
+      if (result.modifiedCount === 0 && result.upsertedCount === 0) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nenhum preço ou link atualizado' }) };
+      }
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
+    }
+
+    // Processar compra
+    if (path === '/purchase' && event.httpMethod === 'POST') {
+      const token = event.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) };
+      }
+      const decoded = jwt.verify(token, tokenSecret);
+      const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
+      if (!user) {
+        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Usuário não encontrado' }) };
+      }
+      const { cardNumber, level } = JSON.parse(event.body);
+      const card = await db.collection('cards').findOne({ cardNumber: { $regex: `${cardNumber}$` }, level });
+      if (!card) {
+        return { statusCode: 404, headers, body: JSON.stringify({ error: 'Cartão não encontrado' }) };
+      }
+      const price = await db.collection('cardprices').findOne({ nivel: level });
+      if (!price) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nível de cartão inválido' }) };
+      }
+      if (user.balance < price.price) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Saldo insuficiente' }) };
+      }
+      await db.collection('users').updateOne(
+        { _id: user._id },
+        { $set: { balance: user.balance - price.price } }
+      );
+      await db.collection('purchases').insertOne({
+        userId: user._id,
+        card: {
+          cardNumber: card.cardNumber,
+          bank: card.bank,
+          brand: card.brand,
+          level: card.level,
+          cvv: card.cvv,
+          expiryMonth: card.expiryMonth,
+          expiryYear: card.expiryYear
+        },
+        purchasedAt: new Date()
+      });
+      await db.collection('cards').deleteOne({ cardNumber: card.cardNumber });
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, paymentLink: price.paymentLink }) };
+    }
+
+    // Listar compras
+    if (path === '/purchases' && event.httpMethod === 'GET') {
+      const token = event.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) };
+      }
+      const decoded = jwt.verify(token, tokenSecret);
+      const purchases = await db.collection('purchases').find({ userId: new ObjectId(decoded.userId) }).toArray();
+      return { statusCode: 200, headers, body: JSON.stringify(purchases) };
+    }
+
+    // Listar usuários (admin)
+    if (path === '/users' && event.httpMethod === 'GET') {
+      const token = event.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) };
+      }
+      const decoded = jwt.verify(token, tokenSecret);
+      const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
+      if (!user || !user.isAdmin) {
+        return { statusCode: 403, headers, body: JSON.stringify({ error: 'Acesso negado' }) };
+      }
+      const users = await db.collection('users').find({}, { projection: { password: 0 } }).toArray();
+      return { statusCode: 200, headers, body: JSON.stringify(users) };
+    }
+
+    // Atualizar usuário (admin)
+    if (path === '/users' && event.httpMethod === 'PUT') {
+      const token = event.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) };
+      }
+      const decoded = jwt.verify(token, tokenSecret);
+      const admin = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
+      if (!admin || !admin.isAdmin) {
+        return { statusCode: 403, headers, body: JSON.stringify({ error: 'Acesso negado' }) };
+      }
+      const { userId, balance, isAdmin } = JSON.parse(event.body);
+      const updateFields = {};
+      if (balance !== undefined) updateFields.balance = balance;
+      if (isAdmin !== undefined) updateFields.isAdmin = isAdmin;
+      const result = await db.collection('users').updateOne(
+        { _id: new ObjectId(userId) },
+        { $set: updateFields }
+      );
+      if (result.modifiedCount === 0) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nenhum usuário atualizado' }) };
+      }
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
+    }
+
+    // Excluir usuário (admin)
+    if (path === '/delete-user' && event.httpMethod === 'DELETE') {
+      const token = event.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) };
+      }
+      const decoded = jwt.verify(token, tokenSecret);
+      const admin = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
+      if (!admin || !admin.isAdmin) {
+        return { statusCode: 403, headers, body: JSON.stringify({ error: 'Acesso negado' }) };
+      }
+      const { targetId } = JSON.parse(event.body);
+      const target = await db.collection('users').findOne({ _id: new ObjectId(targetId) });
+      if (!target) {
+        return { statusCode: 404, headers, body: JSON.stringify({ error: 'Usuário não encontrado' }) };
+      }
+      if (target.username === 'LVz') {
+        return { statusCode: 403, headers, body: JSON.stringify({ error: 'Não é possível excluir o administrador principal' }) };
+      }
+      await db.collection('users').deleteOne({ _id: new ObjectId(targetId) });
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
+    }
+
+    return { statusCode: 404, headers, body: JSON.stringify({ error: 'Rota não encontrada' }) };
   } catch (error) {
-    console.error('Erro na rota /check-auth:', error.message);
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Erro no servidor:', error);
+    return { statusCode: 500, headers, body: JSON.stringify({ error: `Erro interno do servidor: ${error.message}` }) };
+  } finally {
+    await client.close();
   }
-});
-
-// Rota para listar bancos (dashboard.html)
-app.get('/banks', async (req, res) => {
-  try {
-    const user = verifyJWT(req, res, true);
-    if (!user) return;
-    const db = await connectToDB();
-    console.log('Buscando bancos na coleção loganccs.banks');
-    const banks = await db.collection('banks').find().toArray();
-    if (!Array.isArray(banks)) {
-      console.error('Resposta da coleção banks não é um array:', banks);
-      return res.status(500).json({ success: false, error: 'Erro nos dados de bancos: formato inválido' });
-    }
-    if (banks.length === 0) {
-      console.log('Nenhum banco encontrado na coleção banks');
-    } else {
-      console.log(`Bancos encontrados: ${banks.length}`);
-    }
-    res.json(banks);
-  } catch (error) {
-    console.error('Erro na rota /banks:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Rota para listar usuários (dashboard.html)
-app.get('/users', async (req, res) => {
-  try {
-    const user = verifyJWT(req, res, true);
-    if (!user) return;
-    const db = await connectToDB();
-    console.log('Buscando usuários na coleção loganccs.users');
-    const users = await db.collection('users').find().toArray();
-    res.json(users);
-  } catch (error) {
-    console.error('Erro na rota /users:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Rota para atualizar usuário (dashboard.html)
-app.put('/users', async (req, res) => {
-  try {
-    const user = verifyJWT(req, res, true);
-    if (!user) return;
-    const { userId, balance, isAdmin } = req.body;
-    if (!userId) {
-      console.error('ID do usuário não fornecido na rota /users');
-      return res.status(400).json({ success: false, error: 'ID do usuário é obrigatório' });
-    }
-    const db = await connectToDB();
-    const updateData = {};
-    if (balance !== undefined) updateData.balance = parseFloat(balance);
-    if (isAdmin !== undefined) updateData.isAdmin = isAdmin;
-    console.log(`Atualizando usuário ${userId} com dados:`, updateData);
-    const result = await db.collection('users').updateOne(
-      { _id: userId },
-      { $set: updateData }
-    );
-    if (result.matchedCount === 0) {
-      console.error('Usuário não encontrado:', userId);
-      return res.status(404).json({ success: false, error: 'Usuário não encontrado' });
-    }
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Erro na rota /users (PUT):', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Rota para excluir usuário (dashboard.html)
-app.delete('/delete-user', async (req, res) => {
-  try {
-    const user = verifyJWT(req, res, true);
-    if (!user) return;
-    const { targetId } = req.body;
-    if (!targetId) {
-      console.error('ID do usuário não fornecido na rota /delete-user');
-      return res.status(400).json({ success: false, error: 'ID do usuário é obrigatório' });
-    }
-    if (targetId === user._id) {
-      console.error('Tentativa de excluir o próprio usuário:', user.username);
-      return res.status(403).json({ success: false, error: 'Não é permitido excluir o próprio usuário' });
-    }
-    const db = await connectToDB();
-    console.log('Excluindo usuário:', targetId);
-    const result = await db.collection('users').deleteOne({ _id: targetId });
-    if (result.deletedCount === 0) {
-      console.error('Usuário não encontrado para exclusão:', targetId);
-      return res.status(404).json({ success: false, error: 'Usuário não encontrado' });
-    }
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Erro na rota /delete-user:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Rota para listar níveis e preços (dashboard.html)
-app.get('/cardprices', async (req, res) => {
-  try {
-    const user = verifyJWT(req, res, true);
-    if (!user) return;
-    const db = await connectToDB();
-    console.log('Buscando níveis na coleção loganccs.cardprices');
-    const prices = await db.collection('cardprices').find().toArray();
-    res.json(prices);
-  } catch (error) {
-    console.error('Erro na rota /cardprices:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Rota para adicionar nível (dashboard.html)
-app.post('/cardprices', async (req, res) => {
-  try {
-    const user = verifyJWT(req, res, true);
-    if (!user) return;
-    const { nivel, price, paymentLink } = req.body;
-    if (!nivel || !price || !paymentLink) {
-      console.error('Dados incompletos na rota /cardprices:', req.body);
-      return res.status(400).json({ success: false, error: 'Nível, preço e link de pagamento são obrigatórios' });
-    }
-    const db = await connectToDB();
-    console.log('Adicionando nível:', nivel);
-    const result = await db.collection('cardprices').insertOne({ nivel, price: parseFloat(price), paymentLink });
-    res.json({ success: true, id: result.insertedId });
-  } catch (error) {
-    console.error('Erro na rota /cardprices (POST):', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Rota para atualizar nível (dashboard.html)
-app.put('/cardprices', async (req, res) => {
-  try {
-    const user = verifyJWT(req, res, true);
-    if (!user) return;
-    const { nivel, price, paymentLink } = req.body;
-    if (!nivel || !price || !paymentLink) {
-      console.error('Dados incompletos na rota /cardprices (PUT):', req.body);
-      return res.status(400).json({ success: false, error: 'Nível, preço e link de pagamento são obrigatórios' });
-    }
-    const db = await connectToDB();
-    console.log('Atualizando nível:', nivel);
-    const result = await db.collection('cardprices').updateOne(
-      { nivel },
-      { $set: { price: parseFloat(price), paymentLink } }
-    );
-    if (result.matchedCount === 0) {
-      console.error('Nível não encontrado:', nivel);
-      return res.status(404).json({ success: false, error: 'Nível não encontrado' });
-    }
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Erro na rota /cardprices (PUT):', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Rota para excluir nível (dashboard.html)
-app.delete('/cardprices', async (req, res) => {
-  try {
-    const user = verifyJWT(req, res, true);
-    if (!user) return;
-    const { nivel } = req.body;
-    if (!nivel) {
-      console.error('Nível não fornecido na rota /cardprices (DELETE)');
-      return res.status(400).json({ success: false, error: 'Nível é obrigatório' });
-    }
-    const db = await connectToDB();
-    console.log('Excluindo nível:', nivel);
-    const result = await db.collection('cardprices').deleteOne({ nivel });
-    if (result.deletedCount === 0) {
-      console.error('Nível não encontrado:', nivel);
-      return res.status(404).json({ success: false, error: 'Nível não encontrado' });
-    }
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Erro na rota /cardprices (DELETE):', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Rota para listar cartões (dashboard.html)
-app.get('/cards', async (req, res) => {
-  try {
-    const user = verifyJWT(req, res, true);
-    if (!user) return;
-    const db = await connectToDB();
-    console.log('Buscando cartões na coleção loganccs.cards');
-    const cards = await db.collection('cards').find().toArray();
-    res.json(cards);
-  } catch (error) {
-    console.error('Erro na rota /cards:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Rota para adicionar cartão (dashboard.html)
-app.post('/cards', async (req, res) => {
-  try {
-    const user = verifyJWT(req, res, true);
-    if (!user) return;
-    const { bank, brand, level, cardNumber, cvv, expiryMonth, expiryYear } = req.body;
-    if (!bank || !brand || !level || !cardNumber || !cvv || !expiryMonth || !expiryYear) {
-      console.error('Dados incompletos na rota /cards:', req.body);
-      return res.status(400).json({ success: false, error: 'Todos os campos do cartão são obrigatórios' });
-    }
-    const db = await connectToDB();
-    console.log('Adicionando cartão:', cardNumber);
-    const result = await db.collection('cards').insertOne({ bank, brand, level, cardNumber, cvv, expiryMonth, expiryYear });
-    res.json({ success: true, id: result.insertedId });
-  } catch (error) {
-    console.error('Erro na rota /cards (POST):', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Rota para excluir cartão (dashboard.html)
-app.delete('/cards', async (req, res) => {
-  try {
-    const user = verifyJWT(req, res, true);
-    if (!user) return;
-    const { cardNumber } = req.body;
-    if (!cardNumber) {
-      console.error('Número do cartão não fornecido na rota /cards (DELETE)');
-      return res.status(400).json({ success: false, error: 'Número do cartão é obrigatório' });
-    }
-    const db = await connectToDB();
-    console.log('Excluindo cartão:', cardNumber);
-    const result = await db.collection('cards').deleteOne({ cardNumber });
-    if (result.deletedCount === 0) {
-      console.error('Cartão não encontrado:', cardNumber);
-      return res.status(404).json({ success: false, error: 'Cartão não encontrado' });
-    }
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Erro na rota /cards (DELETE):', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Rota para listar cartões disponíveis na loja (shop.html)
-app.get('/shop', async (req, res) => {
-  try {
-    const user = verifyJWT(req, res, false);
-    if (!user) return;
-    const db = await connectToDB();
-    console.log('Buscando cartões disponíveis na coleção loganccs.cards');
-    const cards = await db.collection('cards').find().toArray();
-    const prices = await db.collection('cardprices').find().toArray();
-    const priceMap = prices.reduce((map, price) => {
-      map[price.nivel] = { price: price.price, paymentLink: price.paymentLink };
-      return map;
-    }, {});
-    const availableCards = cards.map(card => ({
-      bank: card.bank,
-      brand: card.brand,
-      level: card.level,
-      price: priceMap[card.level]?.price || 0,
-      paymentLink: priceMap[card.level]?.paymentLink || ''
-    }));
-    console.log(`Cartões disponíveis encontrados: ${availableCards.length}`);
-    res.json(availableCards);
-  } catch (error) {
-    console.error('Erro na rota /shop:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Tratamento de erro 404 para rotas não encontradas
-app.use((req, res) => {
-  console.error(`Rota não encontrada: ${req.method} ${req.path}`);
-  res.status(404).json({ success: false, error: 'Rota não encontrada' });
-});
-
-module.exports.handler = serverless(app);
+};

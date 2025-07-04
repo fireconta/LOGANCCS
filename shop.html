@@ -4,10 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Loja de Cartões - LoganCCS</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.0/purify.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <script src="/debug.js"></script>
   <style>
     body { font-family: 'Inter', sans-serif; }
@@ -27,7 +26,6 @@
   </style>
 </head>
 <body class="bg-gray-100">
-  <!-- Navbar -->
   <nav class="gradient-bg text-white p-6 flex justify-between items-center shadow-lg">
     <h1 class="text-3xl font-bold">Loja de Cartões</h1>
     <div class="flex items-center space-x-6">
@@ -36,10 +34,7 @@
       <a id="dashboard-link" href="/dashboard.html" class="hover:underline text-lg hidden"><i class="fas fa-tachometer-alt mr-2"></i>Dashboard</a>
     </div>
   </nav>
-
-  <!-- Conteúdo Principal -->
   <div class="container mx-auto p-6">
-    <!-- Aba Loja -->
     <div id="shop-tab" class="tab-content">
       <div class="flex flex-col md:flex-row gap-4 mb-8">
         <select id="filter-brand" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900 bg-white shadow-sm">
@@ -54,19 +49,15 @@
       </div>
       <div id="cards-container" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
     </div>
-
-    <!-- Aba Carteira -->
     <div id="wallet-tab" class="tab-content hidden">
       <div class="flex flex-col items-center mb-8">
-        <img id="user-avatar" src="https://gravatar.com/avatar/d41d8cd98f00b204e9800998ecf8427e?s=100" alt="Avatar" class="w-24 h-24 rounded-full mb-4 shadow-md">
+        <img id="user-avatar" src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp" alt="Avatar" class="w-24 h-24 rounded-full mb-4 shadow-md">
         <h2 id="user-name" class="text-2xl font-bold text-gray-800"></h2>
         <p id="user-id" class="text-sm text-gray-600"></p>
       </div>
       <div id="purchased-cards" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
     </div>
   </div>
-
-  <!-- Modal de Confirmação de Compra -->
   <div id="purchase-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
     <div class="bg-white p-8 rounded-xl shadow-xl modal-content max-w-md w-full">
       <h2 class="text-2xl font-bold mb-6 text-blue-900">Confirmar Compra</h2>
@@ -85,8 +76,6 @@
       </div>
     </div>
   </div>
-
-  <!-- Botões de Navegação -->
   <div class="fixed bottom-0 left-0 right-0 bg-white p-4 flex justify-center gap-6 border-t shadow-lg">
     <button id="shop-tab-button" class="tab-button px-6 py-3 rounded-md flex items-center gap-2 bg-blue-900 text-white active">
       <i class="fas fa-store"></i> Loja
@@ -95,12 +84,9 @@
       <i class="fas fa-wallet"></i> Carteira
     </button>
   </div>
-
-  <!-- Rodapé -->
   <footer class="gradient-bg text-white p-6 text-center">
     <p class="text-sm">© 2025 LoganCCS. Todos os direitos reservados.</p>
   </footer>
-
   <script>
     debug.init('debug-panel', true);
     debug.log('Inicializando shop.html');
@@ -122,8 +108,14 @@
         const response = await fetch('/.netlify/functions/app-function/check-auth', {
           headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
         });
+        if (!response.ok) {
+          debug.error(`Erro na API /check-auth: Status ${response.status}`);
+          window.location.href = '/index.html';
+          return null;
+        }
         const data = await response.json();
         if (!data.authenticated) {
+          debug.error('Usuário não autenticado');
           window.location.href = '/index.html';
           return null;
         }
@@ -133,6 +125,7 @@
         if (data.user.isAdmin) {
           document.getElementById('dashboard-link').classList.remove('hidden');
         }
+        debug.log(`Autenticação bem-sucedida para usuário: ${data.user.username}`);
         return data.user;
       } catch (error) {
         debug.error('Erro ao verificar autenticação: ' + error.message);
@@ -146,9 +139,14 @@
       if (cachedPrices) return cachedPrices;
       try {
         const response = await fetch('/.netlify/functions/app-function/cardprices');
+        if (!response.ok) {
+          debug.error(`Erro na API /cardprices: Status ${response.status}`);
+          alert('Erro ao carregar preços. Tente novamente.');
+          return {};
+        }
         const prices = await response.json();
         cachedPrices = prices.reduce((map, price) => {
-          map[price.nivel] = price.price;
+          map[price.nivel] = price;
           return map;
         }, {});
         debug.log('Preços carregados: ' + prices.length + ' níveis');
@@ -166,6 +164,11 @@
           fetch('/.netlify/functions/app-function/cards'),
           fetch('/.netlify/functions/app-function/cardprices')
         ]);
+        if (!cardsResponse.ok || !pricesResponse.ok) {
+          debug.error(`Erro nas APIs /cards ou /cardprices: Status ${cardsResponse.status}, ${pricesResponse.status}`);
+          alert('Erro ao carregar filtros. Tente novamente.');
+          return;
+        }
         const cards = await cardsResponse.json();
         const prices = await pricesResponse.json();
 
@@ -173,23 +176,22 @@
         const filterBank = document.getElementById('filter-bank');
         const filterLevel = document.getElementById('filter-level');
 
-        const brands = [...new Set(cards.map(card => card.brand))].sort();
+        const brands = [...new Set(cards.map(card => card.brand))];
+        const banks = [...new Set(cards.map(card => card.bank))];
+        const levels = [...new Set(cards.map(card => card.level))];
+
         brands.forEach(brand => {
           const option = document.createElement('option');
           option.value = brand;
           option.textContent = brand;
           filterBrand.appendChild(option);
         });
-
-        const banks = [...new Set(cards.map(card => card.bank))].sort();
         banks.forEach(bank => {
           const option = document.createElement('option');
           option.value = bank;
           option.textContent = bank;
           filterBank.appendChild(option);
         });
-
-        const levels = prices.map(price => price.nivel).sort();
         levels.forEach(level => {
           const option = document.createElement('option');
           option.value = level;
@@ -204,47 +206,47 @@
       }
     }
 
-    async function loadCards(prices) {
+    async function loadCards() {
       try {
+        const brand = document.getElementById('filter-brand').value;
+        const bank = document.getElementById('filter-bank').value;
+        const level = document.getElementById('filter-level').value;
         const response = await fetch('/.netlify/functions/app-function/cards');
-        const cards = await response.json();
-        debug.log('Cartões carregados: ' + cards.length + ' encontrados');
-        const container = document.getElementById('cards-container');
-        const filterBrand = document.getElementById('filter-brand');
-        const filterBank = document.getElementById('filter-bank');
-        const filterLevel = document.getElementById('filter-level');
-
-        function renderCards() {
-          const brandFilter = filterBrand.value;
-          const bankFilter = filterBank.value;
-          const levelFilter = filterLevel.value;
-          container.innerHTML = '';
-          cards.forEach(card => {
-            if ((brandFilter && card.brand !== brandFilter) ||
-                (bankFilter && card.bank !== bankFilter) ||
-                (levelFilter && card.level !== levelFilter)) {
-              return;
-            }
-            const cardElement = document.createElement('div');
-            cardElement.className = `card p-6 rounded-xl shadow-lg brand-${card.brand.toLowerCase()}`;
-            cardElement.innerHTML = DOMPurify.sanitize(`
-              <div class="text-white">
-                <h3 class="text-xl font-bold mb-2">${card.bank}</h3>
-                <p class="mb-1">Bandeira: ${card.brand}</p>
-                <p class="mb-1">Nível: ${card.level}</p>
-                <p class="mb-1">BIN: ${formatBin(card.cardNumber)}</p>
-                <p class="mb-4">Validade: ${formatExpiry(card.expiryMonth, card.expiryYear)}</p>
-                <button class="buy-button w-full px-4 py-2 bg-blue-900 text-white rounded-md" data-card='${JSON.stringify(card)}'>Comprar por R$${prices[card.level] || 'N/A'}</button>
-              </div>
-            `);
-            container.appendChild(cardElement);
-          });
+        if (!response.ok) {
+          debug.error(`Erro na API /cards: Status ${response.status}`);
+          alert('Erro ao carregar cartões. Tente novamente.');
+          return;
         }
-
-        filterBrand.addEventListener('change', renderCards);
-        filterBank.addEventListener('change', renderCards);
-        filterLevel.addEventListener('change', renderCards);
-        renderCards();
+        const cards = await response.json();
+        const prices = await loadCardPrices();
+        const container = document.getElementById('cards-container');
+        container.innerHTML = '';
+        const filteredCards = cards.filter(card => 
+          (!brand || card.brand === brand) &&
+          (!bank || card.bank === bank) &&
+          (!level || card.level === level)
+        );
+        filteredCards.forEach(card => {
+          const price = prices[card.level]?.price || 0;
+          const cardHtml = `
+            <div class="card bg-white rounded-xl shadow-lg p-6 brand-${card.brand.toLowerCase()} text-white">
+              <h3 class="text-xl font-bold mb-2">${card.level}</h3>
+              <p class="mb-2"><strong>Banco:</strong> ${DOMPurify.sanitize(card.bank)}</p>
+              <p class="mb-2"><strong>Bandeira:</strong> ${DOMPurify.sanitize(card.brand)}</p>
+              <p class="mb-2"><strong>BIN:</strong> ${formatBin(DOMPurify.sanitize(card.cardNumber))}</p>
+              <p class="mb-2"><strong>Validade:</strong> ${formatExpiry(DOMPurify.sanitize(card.expiryMonth), DOMPurify.sanitize(card.expiryYear))}</p>
+              <p class="mb-4"><strong>Preço:</strong> R$${price.toFixed(2)}</p>
+              <button class="buy-button w-full bg-blue-900 text-white p-3 rounded-md hover:bg-blue-800 transition" data-card-number="${DOMPurify.sanitize(card.cardNumber)}" data-level="${DOMPurify.sanitize(card.level)}">
+                <i class="fas fa-shopping-cart mr-2"></i>Comprar
+              </button>
+            </div>
+          `;
+          container.insertAdjacentHTML('beforeend', cardHtml);
+        });
+        document.querySelectorAll('.buy-button').forEach(button => {
+          button.addEventListener('click', () => openPurchaseModal(button.dataset.cardNumber, button.dataset.level));
+        });
+        debug.log('Cartões carregados: ' + filteredCards.length);
       } catch (error) {
         debug.error('Erro ao carregar cartões: ' + error.message);
         alert('Erro ao carregar cartões. Tente novamente.');
@@ -256,53 +258,74 @@
         const response = await fetch('/.netlify/functions/app-function/purchases', {
           headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
         });
+        if (!response.ok) {
+          debug.error(`Erro na API /purchases: Status ${response.status}`);
+          alert('Erro ao carregar cartões comprados. Tente novamente.');
+          return;
+        }
         const purchases = await response.json();
         const container = document.getElementById('purchased-cards');
         container.innerHTML = '';
         purchases.forEach(purchase => {
           const card = purchase.card;
-          const cardElement = document.createElement('div');
-          cardElement.className = `card p-6 rounded-xl shadow-lg brand-${card.brand.toLowerCase()}`;
-          cardElement.innerHTML = DOMPurify.sanitize(`
-            <div class="text-white">
-              <h3 class="text-xl font-bold mb-2">${card.bank}</h3>
-              <p class="mb-1">Bandeira: ${card.brand}</p>
-              <p class="mb-1">Nível: ${card.level}</p>
-              <p class="mb-1">Número: ${card.cardNumber}</p>
-              <p class="mb-1">CVV: ${card.cvv}</p>
-              <p class="mb-1">Expiração: ${formatExpiry(card.expiryMonth, card.expiryYear)}</p>
-              <p class="mb-1">Comprado em: ${new Date(purchase.purchasedAt).toLocaleString()}</p>
+          const cardHtml = `
+            <div class="card bg-white rounded-xl shadow-lg p-6 brand-${card.brand.toLowerCase()} text-white">
+              <h3 class="text-xl font-bold mb-2">${DOMPurify.sanitize(card.level)}</h3>
+              <p class="mb-2"><strong>Banco:</strong> ${DOMPurify.sanitize(card.bank)}</p>
+              <p class="mb-2"><strong>Bandeira:</strong> ${DOMPurify.sanitize(card.brand)}</p>
+              <p class="mb-2"><strong>Número:</strong> ${DOMPurify.sanitize(card.cardNumber)}</p>
+              <p class="mb-2"><strong>CVV:</strong> ${DOMPurify.sanitize(card.cvv)}</p>
+              <p class="mb-2"><strong>Validade:</strong> ${formatExpiry(DOMPurify.sanitize(card.expiryMonth), DOMPurify.sanitize(card.expiryYear))}</p>
+              <p class="mb-2"><strong>Comprado em:</strong> ${new Date(purchase.purchasedAt).toLocaleDateString('pt-BR')}</p>
             </div>
-          `);
-          container.appendChild(cardElement);
+          `;
+          container.insertAdjacentHTML('beforeend', cardHtml);
         });
-        debug.log('Cartões comprados carregados: ' + purchases.length + ' encontrados');
+        debug.log('Cartões comprados carregados: ' + purchases.length);
       } catch (error) {
         debug.error('Erro ao carregar cartões comprados: ' + error.message);
         alert('Erro ao carregar cartões comprados. Tente novamente.');
       }
     }
 
-    function openPurchaseModal(card, prices) {
-      const modal = document.getElementById('purchase-modal');
-      modal.dataset.card = JSON.stringify(card);
-      document.getElementById('modal-bank').textContent = card.bank;
-      document.getElementById('modal-brand').textContent = card.brand;
-      document.getElementById('modal-level').textContent = card.level;
-      document.getElementById('modal-bin').textContent = formatBin(card.cardNumber);
-      document.getElementById('modal-expiry').textContent = formatExpiry(card.expiryMonth, card.expiryYear);
-      document.getElementById('modal-price').textContent = prices[card.level] || 'N/A';
-      document.getElementById('modal-error').classList.add('hidden');
-      modal.classList.add('active');
+    async function openPurchaseModal(cardNumber, level) {
+      try {
+        const response = await fetch('/.netlify/functions/app-function/cards');
+        if (!response.ok) {
+          debug.error(`Erro na API /cards: Status ${response.status}`);
+          alert('Erro ao carregar detalhes do cartão. Tente novamente.');
+          return;
+        }
+        const cards = await response.json();
+        const card = cards.find(c => c.cardNumber === cardNumber && c.level === level);
+        if (!card) {
+          debug.error('Cartão não encontrado: ' + cardNumber);
+          alert('Cartão não encontrado.');
+          return;
+        }
+        const prices = await loadCardPrices();
+        const price = prices[card.level]?.price || 0;
+        document.getElementById('modal-bank').textContent = DOMPurify.sanitize(card.bank);
+        document.getElementById('modal-brand').textContent = DOMPurify.sanitize(card.brand);
+        document.getElementById('modal-level').textContent = DOMPurify.sanitize(card.level);
+        document.getElementById('modal-bin').textContent = formatBin(DOMPurify.sanitize(card.cardNumber));
+        document.getElementById('modal-expiry').textContent = formatExpiry(DOMPurify.sanitize(card.expiryMonth), DOMPurify.sanitize(card.expiryYear));
+        document.getElementById('modal-price').textContent = price.toFixed(2);
+        document.getElementById('modal-error').classList.add('hidden');
+        document.getElementById('modal-confirm').dataset.cardNumber = cardNumber;
+        document.getElementById('modal-confirm').dataset.level = level;
+        document.getElementById('purchase-modal').classList.add('active');
+        debug.log('Modal de compra aberto para cartão: ' + cardNumber);
+      } catch (error) {
+        debug.error('Erro ao abrir modal de compra: ' + error.message);
+        alert('Erro ao abrir modal de compra. Tente novamente.');
+      }
     }
 
     async function handlePurchase() {
-      const modal = document.getElementById('purchase-modal');
-      const card = JSON.parse(modal.dataset.card);
-      const level = card.level;
-      const cardNumber = card.cardNumber.slice(-4);
+      const cardNumber = document.getElementById('modal-confirm').dataset.cardNumber;
+      const level = document.getElementById('modal-confirm').dataset.level;
       const errorDiv = document.getElementById('modal-error');
-
       try {
         const response = await fetch('/.netlify/functions/app-function/purchase', {
           method: 'POST',
@@ -312,60 +335,71 @@
           },
           body: JSON.stringify({ cardNumber, level })
         });
-        const data = await response.json();
-        if (data.error) {
-          errorDiv.textContent = data.error;
+        if (!response.ok) {
+          const text = await response.text();
+          debug.error(`Erro na API /purchase: Status ${response.status}, Resposta: ${text}`);
+          errorDiv.textContent = text.includes('<') ? 
+            `Erro ${response.status}: Servidor retornou uma página de erro. Verifique a configuração da API.` : 
+            `Erro ${response.status}: ${text}`;
           errorDiv.classList.remove('hidden');
-          debug.error('Erro na compra: ' + data.error);
-        } else {
-          debug.log('Compra realizada: cartão terminando em ' + cardNumber);
-          modal.classList.remove('active');
-          alert('Compra realizada com sucesso!');
-          await checkAuth();
+          return;
+        }
+        const data = await response.json();
+        if (data.success) {
+          debug.log('Compra bem-sucedida para cartão: ' + cardNumber);
+          document.getElementById('purchase-modal').classList.remove('active');
+          if (data.paymentLink) {
+            window.open(data.paymentLink, '_blank');
+          }
+          alert('Compra realizada com sucesso! Verifique sua carteira.');
           switchTab('wallet');
           await loadPurchasedCards();
+          await loadCards();
+          const user = await checkAuth();
+          if (user) {
+            document.getElementById('user-info').textContent = `Usuário: ${user.username} | Saldo: R$${user.balance.toFixed(2)}`;
+          }
+        } else {
+          errorDiv.textContent = data.error || 'Erro ao processar compra';
+          errorDiv.classList.remove('hidden');
+          debug.error('Erro na compra: ' + (data.error || 'Erro desconhecido'));
         }
       } catch (error) {
         debug.error('Erro ao processar compra: ' + error.message);
-        errorDiv.textContent = 'Erro ao processar compra. Tente novamente.';
+        errorDiv.textContent = 'Erro ao conectar ao servidor. Verifique sua conexão ou a configuração da API.';
         errorDiv.classList.remove('hidden');
       }
     }
 
     function switchTab(tab) {
+      document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
-      document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
-      document.getElementById(`${tab}-tab`).classList.remove('hidden');
       document.getElementById(`${tab}-tab-button`).classList.add('active');
+      document.getElementById(`${tab}-tab`).classList.remove('hidden');
       if (tab === 'wallet') {
         loadPurchasedCards();
+      } else {
+        loadCards();
       }
+      debug.log(`Aba alterada para: ${tab}`);
     }
 
-    async function init() {
-      const user = await checkAuth();
-      if (!user) return;
-      const prices = await loadCardPrices();
+    document.getElementById('shop-tab-button').addEventListener('click', () => switchTab('shop'));
+    document.getElementById('wallet-tab-button').addEventListener('click', () => switchTab('wallet'));
+    document.getElementById('modal-cancel').addEventListener('click', () => {
+      document.getElementById('purchase-modal').classList.remove('active');
+      debug.log('Modal de compra fechado');
+    });
+    document.getElementById('modal-confirm').addEventListener('click', handlePurchase);
+    document.getElementById('filter-brand').addEventListener('change', loadCards);
+    document.getElementById('filter-bank').addEventListener('change', loadCards);
+    document.getElementById('filter-level').addEventListener('change', loadCards);
+
+    (async () => {
+      await checkAuth();
       await loadFilters();
-      await loadCards(prices);
-
-      document.getElementById('cards-container').addEventListener('click', (e) => {
-        if (e.target.classList.contains('buy-button')) {
-          const card = JSON.parse(e.target.dataset.card);
-          openPurchaseModal(card, prices);
-        }
-      });
-
-      document.getElementById('modal-cancel').addEventListener('click', () => {
-        document.getElementById('purchase-modal').classList.remove('active');
-      });
-      document.getElementById('modal-confirm').addEventListener('click', handlePurchase);
-
-      document.getElementById('shop-tab-button').addEventListener('click', () => switchTab('shop'));
-      document.getElementById('wallet-tab-button').addEventListener('click', () => switchTab('wallet'));
-    }
-
-    document.addEventListener('DOMContentLoaded', init);
+      await loadCards();
+    })();
   </script>
 </body>
 </html>

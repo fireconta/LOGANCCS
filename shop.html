@@ -8,7 +8,6 @@
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script src="/utils.js"></script>
   <script src="/debug.js"></script>
   <style>
     body { font-family: 'Inter', sans-serif; }
@@ -23,6 +22,7 @@
     .tab-button.active { background-color: #1a237e; color: white; }
     .buy-button { transition: background-color 0.3s ease; }
     .buy-button:hover { background-color: #1565c0; }
+    .modal-content { max-height: 80vh; overflow-y: auto; }
   </style>
 </head>
 <body class="bg-gray-100">
@@ -41,13 +41,13 @@
     <!-- Aba Loja -->
     <div id="shop-tab" class="tab-content">
       <div class="flex flex-col md:flex-row gap-4 mb-6">
-        <select id="filter-brand" class="p-2 border rounded-md">
+        <select id="filter-brand" class="p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900">
           <option value="">Todas as Bandeiras</option>
         </select>
-        <select id="filter-bank" class="p-2 border rounded-md">
+        <select id="filter-bank" class="p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900">
           <option value="">Todos os Bancos</option>
         </select>
-        <select id="filter-level" class="p-2 border rounded-md">
+        <select id="filter-level" class="p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900">
           <option value="">Todos os Níveis</option>
         </select>
       </div>
@@ -67,9 +67,9 @@
 
   <!-- Modal de Confirmação de Compra -->
   <div id="purchase-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-    <div class="bg-white p-6 rounded-lg w-full max-w-md">
+    <div class="bg-white p-6 rounded-lg w-full max-w-md modal-content">
       <h2 class="text-2xl font-bold mb-4">Confirmar Compra</h2>
-      <div id="modal-card-info" class="mb-4">
+      <div id="modal-card-info" class="mb-4 bg-gray-100 p-4 rounded-md">
         <p><strong>Banco:</strong> <span id="modal-bank"></span></p>
         <p><strong>Bandeira:</strong> <span id="modal-brand"></span></p>
         <p><strong>Nível:</strong> <span id="modal-level"></span></p>
@@ -79,8 +79,8 @@
       </div>
       <div id="modal-error" class="text-red-500 text-sm mb-4 hidden"></div>
       <div class="flex justify-end gap-4">
-        <button type="button" id="modal-cancel" class="px-4 py-2 bg-gray-300 rounded-md">Cancelar</button>
-        <button type="button" id="modal-confirm" class="px-4 py-2 bg-blue-900 text-white rounded-md">Confirmar Compra</button>
+        <button type="button" id="modal-cancel" class="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 transition">Cancelar</button>
+        <button type="button" id="modal-confirm" class="px-4 py-2 bg-blue-900 text-white rounded-md hover:bg-blue-800 transition">Confirmar Compra</button>
       </div>
     </div>
   </div>
@@ -130,7 +130,7 @@
           window.location.href = '/index.html';
           return null;
         }
-        document.getElementById('user-info').textContent = `Usuário: ${data.user.username} | Saldo: R$${data.user.balance}`;
+        document.getElementById('user-info').textContent = `Usuário: ${data.user.username} | Saldo: R$${data.user.balance.toFixed(2)}`;
         document.getElementById('user-name').textContent = data.user.username;
         document.getElementById('user-id').textContent = `ID: ${generateUserId(data.user._id)}`;
         if (data.user.isAdmin) {
@@ -145,15 +145,18 @@
     }
 
     // Carregar preços
+    let cachedPrices = null;
     async function loadCardPrices() {
+      if (cachedPrices) return cachedPrices;
       try {
         const response = await fetch('/.netlify/functions/app-function/cardprices');
         const prices = await response.json();
-        debug.log('Preços carregados: ' + prices.length + ' níveis');
-        return prices.reduce((map, price) => {
+        cachedPrices = prices.reduce((map, price) => {
           map[price.nivel] = price.price;
           return map;
         }, {});
+        debug.log('Preços carregados: ' + prices.length + ' níveis');
+        return cachedPrices;
       } catch (error) {
         debug.error('Erro ao carregar preços: ' + error.message);
         return {};
@@ -204,6 +207,7 @@
         debug.log('Filtros carregados: ' + brands.length + ' bandeiras, ' + banks.length + ' bancos, ' + levels.length + ' níveis');
       } catch (error) {
         debug.error('Erro ao carregar filtros: ' + error.message);
+        alert('Erro ao carregar filtros. Tente novamente.');
       }
     }
 
@@ -252,6 +256,7 @@
         renderCards();
       } catch (error) {
         debug.error('Erro ao carregar cartões: ' + error.message);
+        alert('Erro ao carregar cartões. Tente novamente.');
       }
     }
 
@@ -284,13 +289,14 @@
         debug.log('Cartões comprados carregados: ' + purchases.length + ' encontrados');
       } catch (error) {
         debug.error('Erro ao carregar cartões comprados: ' + error.message);
+        alert('Erro ao carregar cartões comprados. Tente novamente.');
       }
     }
 
     // Modal de compra
     function openPurchaseModal(card, prices) {
       const modal = document.getElementById('purchase-modal');
-      modal.dataset.card = JSON.stringify(card); // Armazena o cartão no dataset
+      modal.dataset.card = JSON.stringify(card);
       document.getElementById('modal-bank').textContent = card.bank;
       document.getElementById('modal-brand').textContent = card.brand;
       document.getElementById('modal-level').textContent = card.level;
@@ -306,7 +312,7 @@
       const modal = document.getElementById('purchase-modal');
       const card = JSON.parse(modal.dataset.card);
       const level = card.level;
-      const cardNumber = card.cardNumber.slice(-4); // Últimos 4 dígitos
+      const cardNumber = card.cardNumber.slice(-4);
       const errorDiv = document.getElementById('modal-error');
 
       try {
@@ -332,7 +338,7 @@
         }
       } catch (error) {
         debug.error('Erro ao processar compra: ' + error.message);
-        errorDiv.textContent = 'Erro ao processar compra.';
+        errorDiv.textContent = 'Erro ao processar compra. Tente novamente.';
         errorDiv.classList.remove('hidden');
       }
     }
@@ -356,7 +362,6 @@
       await loadFilters();
       await loadCards(prices);
 
-      // Botões de compra
       document.getElementById('cards-container').addEventListener('click', (e) => {
         if (e.target.classList.contains('buy-button')) {
           const card = JSON.parse(e.target.dataset.card);
@@ -364,13 +369,11 @@
         }
       });
 
-      // Modal
       document.getElementById('modal-cancel').addEventListener('click', () => {
         document.getElementById('purchase-modal').classList.remove('active');
       });
       document.getElementById('modal-confirm').addEventListener('click', handlePurchase);
 
-      // Botões de navegação
       document.getElementById('shop-tab-button').addEventListener('click', () => switchTab('shop'));
       document.getElementById('wallet-tab-button').addEventListener('click', () => switchTab('wallet'));
     }

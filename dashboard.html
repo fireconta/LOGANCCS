@@ -117,7 +117,10 @@
       document.querySelector(`.tab[data-tab="${tabId}"]`).classList.add('active');
       debug.log(`Alternando para aba: ${tabId}`);
       if (tabId === 'users') loadUsers();
-      if (tabId === 'cards') loadCards();
+      if (tabId === 'cards') {
+        loadBanks(); // Recarrega bancos ao abrir a aba de cartões
+        loadCards();
+      }
       if (tabId === 'levels') loadLevels();
     }
 
@@ -164,6 +167,8 @@
         if (!token) {
           debug.error('Token JWT não encontrado ao carregar bancos');
           document.getElementById('card-bank').innerHTML = '<option value="" disabled selected>Erro: Faça login novamente</option>';
+          alert('Erro de autenticação. Faça login novamente.');
+          window.location.href = '/index.html';
           return [];
         }
         debug.log('Iniciando chamada à API /banks');
@@ -172,15 +177,22 @@
         });
         if (!response.ok) {
           debug.error(`Erro na API /banks: Status ${response.status} - ${response.statusText}`);
-          document.getElementById('card-bank').innerHTML = `<option value="" disabled selected>Erro ao carregar bancos: ${response.status} - ${response.statusText}</option>`;
-          alert(`Erro ao carregar bancos: ${response.status} - ${response.statusText}. Verifique o console para mais detalhes.`);
+          let errorMsg = `Erro ao carregar bancos: ${response.status} - ${response.statusText}`;
+          if (response.status === 401) {
+            errorMsg = 'Erro de autenticação na API /banks. Faça login novamente.';
+            window.location.href = '/index.html';
+          } else if (response.status === 404) {
+            errorMsg = 'API /banks não encontrada. Verifique o backend.';
+          }
+          document.getElementById('card-bank').innerHTML = `<option value="" disabled selected>${errorMsg}</option>`;
+          alert(`${errorMsg} Verifique o console para mais detalhes.`);
           return [];
         }
         const banks = await response.json();
-        if (!Array.isArray(banks)) {
-          debug.error('Resposta da API /banks não é um array: ' + JSON.stringify(banks));
+        if (!Array.isArray(banks) || !banks.every(bank => bank && typeof bank.name === 'string')) {
+          debug.error('Resposta da API /banks inválida: não é um array ou faltam campos "name". Resposta: ' + JSON.stringify(banks));
           document.getElementById('card-bank').innerHTML = '<option value="" disabled selected>Erro: Dados de bancos inválidos</option>';
-          alert('Erro nos dados de bancos. Contate o suporte.');
+          alert('Erro nos dados de bancos: formato inválido. Contate o suporte.');
           return [];
         }
         const bankSelect = document.getElementById('card-bank');
@@ -188,6 +200,7 @@
         if (banks.length === 0) {
           debug.log('Nenhum banco encontrado na coleção banks');
           bankSelect.innerHTML = '<option value="" disabled selected>Nenhum banco disponível</option>';
+          alert('Nenhum banco cadastrado na coleção banks.');
           return [];
         }
         banks.forEach(bank => {
@@ -196,7 +209,7 @@
           option.textContent = bank.name;
           bankSelect.appendChild(option);
         });
-        debug.log('Bancos carregados: ' + banks.length);
+        debug.log(`Bancos carregados com sucesso: ${banks.length} bancos`);
         return banks;
       } catch (error) {
         debug.error('Erro ao carregar bancos: ' + error.message);

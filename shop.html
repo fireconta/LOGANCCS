@@ -73,30 +73,15 @@
         <p><strong>Banco:</strong> <span id="modal-bank"></span></p>
         <p><strong>Bandeira:</strong> <span id="modal-brand"></span></p>
         <p><strong>Nível:</strong> <span id="modal-level"></span></p>
-        <p><strong>Número:</strong> <span id="modal-card-number"></span></p>
+        <p><strong>BIN:</strong> <span id="modal-bin"></span></p>
+        <p><strong>Validade:</strong> <span id="modal-expiry"></span></p>
         <p><strong>Preço:</strong> R$<span id="modal-price"></span></p>
       </div>
-      <form id="purchase-form">
-        <div class="mb-4">
-          <label class="block text-sm font-medium">CVV</label>
-          <input id="modal-cvv" type="text" class="w-full p-2 border rounded-md" oninput="restrictInput(this, 'numeric', 4)" />
-        </div>
-        <div class="mb-4 flex gap-4">
-          <div>
-            <label class="block text-sm font-medium">Mês de Expiração</label>
-            <input id="modal-expiry-month" type="text" class="w-full p-2 border rounded-md" oninput="restrictInput(this, 'numeric', 2)" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium">Ano de Expiração</label>
-            <input id="modal-expiry-year" type="text" class="w-full p-2 border rounded-md" oninput="restrictInput(this, 'numeric', 4)" />
-          </div>
-        </div>
-        <div id="modal-error" class="text-red-500 text-sm mb-4 hidden"></div>
-        <div class="flex justify-end gap-4">
-          <button type="button" id="modal-cancel" class="px-4 py-2 bg-gray-300 rounded-md">Cancelar</button>
-          <button type="submit" class="px-4 py-2 bg-blue-900 text-white rounded-md">Confirmar Compra</button>
-        </div>
-      </form>
+      <div id="modal-error" class="text-red-500 text-sm mb-4 hidden"></div>
+      <div class="flex justify-end gap-4">
+        <button type="button" id="modal-cancel" class="px-4 py-2 bg-gray-300 rounded-md">Cancelar</button>
+        <button type="button" id="modal-confirm" class="px-4 py-2 bg-blue-900 text-white rounded-md">Confirmar Compra</button>
+      </div>
     </div>
   </div>
 
@@ -119,9 +104,14 @@
     debug.init('debug-panel', true);
     debug.log('Inicializando shop.html');
 
-    // Função para formatar número do cartão
-    function formatCardNumber(cardNumber) {
-      return `${cardNumber.slice(0, 4)} ${cardNumber.slice(4, 6)}** **** ****`;
+    // Função para formatar BIN
+    function formatBin(cardNumber) {
+      return cardNumber.slice(0, 6);
+    }
+
+    // Função para formatar validade
+    function formatExpiry(month, year) {
+      return `${month.padStart(2, '0')}/${year}`;
     }
 
     // Gerar ID de 9 dígitos
@@ -247,7 +237,8 @@
                 <h3 class="text-lg font-bold">${card.bank}</h3>
                 <p>Bandeira: ${card.brand}</p>
                 <p>Nível: ${card.level}</p>
-                <p>Número: ${formatCardNumber(card.cardNumber)}</p>
+                <p>BIN: ${formatBin(card.cardNumber)}</p>
+                <p>Validade: ${formatExpiry(card.expiryMonth, card.expiryYear)}</p>
                 <button class="buy-button mt-4 w-full px-4 py-2 bg-blue-900 text-white rounded-md" data-card='${JSON.stringify(card)}'>Comprar por R$${prices[card.level] || 'N/A'}</button>
               </div>
             `);
@@ -284,7 +275,7 @@
               <p>Nível: ${card.level}</p>
               <p>Número: ${card.cardNumber}</p>
               <p>CVV: ${card.cvv}</p>
-              <p>Expiração: ${card.expiryMonth}/${card.expiryYear}</p>
+              <p>Expiração: ${formatExpiry(card.expiryMonth, card.expiryYear)}</p>
               <p>Comprado em: ${new Date(purchase.purchasedAt).toLocaleString()}</p>
             </div>
           `);
@@ -299,33 +290,24 @@
     // Modal de compra
     function openPurchaseModal(card, prices) {
       const modal = document.getElementById('purchase-modal');
+      modal.dataset.card = JSON.stringify(card); // Armazena o cartão no dataset
       document.getElementById('modal-bank').textContent = card.bank;
       document.getElementById('modal-brand').textContent = card.brand;
       document.getElementById('modal-level').textContent = card.level;
-      document.getElementById('modal-card-number').textContent = formatCardNumber(card.cardNumber);
+      document.getElementById('modal-bin').textContent = formatBin(card.cardNumber);
+      document.getElementById('modal-expiry').textContent = formatExpiry(card.expiryMonth, card.expiryYear);
       document.getElementById('modal-price').textContent = prices[card.level] || 'N/A';
-      document.getElementById('modal-cvv').value = '';
-      document.getElementById('modal-expiry-month').value = '';
-      document.getElementById('modal-expiry-year').value = '';
       document.getElementById('modal-error').classList.add('hidden');
       modal.classList.add('active');
     }
 
     // Manipular compra
-    async function handlePurchase(event) {
-      event.preventDefault();
-      const cardNumber = document.getElementById('modal-card-number').textContent.match(/\d{4}$/)[0];
-      const cvv = document.getElementById('modal-cvv').value;
-      const expiryMonth = document.getElementById('modal-expiry-month').value;
-      const expiryYear = document.getElementById('modal-expiry-year').value;
-      const level = document.getElementById('modal-level').textContent;
+    async function handlePurchase() {
+      const modal = document.getElementById('purchase-modal');
+      const card = JSON.parse(modal.dataset.card);
+      const level = card.level;
+      const cardNumber = card.cardNumber.slice(-4); // Últimos 4 dígitos
       const errorDiv = document.getElementById('modal-error');
-
-      if (!cvv || !expiryMonth || !expiryYear || cvv.length < 3 || expiryMonth > 12 || expiryYear < 2025) {
-        errorDiv.textContent = 'Por favor, preencha todos os campos corretamente.';
-        errorDiv.classList.remove('hidden');
-        return;
-      }
 
       try {
         const response = await fetch('/.netlify/functions/app-function/purchase', {
@@ -334,7 +316,7 @@
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + localStorage.getItem('token')
           },
-          body: JSON.stringify({ cardNumber, cvv, expiryMonth, expiryYear, level })
+          body: JSON.stringify({ cardNumber, level })
         });
         const data = await response.json();
         if (data.error) {
@@ -386,7 +368,7 @@
       document.getElementById('modal-cancel').addEventListener('click', () => {
         document.getElementById('purchase-modal').classList.remove('active');
       });
-      document.getElementById('purchase-form').addEventListener('submit', handlePurchase);
+      document.getElementById('modal-confirm').addEventListener('click', handlePurchase);
 
       // Botões de navegação
       document.getElementById('shop-tab-button').addEventListener('click', () => switchTab('shop'));

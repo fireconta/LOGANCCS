@@ -132,7 +132,7 @@ exports.handler = async function(event, context) {
       }
     }
 
-    // Listar bancos (dashboard.html)
+    // Listar bancos
     if (path === '/banks' && event.httpMethod === 'GET') {
       const token = event.headers.authorization?.replace('Bearer ', '');
       if (!token) {
@@ -160,14 +160,14 @@ exports.handler = async function(event, context) {
       }
     }
 
-    // Listar cartões (dashboard.html)
+    // Listar cartões
     if (path === '/cards' && event.httpMethod === 'GET') {
       console.log('Buscando cartões na coleção loganccs.cards');
       const cards = await db.collection('cards').find({}).toArray();
       return { statusCode: 200, headers, body: JSON.stringify(cards) };
     }
 
-    // Adicionar cartão (dashboard.html)
+    // Adicionar cartão
     if (path === '/cards' && event.httpMethod === 'POST') {
       const token = event.headers.authorization?.replace('Bearer ', '');
       if (!token) {
@@ -203,7 +203,7 @@ exports.handler = async function(event, context) {
       return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
     }
 
-    // Remover cartão (dashboard.html)
+    // Remover cartão
     if (path === '/cards' && event.httpMethod === 'DELETE') {
       const token = event.headers.authorization?.replace('Bearer ', '');
       if (!token) {
@@ -226,14 +226,14 @@ exports.handler = async function(event, context) {
       return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
     }
 
-    // Listar preços (dashboard.html, shop.html)
+    // Listar preços
     if (path === '/cardprices' && event.httpMethod === 'GET') {
       console.log('Buscando preços na coleção loganccs.cardprices');
       const prices = await db.collection('cardprices').find({}).toArray();
       return { statusCode: 200, headers, body: JSON.stringify(prices) };
     }
 
-    // Atualizar preço ou link de pagamento (dashboard.html)
+    // Atualizar preço ou link de pagamento
     if (path === '/cardprices' && event.httpMethod === 'PUT') {
       const token = event.headers.authorization?.replace('Bearer ', '');
       if (!token) {
@@ -267,7 +267,7 @@ exports.handler = async function(event, context) {
       return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
     }
 
-    // Processar compra (shop.html)
+    // Processar compra
     if (path === '/purchase' && event.httpMethod === 'POST') {
       const token = event.headers.authorization?.replace('Bearer ', '');
       if (!token) {
@@ -317,7 +317,7 @@ exports.handler = async function(event, context) {
       return { statusCode: 200, headers, body: JSON.stringify({ success: true, paymentLink: price.paymentLink }) };
     }
 
-    // Listar compras (shop.html)
+    // Listar compras
     if (path === '/purchases' && event.httpMethod === 'GET') {
       const token = event.headers.authorization?.replace('Bearer ', '');
       if (!token) {
@@ -330,7 +330,7 @@ exports.handler = async function(event, context) {
       return { statusCode: 200, headers, body: JSON.stringify(purchases) };
     }
 
-    // Listar cartões disponíveis na loja (shop.html)
+    // Listar cartões disponíveis na loja
     if (path === '/shop' && event.httpMethod === 'GET') {
       const token = event.headers.authorization?.replace('Bearer ', '');
       if (!token) {
@@ -361,7 +361,7 @@ exports.handler = async function(event, context) {
       return { statusCode: 200, headers, body: JSON.stringify(availableCards) };
     }
 
-    // Listar usuários (dashboard.html)
+    // Listar usuários
     if (path === '/users' && event.httpMethod === 'GET') {
       const token = event.headers.authorization?.replace('Bearer ', '');
       if (!token) {
@@ -379,7 +379,7 @@ exports.handler = async function(event, context) {
       return { statusCode: 200, headers, body: JSON.stringify(users) };
     }
 
-    // Atualizar usuário (dashboard.html)
+    // Atualizar usuário
     if (path === '/users' && event.httpMethod === 'PUT') {
       const token = event.headers.authorization?.replace('Bearer ', '');
       if (!token) {
@@ -412,7 +412,7 @@ exports.handler = async function(event, context) {
       return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
     }
 
-    // Excluir usuário (dashboard.html)
+    // Excluir usuário
     if (path === '/delete-user' && event.httpMethod === 'DELETE') {
       const token = event.headers.authorization?.replace('Bearer ', '');
       if (!token) {

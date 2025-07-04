@@ -18,6 +18,7 @@
     .btn:hover { background-color: #1e40af; }
     .tab { cursor: pointer; }
     .tab.active { background-color: #1e40af; color: white; }
+    .error-message { color: #dc2626; font-weight: bold; }
     @media (max-width: 640px) {
       .container { padding: 0.5rem; }
       .tab { padding: 0.5rem; font-size: 0.875rem; }
@@ -57,12 +58,6 @@
           <div class="grid grid-cols-1 gap-4">
             <select id="card-bank" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required>
               <option value="" disabled selected>Selecione o Banco</option>
-              <option value="Banco do Brasil">Banco do Brasil</option>
-              <option value="Bradesco">Bradesco</option>
-              <option value="Itaú">Itaú</option>
-              <option value="Santander">Santander</option>
-              <option value="Caixa Econômica">Caixa Econômica</option>
-              <option value="Nubank">Nubank</option>
             </select>
             <select id="card-brand" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required>
               <option value="" disabled selected>Selecione a Bandeira</option>
@@ -112,6 +107,7 @@
       document.getElementById(tabId).classList.remove('hidden');
       document.querySelector(`.tab[data-tab="${tabId}"]`).classList.add('active');
       debug.log(`Alternando para aba: ${tabId}`);
+      if (tabId === 'cards') loadCards(); // Recarrega cartões ao abrir a aba
     }
 
     document.querySelectorAll('.tab').forEach(tab => {
@@ -126,6 +122,7 @@
           window.location.href = '/index.html';
           return null;
         }
+        debug.log('Verificando autenticação na API /check-auth');
         const response = await fetch('/.netlify/functions/app-function/check-auth', {
           headers: { 'Authorization': 'Bearer ' + token }
         });
@@ -150,6 +147,46 @@
       }
     }
 
+    async function loadBanks() {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          debug.error('Token JWT não encontrado ao carregar bancos');
+          alert('Erro de autenticação. Faça login novamente.');
+          return [];
+        }
+        debug.log('Iniciando chamada à API /banks');
+        const response = await fetch('/.netlify/functions/app-function/banks', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!response.ok) {
+          debug.error(`Erro na API /banks: Status ${response.status} - ${response.statusText}`);
+          alert('Erro ao carregar bancos. Tente novamente.');
+          return [];
+        }
+        const banks = await response.json();
+        if (!Array.isArray(banks)) {
+          debug.error('Resposta da API /banks não é um array: ' + JSON.stringify(banks));
+          alert('Erro nos dados de bancos. Contate o suporte.');
+          return [];
+        }
+        const bankSelect = document.getElementById('card-bank');
+        bankSelect.innerHTML = '<option value="" disabled selected>Selecione o Banco</option>';
+        banks.forEach(bank => {
+          const option = document.createElement('option');
+          option.value = bank.name;
+          option.textContent = bank.name;
+          bankSelect.appendChild(option);
+        });
+        debug.log('Bancos carregados: ' + banks.length);
+        return banks;
+      } catch (error) {
+        debug.error('Erro ao carregar bancos: ' + error.message);
+        alert('Erro ao carregar bancos. Tente novamente.');
+        return [];
+      }
+    }
+
     async function loadPriceLevels() {
       try {
         const token = localStorage.getItem('token');
@@ -158,6 +195,7 @@
           alert('Erro de autenticação. Faça login novamente.');
           return [];
         }
+        debug.log('Iniciando chamada à API /cardprices');
         const response = await fetch('/.netlify/functions/app-function/cardprices', {
           headers: { 'Authorization': 'Bearer ' + token }
         });
@@ -335,6 +373,7 @@
           alert('Erro de autenticação. Faça login novamente.');
           return;
         }
+        debug.log('Iniciando chamada à API /users');
         const response = await fetch('/.netlify/functions/app-function/users', {
           headers: { 'Authorization': 'Bearer ' + token }
         });
@@ -449,7 +488,7 @@
         const token = localStorage.getItem('token');
         if (!token) {
           debug.error('Token JWT não encontrado ao carregar cartões');
-          alert('Erro de autenticação. Faça login novamente.');
+          document.getElementById('cards-list').innerHTML = '<p class="error-message">Erro de autenticação. Faça login novamente.</p>';
           return;
         }
         debug.log('Iniciando chamada à API /cards');
@@ -458,19 +497,19 @@
         });
         if (!response.ok) {
           debug.error(`Erro na API /cards: Status ${response.status} - ${response.statusText}`);
-          alert('Erro ao carregar cartões. Tente novamente.');
+          document.getElementById('cards-list').innerHTML = `<p class="error-message">Erro ao carregar cartões: ${response.status} - ${response.statusText}. Verifique o console para mais detalhes.</p>`;
           return;
         }
         const cards = await response.json();
         if (!Array.isArray(cards)) {
           debug.error('Resposta da API /cards não é um array: ' + JSON.stringify(cards));
-          alert('Erro nos dados de cartões. Contate o suporte.');
+          document.getElementById('cards-list').innerHTML = '<p class="error-message">Erro nos dados de cartões. Contate o suporte.</p>';
           return;
         }
         const container = document.getElementById('cards-list');
         container.innerHTML = '';
         if (cards.length === 0) {
-          debug.log('Nenhum cartão encontrado');
+          debug.log('Nenhum cartão encontrado na coleção cards');
           container.innerHTML = '<p class="text-gray-500">Nenhum cartão cadastrado.</p>';
           return;
         }
@@ -489,7 +528,7 @@
         debug.log('Cartões carregados: ' + cards.length);
       } catch (error) {
         debug.error('Erro ao carregar cartões: ' + error.message);
-        alert('Erro ao carregar cartões. Tente novamente.');
+        document.getElementById('cards-list').innerHTML = '<p class="error-message">Erro ao carregar cartões: ' + error.message + '. Verifique o console para mais detalhes.</p>';
       }
     }
 
@@ -510,6 +549,7 @@
       }
 
       try {
+        debug.log('Iniciando chamada à API /cards para adicionar cartão');
         const response = await fetch('/.netlify/functions/app-function/cards', {
           method: 'POST',
           headers: {
@@ -542,6 +582,7 @@
     async function deleteCard(cardNumber) {
       if (!confirm('Tem certeza que deseja excluir este cartão?')) return;
       try {
+        debug.log('Iniciando chamada à API /cards para excluir cartão: ' + cardNumber);
         const response = await fetch('/.netlify/functions/app-function/cards', {
           method: 'DELETE',
           headers: {
@@ -576,7 +617,7 @@
     (async () => {
       const user = await checkAuth();
       if (user) {
-        await Promise.all([loadUsers(), loadCards(), loadLevels()]);
+        await Promise.all([loadUsers(), loadBanks(), loadLevels()]);
         switchTab('users'); // Abre a aba de usuários por padrão
       }
     })();

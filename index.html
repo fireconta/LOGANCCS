@@ -3,273 +3,57 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LOGAN CC's - Login</title>
+  <title>Login - LoganCCS</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.0/purify.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    #debug { 
-      position: fixed; 
-      bottom: 4rem; 
-      left: 1rem; 
-      background: #1f2937; 
-      color: white; 
-      padding: 1rem; 
-      border-radius: 0.5rem; 
-      max-width: 400px; 
-      max-height: 300px; 
-      overflow-y: auto; 
-      z-index: 1000; 
-      font-size: 0.75rem; 
-      display: block; 
-    }
-    #toggleDebug { 
-      position: fixed; 
-      bottom: 1rem; 
-      left: 1rem; 
-      background: #10b981; 
-      color: white; 
-      padding: 0.5rem 1rem; 
-      border-radius: 0.25rem; 
-      cursor: pointer; 
-      z-index: 1001; 
-    }
-    .debug-info { color: #10b981; }
-    .debug-warn { color: #f59e0b; }
-    .debug-error { color: #ef4444; }
-    .debug-success { color: #10b981; }
-    #notifications { 
-      position: fixed; 
-      top: 1rem; 
-      right: 1rem; 
-      z-index: 10000; 
-      max-width: 320px; 
-    }
-    .notification { 
-      background: #1f2937; 
-      color: white; 
-      padding: 1rem; 
-      border-radius: 0.5rem; 
-      margin-bottom: 0.5rem; 
-      box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      animation: slideIn 0.3s ease-out; 
-    }
-    .notification-error { background: #ef4444; }
-    .notification-success { background: #10b981; }
-    @keyframes slideIn { 
-      from { transform: translateX(100%); opacity: 0; } 
-      to { transform: translateX(0); opacity: 1; } 
-    }
+    body { font-family: 'Inter', sans-serif; }
   </style>
 </head>
-<body class="min-h-screen flex items-center justify-center text-gray-100 bg-gray-900">
-  <div id="notifications" class="space-y-2" aria-live="polite"></div>
-  <div class="w-full max-w-md p-8 bg-gray-800 rounded-lg shadow-lg">
-    <h1 class="text-3xl font-bold text-center mb-6">LOGAN CC's</h1>
-    <div id="login-form">
-      <h2 class="text-xl font-semibold mb-4">Login</h2>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+  <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+    <h1 class="text-3xl font-bold text-center text-blue-900 mb-6">LoganCCS - Login</h1>
+    <form id="login-form">
       <div class="mb-4">
-        <label for="login-username" class="block text-sm font-medium mb-1">Usuário</label>
-        <input id="login-username" type="text" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite seu usuário" oninput="restrictInput(this)">
+        <label class="block text-sm font-medium text-gray-700">Usuário</label>
+        <input id="username" type="text" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
       </div>
       <div class="mb-6">
-        <label for="login-password" class="block text-sm font-medium mb-1">Senha</label>
-        <input id="login-password" type="password" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite sua senha">
+        <label class="block text-sm font-medium text-gray-700">Senha</label>
+        <input id="password" type="password" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
       </div>
-      <p id="login-error" class="text-red-500 text-sm hidden" role="alert"></p>
-      <button onclick="login()" class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-md text-white mb-4">Entrar</button>
-      <p class="text-center text-sm">Não tem uma conta? <a href="#" onclick="showRegisterForm()" class="text-blue-400 hover:underline">Registre-se</a></p>
-    </div>
-    <div id="register-form" class="hidden">
-      <h2 class="text-xl font-semibold mb-4">Registro</h2>
-      <div class="mb-4">
-        <label for="register-username" class="block text-sm font-medium mb-1">Usuário</label>
-        <input id="register-username" type="text" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Escolha um usuário" oninput="restrictInput(this)">
-      </div>
-      <div class="mb-6">
-        <label for="register-password" class="block text-sm font-medium mb-1">Senha</label>
-        <input id="register-password" type="password" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Escolha uma senha">
-      </div>
-      <p id="register-error" class="text-red-500 text-sm hidden" role="alert"></p>
-      <button onclick="register()" class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-md text-white mb-4">Registrar</button>
-      <p class="text-center text-sm">Já tem uma conta? <a href="#" onclick="showLoginForm()" class="text-blue-400 hover:underline">Faça login</a></p>
-    </div>
+      <div id="error-message" class="text-red-500 text-sm mb-4 hidden"></div>
+      <button type="submit" class="w-full bg-blue-900 text-white p-2 rounded-md hover:bg-blue-800 transition">Entrar</button>
+    </form>
   </div>
-  <button id="toggleDebug" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg" aria-label="Alternar debug">Esconder Debug</button>
-  <div id="debug" aria-live="assertive"><div id="debug-output"></div></div>
-  <script src="/utils.js"></script>
-  <script src="/debug.js"></script>
   <script>
-    async function checkEnvironment() {
-      Debug.log('Iniciando verificação de ambiente e conexão com MongoDB');
+    async function handleLogin(event) {
+      event.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const errorDiv = document.getElementById('error-message');
+
       try {
-        const response = await fetchWithTimeout('/api/check-env', { timeout: 10000 });
-        const data = await response.json();
-        if (!response.ok) {
-          const errorMsg = data.error && data.error.includes('Timedout') 
-            ? 'Timeout na conexão com o servidor. Verifique a Netlify Functions e o MongoDB Atlas.'
-            : `Erro ao verificar ambiente: ${data.error || 'Desconhecido'}`;
-          Debug.error(errorMsg);
-          showDebugNotification(errorMsg, true);
-          return;
-        }
-
-        const mongoStatus = data.mongodbConnected ? 'Conectado' : 'Não conectado';
-        Debug.log(`Conexão MongoDB: ${mongoStatus}`);
-        showDebugNotification(`Conexão MongoDB: ${mongoStatus}`, !data.mongodbConnected);
-        if (!data.mongodbConnected) {
-          Debug.error('MongoDB não conectado. Verifique MONGODB_URI e permissões no MongoDB Atlas.');
-          showDebugNotification('MongoDB não conectado. Verifique MONGODB_URI e permissões.', true);
-        }
-
-        Debug.log('Verificando status das coleções:');
-        for (const [collection, status] of Object.entries(data.collections)) {
-          const statusText = status.exists && status.accessible ? 'Carregada e acessível' : 'Não carregada ou inacessível';
-          Debug.log(`- Coleção ${collection}: ${statusText}`);
-          showDebugNotification(`Coleção ${collection}: ${statusText}`, !status.exists || !status.accessible);
-        }
-
-        Debug.log('Verificando variáveis de ambiente:');
-        for (const [envVar, status] of Object.entries(data.environment)) {
-          const envStatus = status.exists ? 'Configurada' : 'Não configurada';
-          Debug.log(`- ${envVar}: ${envStatus}`);
-          showDebugNotification(`${envVar}: ${envStatus}`, !status.exists);
-        }
-      } catch (err) {
-        const errorMsg = err.message.includes('timeout') 
-          ? 'Timeout na conexão com o servidor. Verifique a Netlify Functions e o MongoDB Atlas.'
-          : `Erro ao verificar ambiente: ${err.message}`;
-        Debug.error(errorMsg);
-        showDebugNotification(errorMsg, true);
-      }
-    }
-
-    function showRegisterForm() {
-      document.getElementById('login-form').classList.add('hidden');
-      document.getElementById('register-form').classList.remove('hidden');
-      document.getElementById('login-error').classList.add('hidden');
-      document.getElementById('login-username').value = '';
-      document.getElementById('login-password').value = '';
-      Debug.clear();
-      Debug.log('Formulário de registro exibido');
-    }
-
-    function showLoginForm() {
-      document.getElementById('register-form').classList.add('hidden');
-      document.getElementById('login-form').classList.remove('hidden');
-      document.getElementById('register-error').classList.add('hidden');
-      document.getElementById('register-username').value = '';
-      document.getElementById('register-password').value = '';
-      Debug.clear();
-      Debug.log('Formulário de login exibido');
-    }
-
-    async function register() {
-      const username = document.getElementById('register-username').value.trim();
-      const password = document.getElementById('register-password').value;
-      const errorDiv = document.getElementById('register-error');
-      errorDiv.classList.add('hidden');
-      Debug.clear();
-      Debug.log(`Tentando registrar usuário: ${username}`);
-      if (!username || username.length < 3 || username.length > 20) {
-        errorDiv.textContent = 'Usuário: 3-20 caracteres alfanuméricos';
-        errorDiv.classList.remove('hidden');
-        Debug.error('Erro de validação: Usuário inválido');
-        return;
-      }
-      if (!/^[a-zA-Z0-9]+$/.test(username)) {
-        errorDiv.textContent = 'Usuário: apenas letras e números';
-        errorDiv.classList.remove('hidden');
-        Debug.error('Erro de validação: Caracteres inválidos no usuário');
-        return;
-      }
-      if (!password || password.length < 6) {
-        errorDiv.textContent = 'Senha: mínimo 6 caracteres';
-        errorDiv.classList.remove('hidden');
-        Debug.error('Erro de validação: Senha inválida');
-        return;
-      }
-      try {
-        const response = await fetchWithTimeout('/api/register', {
+        const response = await fetch('/.netlify/functions/app-function/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
         });
         const data = await response.json();
-        if (!response.ok) {
-          errorDiv.textContent = data.error || 'Erro ao registrar';
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+          window.location.href = '/shop.html';
+        } else {
+          errorDiv.textContent = data.error || 'Erro ao fazer login.';
           errorDiv.classList.remove('hidden');
-          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
-          return;
         }
-        showDebugNotification('Registro bem-sucedido! Faça login.', false);
-        Debug.log('Registro bem-sucedido');
-        showLoginForm();
-      } catch (err) {
-        const errorMsg = err.message.includes('timeout') 
-          ? 'Timeout ao tentar registrar. Verifique a conexão com o servidor.'
-          : `Erro ao registrar: ${err.message}`;
-        errorDiv.textContent = errorMsg;
+      } catch (error) {
+        errorDiv.textContent = 'Erro ao conectar ao servidor.';
         errorDiv.classList.remove('hidden');
-        Debug.error(errorMsg);
       }
     }
 
-    async function login() {
-      const username = document.getElementById('login-username').value.trim();
-      const password = document.getElementById('login-password').value;
-      const errorDiv = document.getElementById('login-error');
-      errorDiv.classList.add('hidden');
-      Debug.clear();
-      Debug.log(`Tentando logar usuário: ${username}`);
-      if (!username || !password) {
-        errorDiv.textContent = 'Preencha usuário e senha';
-        errorDiv.classList.remove('hidden');
-        Debug.error('Erro de validação: Campos vazios');
-        return;
-      }
-      try {
-        const response = await fetchWithTimeout('/api/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
-        });
-        const data = await response.json();
-        if (!response.ok) {
-          errorDiv.textContent = data.error || 'Erro ao logar';
-          errorDiv.classList.remove('hidden');
-          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
-          return;
-        }
-        localStorage.setItem('userId', data.userId);
-        localStorage.setItem('username', data.username);
-        Debug.log(`Login bem-sucedido: ${data.username}, isAdmin: ${data.is_admin}`);
-        showDebugNotification('Login bem-sucedido!', false);
-        const redirect = data.is_admin ? '/dashboard.html' : '/shop.html';
-        window.location.href = redirect;
-      } catch (err) {
-        const errorMsg = err.message.includes('timeout') 
-          ? 'Timeout ao tentar logar. Verifique a conexão com o servidor.'
-          : `Erro ao logar: ${err.message}`;
-        errorDiv.textContent = errorMsg;
-        errorDiv.classList.remove('hidden');
-        Debug.error(errorMsg);
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      Debug.log('DOM carregado');
-      const debugDiv = document.getElementById('debug');
-      debugDiv.style.display = 'block';
-      document.getElementById('toggleDebug').addEventListener('click', () => {
-        debugDiv.style.display = debugDiv.style.display === 'none' ? 'block' : 'none';
-        document.getElementById('toggleDebug').textContent = debugDiv.style.display === 'none' ? 'Mostrar Debug' : 'Esconder Debug';
-        Debug.log(`Debug ${debugDiv.style.display === 'none' ? 'desativado' : 'ativado'}`);
-      });
-      checkEnvironment();
-    });
+    document.getElementById('login-form').addEventListener('submit', handleLogin);
   </script>
 </body>
 </html>

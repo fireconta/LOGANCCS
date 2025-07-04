@@ -412,7 +412,7 @@ app.post('/api/buy-card', [
         await purchase.save();
         debug('Cartão comprado: %s por %s', card.nivel, user.username);
         res.json({ message: 'Cartão comprado', newBalance: user.balance });
-    } fetch (err) {
+    } catch (err) {
         debug('Erro ao comprar cartão: %s', err.message);
         res.status(500).json({ error: `Erro ao comprar cartão: ${err.message}` });
     }

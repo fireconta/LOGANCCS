@@ -3,441 +3,374 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LOGAN CC's - Dashboard</title>
+  <title>Dashboard - LoganCCS</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.0/purify.min.js"></script>
-  <style>
-    #debug { 
-      position: fixed; 
-      bottom: 4rem; 
-      left: 1rem; 
-      background: #1f2937; 
-      color: white; 
-      padding: 1rem; 
-      border-radius: 0.5rem; 
-      max-width: 400px; 
-      max-height: 300px; 
-      overflow-y: auto; 
-      z-index: 1000; 
-      font-size: 0.75rem; 
-      display: block; 
-    }
-    #toggleDebug { 
-      position: fixed; 
-      bottom: 1rem; 
-      left: 1rem; 
-      background: #10b981; 
-      color: white; 
-      padding: 0.5rem 1rem; 
-      border-radius: 0.25rem; 
-      cursor: pointer; 
-      z-index: 1001; 
-    }
-    .debug-info { color: #10b981; }
-    .debug-warn { color: #f59e0b; }
-    .debug-error { color: #ef4444; }
-    .debug-success { color: #10b981; }
-    #notifications { 
-      position: fixed; 
-      top: 1rem; 
-      right: 1rem; 
-      z-index: 10000; 
-      max-width: 320px; 
-    }
-    .notification { 
-      background: #1f2937; 
-      color: white; 
-      padding: 1rem; 
-      border-radius: 0.5rem; 
-      margin-bottom: 0.5rem; 
-      box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      animation: slideIn 0.3s ease-out; 
-    }
-    .notification-error { background: #ef4444; }
-    .notification-success { background: #10b981; }
-    @keyframes slideIn { 
-      from { transform: translateX(100%); opacity: 0; } 
-      to { transform: translateX(0); opacity: 1; } 
-    }
-  </style>
-</head>
-<body class="min-h-screen text-gray-100 bg-gray-900">
-  <div id="notifications" class="space-y-2" aria-live="polite"></div>
-  <div class="max-w-4xl mx-auto p-8">
-    <h1 class="text-3xl font-bold text-center mb-6">Dashboard - LOGAN CC's</h1>
-    <div class="flex justify-between mb-6">
-      <div>
-        <span id="username" class="font-semibold"></span> | Saldo: <span id="balance">0</span>
-      </div>
-      <button onclick="logout()" class="py-2 px-4 bg-red-600 hover:bg-red-700 rounded-md text-white">Sair</button>
-    </div>
-    <h2 class="text-xl font-semibold mb-4">Gerenciar Usuários</h2>
-    <div id="users" class="mb-6"></div>
-    <h2 class="text-xl font-semibold mb-4">Gerenciar Preços de Cartões</h2>
-    <div id="card-prices" class="mb-6">
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label for="price-classic" class="block text-sm font-medium mb-1">Classic</label>
-          <input id="price-classic" type="number" min="0.01" step="0.01" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md">
-        </div>
-        <div>
-          <label for="price-gold" class="block text-sm font-medium mb-1">Gold</label>
-          <input id="price-gold" type="number" min="0.01" step="0.01" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md">
-        </div>
-        <div>
-          <label for="price-platinum" class="block text-sm font-medium mb-1">Platinum</label>
-          <input id="price-platinum" type="number" min="0.01" step="0.01" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md">
-        </div>
-        <div>
-          <label for="price-black" class="block text-sm font-medium mb-1">Black</label>
-          <input id="price-black" type="number" min="0.01" step="0.01" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md">
-        </div>
-      </div>
-      <button onclick="updateCardPrices()" class="mt-4 py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-md text-white">Atualizar Preços</button>
-    </div>
-    <h2 class="text-xl font-semibold mb-4">Gerenciar Bancos</h2>
-    <div id="banks" class="mb-6">
-      <div class="mb-4">
-        <label for="new-bank" class="block text-sm font-medium mb-1">Novo Banco</label>
-        <input id="new-bank" type="text" class="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-md" placeholder="Nome do banco" oninput="restrictInput(this)">
-        <button onclick="addBank()" class="mt-2 py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-md text-white">Adicionar Banco</button>
-      </div>
-      <div id="bank-list"></div>
-    </div>
-    <p id="error" class="text-red-500 text-sm hidden mt-4" role="alert"></p>
-  </div>
-  <button id="toggleDebug" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg" aria-label="Alternar debug">Esconder Debug</button>
-  <div id="debug" aria-live="assertive"><div id="debug-output"></div></div>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="/utils.js"></script>
   <script src="/debug.js"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .gradient-bg { background: linear-gradient(135deg, #1a237e, #1565c0); }
+    .card { transition: all 0.3s ease; }
+    .card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); }
+    .btn { transition: background-color 0.3s ease; }
+    .btn:hover { background-color: #1e40af; }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <nav class="gradient-bg text-white p-6 flex justify-between items-center shadow-lg">
+    <h1 class="text-3xl font-bold">Dashboard</h1>
+    <div class="flex items-center space-x-6">
+      <span id="user-info" class="text-lg font-medium"></span>
+      <a href="/index.html" class="hover:underline text-lg"><i class="fas fa-sign-out-alt mr-2"></i>Logout</a>
+    </div>
+  </nav>
+  <div class="container mx-auto p-6">
+    <h2 class="text-3xl font-bold mb-8 text-gray-800">Painel de Administração</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Gerenciar Usuários -->
+      <div class="bg-white p-6 rounded-xl shadow-lg card">
+        <h3 class="text-xl font-bold mb-4 text-blue-900">Gerenciar Usuários</h3>
+        <div id="users-container" class="space-y-4"></div>
+      </div>
+      <!-- Gerenciar Cartões -->
+      <div class="bg-white p-6 rounded-xl shadow-lg card">
+        <h3 class="text-xl font-bold mb-4 text-blue-900">Gerenciar Cartões</h3>
+        <form id="add-card-form" class="mb-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Banco</label>
+              <input id="card-bank" type="text" class="w-full p-3 border rounded-md" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Bandeira</label>
+              <select id="card-brand" class="w-full p-3 border rounded-md" required>
+                <option value="Visa">Visa</option>
+                <option value="Mastercard">Mastercard</option>
+                <option value="Elo">Elo</option>
+                <option value="Amex">Amex</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Nível</label>
+              <select id="card-level" class="w-full p-3 border rounded-md" required>
+                <option value="Classic">Classic</option>
+                <option value="Gold">Gold</option>
+                <option value="Platinum">Platinum</option>
+                <option value="Business">Business</option>
+                <option value="Black">Black</option>
+                <option value="Infinite">Infinite</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Número (16 dígitos)</label>
+              <input id="card-number" type="text" class="w-full p-3 border rounded-md" oninput="restrictInput(this, 'numeric', 16)" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">CVV</label>
+              <input id="card-cvv" type="text" class="w-full p-3 border rounded-md" oninput="restrictInput(this, 'numeric', 4)" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Validade (MM/YYYY)</label>
+              <input id="card-expiry" type="text" class="w-full p-3 border rounded-md" placeholder="MM/YYYY" required />
+            </div>
+          </div>
+          <button type="submit" class="btn mt-4 w-full bg-blue-900 text-white p-3 rounded-md"><i class="fas fa-plus mr-2"></i>Adicionar Cartão</button>
+        </form>
+        <div id="cards-container" class="space-y-4"></div>
+      </div>
+      <!-- Gerenciar Preços -->
+      <div class="bg-white p-6 rounded-xl shadow-lg card">
+        <h3 class="text-xl font-bold mb-4 text-blue-900">Gerenciar Preços</h3>
+        <div id="prices-container" class="space-y-4"></div>
+      </div>
+      <!-- Gerenciar Links de Pagamento -->
+      <div class="bg-white p-6 rounded-xl shadow-lg card">
+        <h3 class="text-xl font-bold mb-4 text-blue-900">Links de Pagamento</h3>
+        <div id="payment-links-container" class="space-y-4"></div>
+      </div>
+    </div>
+  </div>
   <script>
-    async function checkEnvironment() {
-      Debug.log('Iniciando verificação de ambiente e conexão com MongoDB');
-      try {
-        const response = await fetchWithTimeout('/api/check-env', { timeout: 10000 });
-        const data = await response.json();
-        if (!response.ok) {
-          const errorMsg = data.error && data.error.includes('Timedout') 
-            ? 'Timeout na conexão com o servidor. Verifique a Netlify Functions e o MongoDB Atlas.'
-            : `Erro ao verificar ambiente: ${data.error || 'Desconhecido'}`;
-          Debug.error(errorMsg);
-          showDebugNotification(errorMsg, true);
-          return;
-        }
-        const mongoStatus = data.mongodbConnected ? 'Conectado' : 'Não conectado';
-        Debug.log(`Conexão MongoDB: ${mongoStatus}`);
-        showDebugNotification(`Conexão MongoDB: ${mongoStatus}`, !data.mongodbConnected);
-        if (!data.mongodbConnected) {
-          Debug.error('MongoDB não conectado. Verifique MONGODB_URI e permissões no MongoDB Atlas.');
-          showDebugNotification('MongoDB não conectado. Verifique MONGODB_URI e permissões.', true);
-        }
-        Debug.log('Verificando status das coleções:');
-        for (const [collection, status] of Object.entries(data.collections)) {
-          const statusText = status.exists && status.accessible ? 'Carregada e acessível' : 'Não carregada ou inacessível';
-          Debug.log(`- Coleção ${collection}: ${statusText}`);
-          showDebugNotification(`Coleção ${collection}: ${statusText}`, !status.exists || !status.accessible);
-        }
-        Debug.log('Verificando variáveis de ambiente:');
-        for (const [envVar, status] of Object.entries(data.environment)) {
-          const envStatus = status.exists ? 'Configurada' : 'Não configurada';
-          Debug.log(`- ${envVar}: ${envStatus}`);
-          showDebugNotification(`${envVar}: ${envStatus}`, !status.exists);
-        }
-      } catch (err) {
-        const errorMsg = err.message.includes('timeout') 
-          ? 'Timeout na conexão com o servidor. Verifique a Netlify Functions e o MongoDB Atlas.'
-          : `Erro ao verificar ambiente: ${err.message}`;
-        Debug.error(errorMsg);
-        showDebugNotification(errorMsg, true);
-      }
-    }
+    debug.init('debug-panel', true);
+    debug.log('Inicializando dashboard.html');
 
-    async function loadUser() {
-      const userId = localStorage.getItem('userId');
-      const username = localStorage.getItem('username');
-      if (!userId || !username) {
-        Debug.error('Usuário não logado. Redirecionando para login.');
-        showDebugNotification('Usuário não logado.', true);
-        window.location.href = '/index.html';
-        return;
-      }
+    async function checkAuth() {
       try {
-        const response = await fetchWithTimeout(`/api/user?userId=${userId}`, { timeout: 10000 });
+        const response = await fetch('/.netlify/functions/app-function/check-auth', {
+          headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
         const data = await response.json();
-        if (!response.ok || !data.isAdmin) {
-          Debug.error(`Erro: ${data.error || 'Acesso negado, não é admin'}`);
-          showDebugNotification('Acesso negado.', true);
+        if (!data.authenticated || !data.user.isAdmin) {
           window.location.href = '/index.html';
-          return;
+          return null;
         }
-        document.getElementById('username').textContent = username;
-        document.getElementById('balance').textContent = data.balance.toFixed(2);
-        Debug.log(`Usuário carregado: ${username}, saldo: ${data.balance}`);
-      } catch (err) {
-        const errorMsg = err.message.includes('timeout') 
-          ? 'Timeout ao carregar usuário. Verifique a conexão com o servidor.'
-          : `Erro ao carregar usuário: ${err.message}`;
-        Debug.error(errorMsg);
-        showDebugNotification(errorMsg, true);
+        document.getElementById('user-info').textContent = `Usuário: ${data.user.username} | Saldo: R$${data.user.balance.toFixed(2)}`;
+        return data.user;
+      } catch (error) {
+        debug.error('Erro ao verificar autenticação: ' + error.message);
         window.location.href = '/index.html';
+        return null;
       }
     }
 
     async function loadUsers() {
-      const userId = localStorage.getItem('userId');
-      if (!userId) return;
       try {
-        const response = await fetchWithTimeout(`/api/users?userId=${userId}`, { timeout: 10000 });
-        const data = await response.json();
-        if (!response.ok) {
-          document.getElementById('error').textContent = data.error || 'Erro ao carregar usuários';
-          document.getElementById('error').classList.remove('hidden');
-          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
-          return;
-        }
-        const usersDiv = document.getElementById('users');
-        usersDiv.innerHTML = '';
-        data.forEach(user => {
-          const userDiv = document.createElement('div');
-          userDiv.className = 'bg-gray-800 p-4 rounded-md mb-2 flex justify-between';
-          userDiv.innerHTML = `
-            <span>${DOMPurify.sanitize(user.username)} | Saldo: ${user.balance.toFixed(2)} | Admin: ${user.isAdmin ? 'Sim' : 'Não'}</span>
-            ${user.username !== 'LVz' ? `<button onclick="deleteUser('${user._id}')" class="py-1 px-3 bg-red-600 hover:bg-red-700 rounded-md text-white">Excluir</button>` : ''}
-          `;
-          usersDiv.appendChild(userDiv);
+        const response = await fetch('/.netlify/functions/app-function/users', {
+          headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
         });
-        Debug.log(`Usuários carregados: ${data.length} encontrados`);
-      } catch (err) {
-        const errorMsg = err.message.includes('timeout') 
-          ? 'Timeout ao carregar usuários. Verifique a conexão com o servidor.'
-          : `Erro ao carregar usuários: ${err.message}`;
-        document.getElementById('error').textContent = errorMsg;
-        document.getElementById('error').classList.remove('hidden');
-        Debug.error(errorMsg);
+        const users = await response.json();
+        const container = document.getElementById('users-container');
+        container.innerHTML = '';
+        users.forEach(user => {
+          const userElement = document.createElement('div');
+          userElement.className = 'p-4 bg-gray-100 rounded-md';
+          userElement.innerHTML = DOMPurify.sanitize(`
+            <p><strong>Usuário:</strong> ${user.username}</p>
+            <p><strong>Saldo:</strong> R$${user.balance.toFixed(2)}</p>
+            <p><strong>Admin:</strong> ${user.isAdmin ? 'Sim' : 'Não'}</p>
+            <div class="mt-2 flex gap-2">
+              <input type="number" step="0.01" id="balance-${user._id}" class="p-2 border rounded-md w-24" placeholder="Novo saldo" />
+              <button onclick="updateUser('${user._id}', this.previousElementSibling.value, ${user.isAdmin})" class="btn px-3 py-1 bg-blue-900 text-white rounded-md"><i class="fas fa-edit"></i> Atualizar Saldo</button>
+              <button onclick="updateUser('${user._id}', ${user.balance}, ${!user.isAdmin})" class="btn px-3 py-1 bg-blue-900 text-white rounded-md"><i class="fas fa-user-shield"></i> ${user.isAdmin ? 'Remover Admin' : 'Tornar Admin'}</button>
+            </div>
+          `);
+          container.appendChild(userElement);
+        });
+        debug.log('Usuários carregados: ' + users.length);
+      } catch (error) {
+        debug.error('Erro ao carregar usuários: ' + error.message);
+        alert('Erro ao carregar usuários. Tente novamente.');
       }
     }
 
-    async function deleteUser(targetId) {
-      const userId = localStorage.getItem('userId');
-      if (!userId) return;
+    async function updateUser(userId, balance, isAdmin) {
       try {
-        const response = await fetchWithTimeout(`/api/delete-user?userId=${userId}&targetId=${targetId}`, {
+        const response = await fetch('/.netlify/functions/app-function/users', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+          },
+          body: JSON.stringify({ userId, balance: balance ? parseFloat(balance) : undefined, isAdmin })
+        });
+        const data = await response.json();
+        if (data.success) {
+          alert('Usuário atualizado com sucesso!');
+          loadUsers();
+        } else {
+          alert(data.error || 'Erro ao atualizar usuário');
+        }
+      } catch (error) {
+        debug.error('Erro ao atualizar usuário: ' + error.message);
+        alert('Erro ao atualizar usuário. Tente novamente.');
+      }
+    }
+
+    async function loadCards() {
+      try {
+        const response = await fetch('/.netlify/functions/app-function/cards', {
+          headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
+        const cards = await response.json();
+        const container = document.getElementById('cards-container');
+        container.innerHTML = '';
+        cards.forEach(card => {
+          const cardElement = document.createElement('div');
+          cardElement.className = 'p-4 bg-gray-100 rounded-md';
+          cardElement.innerHTML = DOMPurify.sanitize(`
+            <p><strong>Banco:</strong> ${card.bank}</p>
+            <p><strong>Bandeira:</strong> ${card.brand}</p>
+            <p><strong>Nível:</strong> ${card.level}</p>
+            <p><strong>BIN:</strong> ${card.cardNumber.slice(0, 6)}</p>
+            <button onclick="deleteCard('${card.cardNumber}')" class="btn mt-2 px-3 py-1 bg-red-600 text-white rounded-md"><i class="fas fa-trash"></i> Remover</button>
+          `);
+          container.appendChild(cardElement);
+        });
+        debug.log('Cartões carregados: ' + cards.length);
+      } catch (error) {
+        debug.error('Erro ao carregar cartões: ' + error.message);
+        alert('Erro ao carregar cartões. Tente novamente.');
+      }
+    }
+
+    async function deleteCard(cardNumber) {
+      try {
+        const response = await fetch('/.netlify/functions/app-function/cards', {
           method: 'DELETE',
-          timeout: 10000
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+          },
+          body: JSON.stringify({ cardNumber })
         });
         const data = await response.json();
-        if (!response.ok) {
-          document.getElementById('error').textContent = data.error || 'Erro ao excluir usuário';
-          document.getElementById('error').classList.remove('hidden');
-          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
-          return;
+        if (data.success) {
+          alert('Cartão removido com sucesso!');
+          loadCards();
+        } else {
+          alert(data.error || 'Erro ao remover cartão');
         }
-        showDebugNotification('Usuário excluído com sucesso!', false);
-        Debug.log(`Usuário ${targetId} excluído`);
-        loadUsers();
-      } catch (err) {
-        const errorMsg = err.message.includes('timeout') 
-          ? 'Timeout ao excluir usuário. Verifique a conexão com o servidor.'
-          : `Erro ao excluir usuário: ${err.message}`;
-        document.getElementById('error').textContent = errorMsg;
-        document.getElementById('error').classList.remove('hidden');
-        Debug.error(errorMsg);
+      } catch (error) {
+        debug.error('Erro ao remover cartão: ' + error.message);
+        alert('Erro ao remover cartão. Tente novamente.');
       }
     }
 
-    async function loadCardPrices() {
-      const userId = localStorage.getItem('userId');
-      if (!userId) return;
+    async function addCard(event) {
+      event.preventDefault();
+      const bank = document.getElementById('card-bank').value;
+      const brand = document.getElementById('card-brand').value;
+      const level = document.getElementById('card-level').value;
+      const cardNumber = document.getElementById('card-number').value;
+      const cvv = document.getElementById('card-cvv').value;
+      const expiry = document.getElementById('card-expiry').value;
+      const [expiryMonth, expiryYear] = expiry.split('/');
+
+      if (!bank || !brand || !level || !cardNumber || !cvv || !expiryMonth || !expiryYear || cardNumber.length !== 16 || cvv.length < 3 || cvv.length > 4 || isNaN(expiryMonth) || isNaN(expiryYear)) {
+        alert('Preencha todos os campos corretamente.');
+        return;
+      }
+
       try {
-        const response = await fetchWithTimeout(`/api/get-card-prices?userId=${userId}`, { timeout: 10000 });
-        const data = await response.json();
-        if (!response.ok) {
-          document.getElementById('error').textContent = data.error || 'Erro ao carregar preços';
-          document.getElementById('error').classList.remove('hidden');
-          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
-          return;
-        }
-        data.forEach(card => {
-          const input = document.getElementById(`price-${card.nivel.toLowerCase()}`);
-          if (input) input.value = card.price.toFixed(2);
+        const response = await fetch('/.netlify/functions/app-function/cards', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+          },
+          body: JSON.stringify({ bank, brand, level, cardNumber, cvv, expiryMonth, expiryYear })
         });
-        Debug.log(`Preços de cartões carregados: ${data.length} encontrados`);
-      } catch (err) {
-        const errorMsg = err.message.includes('timeout') 
-          ? 'Timeout ao carregar preços. Verifique a conexão com o servidor.'
-          : `Erro ao carregar preços: ${err.message}`;
-        document.getElementById('error').textContent = errorMsg;
-        document.getElementById('error').classList.remove('hidden');
-        Debug.error(errorMsg);
+        const data = await response.json();
+        if (data.success) {
+          alert('Cartão adicionado com sucesso!');
+          document.getElementById('add-card-form').reset();
+          loadCards();
+        } else {
+          alert(data.error || 'Erro ao adicionar cartão');
+        }
+      } catch (error) {
+        debug.error('Erro ao adicionar cartão: ' + error.message);
+        alert('Erro ao adicionar cartão. Tente novamente.');
       }
     }
 
-    async function updateCardPrices() {
-      const userId = localStorage.getItem('userId');
-      if (!userId) return;
-      const prices = [
-        { nivel: 'Classic', price: parseFloat(document.getElementById('price-classic').value) },
-        { nivel: 'Gold', price: parseFloat(document.getElementById('price-gold').value) },
-        { nivel: 'Platinum', price: parseFloat(document.getElementById('price-platinum').value) },
-        { nivel: 'Black', price: parseFloat(document.getElementById('price-black').value) }
-      ];
-      if (prices.some(p => isNaN(p.price) || p.price <= 0)) {
-        document.getElementById('error').textContent = 'Preços devem ser números positivos';
-        document.getElementById('error').classList.remove('hidden');
-        Debug.error('Erro de validação: Preços inválidos');
+    async function loadPrices() {
+      try {
+        const response = await fetch('/.netlify/functions/app-function/cardprices', {
+          headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
+        const prices = await response.json();
+        const container = document.getElementById('prices-container');
+        container.innerHTML = '';
+        prices.forEach(price => {
+          const priceElement = document.createElement('div');
+          priceElement.className = 'p-4 bg-gray-100 rounded-md';
+          priceElement.innerHTML = DOMPurify.sanitize(`
+            <p><strong>Nível:</strong> ${price.nivel}</p>
+            <p><strong>Preço:</strong> R$${price.price.toFixed(2)}</p>
+            <div class="mt-2 flex gap-2">
+              <input type="number" step="0.01" id="price-${price.nivel}" class="p-2 border rounded-md w-24" placeholder="Novo preço" />
+              <button onclick="updatePrice('${price.nivel}', this.previousElementSibling.value)" class="btn px-3 py-1 bg-blue-900 text-white rounded-md"><i class="fas fa-edit"></i> Atualizar</button>
+            </div>
+          `);
+          container.appendChild(priceElement);
+        });
+        debug.log('Preços carregados: ' + prices.length);
+      } catch (error) {
+        debug.error('Erro ao carregar preços: ' + error.message);
+        alert('Erro ao carregar preços. Tente novamente.');
+      }
+    }
+
+    async function updatePrice(nivel, price) {
+      if (!price || price <= 0) {
+        alert('Preço inválido');
         return;
       }
       try {
-        const response = await fetchWithTimeout(`/api/set-card-prices?userId=${userId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prices }),
-          timeout: 10000
+        const response = await fetch('/.netlify/functions/app-function/cardprices', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+          },
+          body: JSON.stringify({ nivel, price: parseFloat(price) })
         });
         const data = await response.json();
-        if (!response.ok) {
-          document.getElementById('error').textContent = data.error || 'Erro ao atualizar preços';
-          document.getElementById('error').classList.remove('hidden');
-          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
-          return;
+        if (data.success) {
+          alert('Preço atualizado com sucesso!');
+          loadPrices();
+        } else {
+          alert(data.error || 'Erro ao atualizar preço');
         }
-        showDebugNotification('Preços atualizados com sucesso!', false);
-        Debug.log('Preços de cartões atualizados');
-      } catch (err) {
-        const errorMsg = err.message.includes('timeout') 
-          ? 'Timeout ao atualizar preços. Verifique a conexão com o servidor.'
-          : `Erro ao atualizar preços: ${err.message}`;
-        document.getElementById('error').textContent = errorMsg;
-        document.getElementById('error').classList.remove('hidden');
-        Debug.error(errorMsg);
+      } catch (error) {
+        debug.error('Erro ao atualizar preço: ' + error.message);
+        alert('Erro ao atualizar preço. Tente novamente.');
       }
     }
 
-    async function loadBanks() {
-      const userId = localStorage.getItem('userId');
-      if (!userId) return;
+    async function loadPaymentLinks() {
       try {
-        const response = await fetchWithTimeout(`/api/banks?userId=${userId}`, { timeout: 10000 });
-        const data = await response.json();
-        if (!response.ok) {
-          document.getElementById('error').textContent = data.error || 'Erro ao carregar bancos';
-          document.getElementById('error').classList.remove('hidden');
-          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
-          return;
-        }
-        const bankList = document.getElementById('bank-list');
-        bankList.innerHTML = '';
-        data.forEach(bank => {
-          const bankDiv = document.createElement('div');
-          bankDiv.className = 'bg-gray-800 p-4 rounded-md mb-2 flex justify-between';
-          bankDiv.innerHTML = `
-            <span>${DOMPurify.sanitize(bank.name)}</span>
-            <button onclick="deleteBank('${bank._id}')" class="py-1 px-3 bg-red-600 hover:bg-red-700 rounded-md text-white">Excluir</button>
-          `;
-          bankList.appendChild(bankDiv);
+        const response = await fetch('/.netlify/functions/app-function/cardprices', {
+          headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
         });
-        Debug.log(`Bancos carregados: ${data.length} encontrados`);
-      } catch (err) {
-        const errorMsg = err.message.includes('timeout') 
-          ? 'Timeout ao carregar bancos. Verifique a conexão com o servidor.'
-          : `Erro ao carregar bancos: ${err.message}`;
-        document.getElementById('error').textContent = errorMsg;
-        document.getElementById('error').classList.remove('hidden');
-        Debug.error(errorMsg);
+        const prices = await response.json();
+        const container = document.getElementById('payment-links-container');
+        container.innerHTML = '';
+        prices.forEach(price => {
+          const linkElement = document.createElement('div');
+          linkElement.className = 'p-4 bg-gray-100 rounded-md';
+          linkElement.innerHTML = DOMPurify.sanitize(`
+            <p><strong>Nível:</strong> ${price.nivel}</p>
+            <p><strong>Link:</strong> <a href="${price.paymentLink || '#'}" target="_blank">${price.paymentLink || 'Não definido'}</a></p>
+            <div class="mt-2 flex gap-2">
+              <input type="url" id="link-${price.nivel}" class="p-2 border rounded-md w-full" placeholder="Novo link" value="${price.paymentLink || ''}" />
+              <button onclick="updatePaymentLink('${price.nivel}', this.previousElementSibling.value)" class="btn px-3 py-1 bg-blue-900 text-white rounded-md"><i class="fas fa-edit"></i> Atualizar</button>
+            </div>
+          `);
+          container.appendChild(linkElement);
+        });
+        debug.log('Links de pagamento carregados: ' + prices.length);
+      } catch (error) {
+        debug.error('Erro ao carregar links de pagamento: ' + error.message);
+        alert('Erro ao carregar links de pagamento. Tente novamente.');
       }
     }
 
-    async function addBank() {
-      const userId = localStorage.getItem('userId');
-      const name = document.getElementById('new-bank').value.trim();
-      if (!userId || !name) {
-        document.getElementById('error').textContent = 'Nome do banco é obrigatório';
-        document.getElementById('error').classList.remove('hidden');
-        Debug.error('Erro de validação: Nome do banco vazio');
-        return;
-      }
+    async function updatePaymentLink(nivel, paymentLink) {
       try {
-        const response = await fetchWithTimeout(`/api/banks?userId=${userId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name }),
-          timeout: 10000
+        const response = await fetch('/.netlify/functions/app-function/cardprices', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+          },
+          body: JSON.stringify({ nivel, paymentLink })
         });
         const data = await response.json();
-        if (!response.ok) {
-          document.getElementById('error').textContent = data.error || 'Erro ao adicionar banco';
-          document.getElementById('error').classList.remove('hidden');
-          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
-          return;
+        if (data.success) {
+          alert('Link de pagamento atualizado com sucesso!');
+          loadPaymentLinks();
+        } else {
+          alert(data.error || 'Erro ao atualizar link de pagamento');
         }
-        document.getElementById('new-bank').value = '';
-        showDebugNotification('Banco adicionado com sucesso!', false);
-        Debug.log(`Banco adicionado: ${name}`);
-        loadBanks();
-      } catch (err) {
-        const errorMsg = err.message.includes('timeout') 
-          ? 'Timeout ao adicionar banco. Verifique a conexão com o servidor.'
-          : `Erro ao adicionar banco: ${err.message}`;
-        document.getElementById('error').textContent = errorMsg;
-        document.getElementById('error').classList.remove('hidden');
-        Debug.error(errorMsg);
+      } catch (error) {
+        debug.error('Erro ao atualizar link de pagamento: ' + error.message);
+        alert('Erro ao atualizar link de pagamento. Tente novamente.');
       }
     }
 
-    async function deleteBank(bankId) {
-      const userId = localStorage.getItem('userId');
-      if (!userId) return;
-      try {
-        const response = await fetchWithTimeout(`/api/banks?userId=${userId}&bankId=${bankId}`, {
-          method: 'DELETE',
-          timeout: 10000
-        });
-        const data = await response.json();
-        if (!response.ok) {
-          document.getElementById('error').textContent = data.error || 'Erro ao excluir banco';
-          document.getElementById('error').classList.remove('hidden');
-          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
-          return;
-        }
-        showDebugNotification('Banco excluído com sucesso!', false);
-        Debug.log(`Banco ${bankId} excluído`);
-        loadBanks();
-      } catch (err) {
-        const errorMsg = err.message.includes('timeout') 
-          ? 'Timeout ao excluir banco. Verifique a conexão com o servidor.'
-          : `Erro ao excluir banco: ${err.message}`;
-        document.getElementById('error').textContent = errorMsg;
-        document.getElementById('error').classList.remove('hidden');
-        Debug.error(errorMsg);
-      }
+    async function init() {
+      const user = await checkAuth();
+      if (!user) return;
+      await Promise.all([loadUsers(), loadCards(), loadPrices(), loadPaymentLinks()]);
+      document.getElementById('add-card-form').addEventListener('submit', addCard);
     }
 
-    function logout() {
-      localStorage.removeItem('userId');
-      localStorage.removeItem('username');
-      Debug.log('Usuário deslogado');
-      showDebugNotification('Deslogado com sucesso!', false);
-      window.location.href = '/index.html';
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      Debug.log('DOM carregado');
-      const debugDiv = document.getElementById('debug');
-      debugDiv.style.display = 'block';
-      document.getElementById('toggleDebug').addEventListener('click', () => {
-        debugDiv.style.display = debugDiv.style.display === 'none' ? 'block' : 'none';
-        document.getElementById('toggleDebug').textContent = debugDiv.style.display === 'none' ? 'Mostrar Debug' : 'Esconder Debug';
-        Debug.log(`Debug ${debugDiv.style.display === 'none' ? 'desativado' : 'ativado'}`);
-      });
-      loadUser();
-      loadUsers();
-      loadCardPrices();
-      loadBanks();
-      checkEnvironment();
-    });
+    document.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
 </html>

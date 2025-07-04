@@ -77,7 +77,7 @@ const PurchaseSchema = new mongoose.Schema({
 });
 
 const BankSchema = new mongoose.Schema({
-    name: { type: String, required: true }
+    name: { type: String, required: true, unique: true }
 });
 
 const User = mongoose.model('User', UserSchema);
@@ -415,6 +415,104 @@ app.post('/api/buy-card', [
     } catch (err) {
         debug('Erro ao comprar cartão: %s', err.message);
         res.status(500).json({ error: `Erro ao comprar cartão: ${err.message}` });
+    }
+});
+
+app.get('/api/banks', [
+    query('userId').isMongoId()
+], async (req, res) => {
+    const connected = await connectToMongoDB();
+    if (!connected) {
+        debug('MongoDB não conectado');
+        return res.status(500).json({ error: 'Banco de dados não conectado' });
+    }
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        debug('Erros de validação: %O', errors.array());
+        return res.status(400).json({ error: 'ID de usuário inválido' });
+    }
+    try {
+        const admin = await User.findById(req.query.userId);
+        if (!admin || !admin.isAdmin) {
+            debug('Acesso negado: Não é admin ou usuário não encontrado: %s', req.query.userId);
+            return res.status(403).json({ error: 'Acesso negado' });
+        }
+        const banks = await Bank.find({}, 'name');
+        debug('Bancos listados: %d encontrados', banks.length);
+        res.json(banks);
+    } catch (err) {
+        debug('Erro ao listar bancos: %s', err.message);
+        res.status(500).json({ error: `Erro ao listar bancos: ${err.message}` });
+    }
+});
+
+app.post('/api/banks', [
+    query('userId').isMongoId(),
+    body('name').isString().trim().notEmpty()
+], async (req, res) => {
+    const connected = await connectToMongoDB();
+    if (!connected) {
+        debug('MongoDB não conectado');
+        return res.status(500).json({ error: 'Banco de dados não conectado' });
+    }
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        debug('Erros de validação: %O', errors.array());
+        return res.status(400).json({ error: 'Dados inválidos' });
+    }
+    try {
+        const admin = await User.findById(req.query.userId);
+        if (!admin || !admin.isAdmin) {
+            debug('Acesso negado: Não é admin ou usuário não encontrado: %s', req.query.userId);
+            return res.status(403).json({ error: 'Acesso negado' });
+        }
+        const { name } = req.body;
+        const existingBank = await Bank.findOne({ name });
+        if (existingBank) {
+            debug('Banco já existe: %s', name);
+            return res.status(400).json({ error: 'Banco já existe' });
+        }
+        const bank = new Bank({ name });
+        await bank.save();
+        debug('Banco criado: %s', name);
+        res.status(201).json({ message: 'Banco criado', bank });
+    } catch (err) {
+        debug('Erro ao criar banco: %s', err.message);
+        res.status(500).json({ error: `Erro ao criar banco: ${err.message}` });
+    }
+});
+
+app.delete('/api/banks', [
+    query('userId').isMongoId(),
+    query('bankId').isMongoId()
+], async (req, res) => {
+    const connected = await connectToMongoDB();
+    if (!connected) {
+        debug('MongoDB não conectado');
+        return res.status(500).json({ error: 'Banco de dados não conectado' });
+    }
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        debug('Erros de validação: %O', errors.array());
+        return res.status(400).json({ error: 'ID inválido' });
+    }
+    try {
+        const admin = await User.findById(req.query.userId);
+        if (!admin || !admin.isAdmin) {
+            debug('Acesso negado: Não é admin ou usuário não encontrado: %s', req.query.userId);
+            return res.status(403).json({ error: 'Acesso negado' });
+        }
+        const bank = await Bank.findById(req.query.bankId);
+        if (!bank) {
+            debug('Banco não encontrado: %s', req.query.bankId);
+            return res.status(404).json({ error: 'Banco não encontrado' });
+        }
+        await Bank.deleteOne({ _id: req.query.bankId });
+        debug('Banco excluído: %s', bank.name);
+        res.json({ message: 'Banco excluído' });
+    } catch (err) {
+        debug('Erro ao excluir banco: %s', err.message);
+        res.status(500).json({ error: `Erro ao excluir banco: ${err.message}` });
     }
 });
 

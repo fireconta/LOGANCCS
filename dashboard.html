@@ -4,12 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard - LoganCCS</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script src="/utils.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.0/purify.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <script src="/debug.js"></script>
+  <script src="/utils.js"></script>
   <style>
     body { font-family: 'Inter', sans-serif; }
     .gradient-bg { background: linear-gradient(135deg, #1a237e, #1565c0); }
@@ -21,78 +20,70 @@
 </head>
 <body class="bg-gray-100">
   <nav class="gradient-bg text-white p-6 flex justify-between items-center shadow-lg">
-    <h1 class="text-3xl font-bold">Dashboard</h1>
+    <h1 class="text-3xl font-bold">Dashboard - LoganCCS</h1>
     <div class="flex items-center space-x-6">
       <span id="user-info" class="text-lg font-medium"></span>
       <a href="/index.html" class="hover:underline text-lg"><i class="fas fa-sign-out-alt mr-2"></i>Logout</a>
+      <a href="/shop.html" class="hover:underline text-lg"><i class="fas fa-store mr-2"></i>Loja</a>
     </div>
   </nav>
   <div class="container mx-auto p-6">
-    <h2 class="text-3xl font-bold mb-8 text-gray-800">Painel de Administração</h2>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <!-- Gerenciar Usuários -->
-      <div class="bg-white p-6 rounded-xl shadow-lg card">
-        <h3 class="text-xl font-bold mb-4 text-blue-900">Gerenciar Usuários</h3>
-        <div id="users-container" class="space-y-4"></div>
+      <div class="bg-white rounded-xl shadow-lg p-6">
+        <h2 class="text-2xl font-bold mb-4 text-blue-900">Gerenciar Usuários</h2>
+        <div id="users-list" class="space-y-4"></div>
       </div>
       <!-- Gerenciar Cartões -->
-      <div class="bg-white p-6 rounded-xl shadow-lg card">
-        <h3 class="text-xl font-bold mb-4 text-blue-900">Gerenciar Cartões</h3>
+      <div class="bg-white rounded-xl shadow-lg p-6">
+        <h2 class="text-2xl font-bold mb-4 text-blue-900">Gerenciar Cartões</h2>
         <form id="add-card-form" class="mb-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Banco</label>
-              <input id="card-bank" type="text" class="w-full p-3 border rounded-md" required />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Bandeira</label>
-              <select id="card-brand" class="w-full p-3 border rounded-md" required>
-                <option value="Visa">Visa</option>
-                <option value="Mastercard">Mastercard</option>
-                <option value="Elo">Elo</option>
-                <option value="Amex">Amex</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Nível</label>
-              <select id="card-level" class="w-full p-3 border rounded-md" required>
-                <option value="Classic">Classic</option>
-                <option value="Gold">Gold</option>
-                <option value="Platinum">Platinum</option>
-                <option value="Business">Business</option>
-                <option value="Black">Black</option>
-                <option value="Infinite">Infinite</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Número (16 dígitos)</label>
-              <input id="card-number" type="text" class="w-full p-3 border rounded-md" oninput="restrictInput(this, 'numeric', 16)" required />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">CVV</label>
-              <input id="card-cvv" type="text" class="w-full p-3 border rounded-md" oninput="restrictInput(this, 'numeric', 4)" required />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Validade (MM/YYYY)</label>
-              <input id="card-expiry" type="text" class="w-full p-3 border rounded-md" placeholder="MM/YYYY" required />
-            </div>
+            <input id="card-bank" type="text" placeholder="Banco" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
+            <input id="card-brand" type="text" placeholder="Bandeira" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
+            <input id="card-level" type="text" placeholder="Nível" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
+            <input id="card-number" type="text" placeholder="Número do Cartão" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
+            <input id="card-cvv" type="text" placeholder="CVV" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
+            <input id="card-expiry-month" type="text" placeholder="Mês de Validade (MM)" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
+            <input id="card-expiry-year" type="text" placeholder="Ano de Validade (YYYY)" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
           </div>
-          <button type="submit" class="btn mt-4 w-full bg-blue-900 text-white p-3 rounded-md"><i class="fas fa-plus mr-2"></i>Adicionar Cartão</button>
+          <button type="submit" class="btn w-full bg-blue-900 text-white p-3 rounded-md hover:bg-blue-800 mt-4"><i class="fas fa-plus mr-2"></i>Adicionar Cartão</button>
         </form>
-        <div id="cards-container" class="space-y-4"></div>
+        <div id="cards-list" class="space-y-4"></div>
       </div>
       <!-- Gerenciar Preços -->
-      <div class="bg-white p-6 rounded-xl shadow-lg card">
-        <h3 class="text-xl font-bold mb-4 text-blue-900">Gerenciar Preços</h3>
-        <div id="prices-container" class="space-y-4"></div>
+      <div class="bg-white rounded-xl shadow-lg p-6">
+        <h2 class="text-2xl font-bold mb-4 text-blue-900">Gerenciar Preços</h2>
+        <form id="add-price-form" class="mb-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <select id="price-level" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required>
+              <option value="" disabled selected>Selecione o Nível</option>
+            </select>
+            <input id="price-value" type="number" placeholder="Preço" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
+          </div>
+          <button type="submit" class="btn w-full bg-blue-900 text-white p-3 rounded-md hover:bg-blue-800 mt-4"><i class="fas fa-plus mr-2"></i>Adicionar/Atualizar Preço</button>
+        </form>
+        <div id="prices-list" class="space-y-4"></div>
       </div>
       <!-- Gerenciar Links de Pagamento -->
-      <div class="bg-white p-6 rounded-xl shadow-lg card">
-        <h3 class="text-xl font-bold mb-4 text-blue-900">Links de Pagamento</h3>
-        <div id="payment-links-container" class="space-y-4"></div>
+      <div class="bg-white rounded-xl shadow-lg p-6">
+        <h2 class="text-2xl font-bold mb-4 text-blue-900">Gerenciar Links de Pagamento</h2>
+        <form id="add-payment-link-form" class="mb-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <select id="payment-link-level" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required>
+              <option value="" disabled selected>Selecione o Nível</option>
+            </select>
+            <input id="payment-link-url" type="url" placeholder="Link de Pagamento" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
+          </div>
+          <button type="submit" class="btn w-full bg-blue-900 text-white p-3 rounded-md hover:bg-blue-800 mt-4"><i class="fas fa-plus mr-2"></i>Adicionar/Atualizar Link</button>
+        </form>
+        <div id="payment-links-list" class="space-y-4"></div>
       </div>
     </div>
   </div>
+  <footer class="gradient-bg text-white p-6 text-center">
+    <p class="text-sm">© 2025 LoganCCS. Todos os direitos reservados.</p>
+  </footer>
   <script>
     debug.init('debug-panel', true);
     debug.log('Inicializando dashboard.html');
@@ -102,12 +93,19 @@
         const response = await fetch('/.netlify/functions/app-function/check-auth', {
           headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
         });
+        if (!response.ok) {
+          debug.error(`Erro na API /check-auth: Status ${response.status}`);
+          window.location.href = '/index.html';
+          return null;
+        }
         const data = await response.json();
         if (!data.authenticated || !data.user.isAdmin) {
+          debug.error('Usuário não autorizado ou não é admin');
           window.location.href = '/index.html';
           return null;
         }
         document.getElementById('user-info').textContent = `Usuário: ${data.user.username} | Saldo: R$${data.user.balance.toFixed(2)}`;
+        debug.log(`Autenticação bem-sucedida para admin: ${data.user.username}`);
         return data.user;
       } catch (error) {
         debug.error('Erro ao verificar autenticação: ' + error.message);
@@ -116,28 +114,66 @@
       }
     }
 
+    async function loadPriceLevels() {
+      try {
+        const response = await fetch('/.netlify/functions/app-function/cardprices', {
+          headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
+        if (!response.ok) {
+          debug.error(`Erro na API /cardprices: Status ${response.status}`);
+          alert('Erro ao carregar níveis de preços. Tente novamente.');
+          return;
+        }
+        const prices = await response.json();
+        const priceLevelSelect = document.getElementById('price-level');
+        const paymentLinkLevelSelect = document.getElementById('payment-link-level');
+        priceLevelSelect.innerHTML = '<option value="" disabled selected>Selecione o Nível</option>';
+        paymentLinkLevelSelect.innerHTML = '<option value="" disabled selected>Selecione o Nível</option>';
+        prices.forEach(price => {
+          const option1 = document.createElement('option');
+          option1.value = price.nivel;
+          option1.textContent = price.nivel;
+          priceLevelSelect.appendChild(option1);
+          const option2 = document.createElement('option');
+          option2.value = price.nivel;
+          option2.textContent = price.nivel;
+          paymentLinkLevelSelect.appendChild(option2);
+        });
+        debug.log('Níveis de preços carregados: ' + prices.length);
+      } catch (error) {
+        debug.error('Erro ao carregar níveis de preços: ' + error.message);
+        alert('Erro ao carregar níveis de preços. Tente novamente.');
+      }
+    }
+
     async function loadUsers() {
       try {
         const response = await fetch('/.netlify/functions/app-function/users', {
           headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
         });
+        if (!response.ok) {
+          debug.error(`Erro na API /users: Status ${response.status}`);
+          alert('Erro ao carregar usuários. Tente novamente.');
+          return;
+        }
         const users = await response.json();
-        const container = document.getElementById('users-container');
+        const container = document.getElementById('users-list');
         container.innerHTML = '';
         users.forEach(user => {
-          const userElement = document.createElement('div');
-          userElement.className = 'p-4 bg-gray-100 rounded-md';
-          userElement.innerHTML = DOMPurify.sanitize(`
-            <p><strong>Usuário:</strong> ${user.username}</p>
-            <p><strong>Saldo:</strong> R$${user.balance.toFixed(2)}</p>
-            <p><strong>Admin:</strong> ${user.isAdmin ? 'Sim' : 'Não'}</p>
-            <div class="mt-2 flex gap-2">
-              <input type="number" step="0.01" id="balance-${user._id}" class="p-2 border rounded-md w-24" placeholder="Novo saldo" />
-              <button onclick="updateUser('${user._id}', this.previousElementSibling.value, ${user.isAdmin})" class="btn px-3 py-1 bg-blue-900 text-white rounded-md"><i class="fas fa-edit"></i> Atualizar Saldo</button>
-              <button onclick="updateUser('${user._id}', ${user.balance}, ${!user.isAdmin})" class="btn px-3 py-1 bg-blue-900 text-white rounded-md"><i class="fas fa-user-shield"></i> ${user.isAdmin ? 'Remover Admin' : 'Tornar Admin'}</button>
+          const userHtml = `
+            <div class="card bg-gray-100 rounded-md p-4">
+              <p><strong>Usuário:</strong> ${DOMPurify.sanitize(user.username)}</p>
+              <p><strong>Saldo:</strong> R$${user.balance.toFixed(2)}</p>
+              <p><strong>Admin:</strong> ${user.isAdmin ? 'Sim' : 'Não'}</p>
+              <div class="flex gap-2 mt-2">
+                <input type="number" id="balance-${user._id}" placeholder="Novo saldo" class="p-2 border rounded-md">
+                <button class="btn bg-blue-900 text-white p-2 rounded-md hover:bg-blue-800" onclick="updateUser('${user._id}', { balance: document.getElementById('balance-${user._id}').value })"><i class="fas fa-edit mr-2"></i>Atualizar Saldo</button>
+                <button class="btn bg-blue-900 text-white p-2 rounded-md hover:bg-blue-800" onclick="updateUser('${user._id}', { isAdmin: !${user.isAdmin} })"><i class="fas fa-user-shield mr-2"></i>${user.isAdmin ? 'Remover Admin' : 'Tornar Admin'}</button>
+                ${user.username !== 'LVz' ? `<button class="btn bg-red-600 text-white p-2 rounded-md hover:bg-red-700" onclick="deleteUser('${user._id}')"><i class="fas fa-trash mr-2"></i>Excluir</button>` : ''}
+              </div>
             </div>
-          `);
-          container.appendChild(userElement);
+          `;
+          container.insertAdjacentHTML('beforeend', userHtml);
         });
         debug.log('Usuários carregados: ' + users.length);
       } catch (error) {
@@ -146,7 +182,11 @@
       }
     }
 
-    async function updateUser(userId, balance, isAdmin) {
+    async function updateUser(userId, updates) {
+      if (updates.balance && (isNaN(updates.balance) || updates.balance < 0)) {
+        alert('Saldo inválido.');
+        return;
+      }
       try {
         const response = await fetch('/.netlify/functions/app-function/users', {
           method: 'PUT',
@@ -154,18 +194,56 @@
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + localStorage.getItem('token')
           },
-          body: JSON.stringify({ userId, balance: balance ? parseFloat(balance) : undefined, isAdmin })
+          body: JSON.stringify({ userId, ...updates })
         });
+        if (!response.ok) {
+          debug.error(`Erro na API /users: Status ${response.status}`);
+          alert('Erro ao atualizar usuário. Tente novamente.');
+          return;
+        }
         const data = await response.json();
         if (data.success) {
+          debug.log('Usuário atualizado: ' + userId);
           alert('Usuário atualizado com sucesso!');
           loadUsers();
         } else {
-          alert(data.error || 'Erro ao atualizar usuário');
+          debug.error('Erro ao atualizar usuário: ' + (data.error || 'Erro desconhecido'));
+          alert('Erro ao atualizar usuário: ' + (data.error || 'Erro desconhecido'));
         }
       } catch (error) {
         debug.error('Erro ao atualizar usuário: ' + error.message);
         alert('Erro ao atualizar usuário. Tente novamente.');
+      }
+    }
+
+    async function deleteUser(userId) {
+      if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
+      try {
+        const response = await fetch('/.netlify/functions/app-function/delete-user', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+          },
+          body: JSON.stringify({ targetId: userId })
+        });
+        if (!response.ok) {
+          debug.error(`Erro na API /delete-user: Status ${response.status}`);
+          alert('Erro ao excluir usuário. Tente novamente.');
+          return;
+        }
+        const data = await response.json();
+        if (data.success) {
+          debug.log('Usuário excluído: ' + userId);
+          alert('Usuário excluído com sucesso!');
+          loadUsers();
+        } else {
+          debug.error('Erro ao excluir usuário: ' + (data.error || 'Erro desconhecido'));
+          alert('Erro ao excluir usuário: ' + (data.error || 'Erro desconhecido'));
+        }
+      } catch (error) {
+        debug.error('Erro ao excluir usuário: ' + error.message);
+        alert('Erro ao excluir usuário. Tente novamente.');
       }
     }
 
@@ -174,20 +252,25 @@
         const response = await fetch('/.netlify/functions/app-function/cards', {
           headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
         });
+        if (!response.ok) {
+          debug.error(`Erro na API /cards: Status ${response.status}`);
+          alert('Erro ao carregar cartões. Tente novamente.');
+          return;
+        }
         const cards = await response.json();
-        const container = document.getElementById('cards-container');
+        const container = document.getElementById('cards-list');
         container.innerHTML = '';
         cards.forEach(card => {
-          const cardElement = document.createElement('div');
-          cardElement.className = 'p-4 bg-gray-100 rounded-md';
-          cardElement.innerHTML = DOMPurify.sanitize(`
-            <p><strong>Banco:</strong> ${card.bank}</p>
-            <p><strong>Bandeira:</strong> ${card.brand}</p>
-            <p><strong>Nível:</strong> ${card.level}</p>
-            <p><strong>BIN:</strong> ${card.cardNumber.slice(0, 6)}</p>
-            <button onclick="deleteCard('${card.cardNumber}')" class="btn mt-2 px-3 py-1 bg-red-600 text-white rounded-md"><i class="fas fa-trash"></i> Remover</button>
-          `);
-          container.appendChild(cardElement);
+          const cardHtml = `
+            <div class="card bg-gray-100 rounded-md p-4">
+              <p><strong>Banco:</strong> ${DOMPurify.sanitize(card.bank)}</p>
+              <p><strong>Bandeira:</strong> ${DOMPurify.sanitize(card.brand)}</p>
+              <p><strong>Nível:</strong> ${DOMPurify.sanitize(card.level)}</p>
+              <p><strong>BIN:</strong> ${formatBin(DOMPurify.sanitize(card.cardNumber))}</p>
+              <button class="btn bg-red-600 text-white p-2 rounded-md hover:bg-red-700 mt-2" onclick="deleteCard('${DOMPurify.sanitize(card.cardNumber)}')"><i class="fas fa-trash mr-2"></i>Excluir</button>
+            </div>
+          `;
+          container.insertAdjacentHTML('beforeend', cardHtml);
         });
         debug.log('Cartões carregados: ' + cards.length);
       } catch (error) {
@@ -196,41 +279,18 @@
       }
     }
 
-    async function deleteCard(cardNumber) {
-      try {
-        const response = await fetch('/.netlify/functions/app-function/cards', {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('token')
-          },
-          body: JSON.stringify({ cardNumber })
-        });
-        const data = await response.json();
-        if (data.success) {
-          alert('Cartão removido com sucesso!');
-          loadCards();
-        } else {
-          alert(data.error || 'Erro ao remover cartão');
-        }
-      } catch (error) {
-        debug.error('Erro ao remover cartão: ' + error.message);
-        alert('Erro ao remover cartão. Tente novamente.');
-      }
-    }
-
     async function addCard(event) {
       event.preventDefault();
-      const bank = document.getElementById('card-bank').value;
-      const brand = document.getElementById('card-brand').value;
-      const level = document.getElementById('card-level').value;
-      const cardNumber = document.getElementById('card-number').value;
-      const cvv = document.getElementById('card-cvv').value;
-      const expiry = document.getElementById('card-expiry').value;
-      const [expiryMonth, expiryYear] = expiry.split('/');
+      const bank = document.getElementById('card-bank').value.trim();
+      const brand = document.getElementById('card-brand').value.trim();
+      const level = document.getElementById('card-level').value.trim();
+      const cardNumber = document.getElementById('card-number').value.trim();
+      const cvv = document.getElementById('card-cvv').value.trim();
+      const expiryMonth = document.getElementById('card-expiry-month').value.trim();
+      const expiryYear = document.getElementById('card-expiry-year').value.trim();
 
-      if (!bank || !brand || !level || !cardNumber || !cvv || !expiryMonth || !expiryYear || cardNumber.length !== 16 || cvv.length < 3 || cvv.length > 4 || isNaN(expiryMonth) || isNaN(expiryYear)) {
-        alert('Preencha todos os campos corretamente.');
+      if (!utils.validateCardNumber(cardNumber) || !utils.validateCvv(cvv) || !utils.validateExpiry(expiryMonth, expiryYear)) {
+        alert('Dados do cartão inválidos. Verifique o número do cartão, CVV ou data de validade.');
         return;
       }
 
@@ -243,17 +303,55 @@
           },
           body: JSON.stringify({ bank, brand, level, cardNumber, cvv, expiryMonth, expiryYear })
         });
+        if (!response.ok) {
+          debug.error(`Erro na API /cards: Status ${response.status}`);
+          alert('Erro ao adicionar cartão. Tente novamente.');
+          return;
+        }
         const data = await response.json();
         if (data.success) {
+          debug.log('Cartão adicionado: ' + cardNumber);
           alert('Cartão adicionado com sucesso!');
           document.getElementById('add-card-form').reset();
           loadCards();
         } else {
-          alert(data.error || 'Erro ao adicionar cartão');
+          debug.error('Erro ao adicionar cartão: ' + (data.error || 'Erro desconhecido'));
+          alert('Erro ao adicionar cartão: ' + (data.error || 'Erro desconhecido'));
         }
       } catch (error) {
         debug.error('Erro ao adicionar cartão: ' + error.message);
         alert('Erro ao adicionar cartão. Tente novamente.');
+      }
+    }
+
+    async function deleteCard(cardNumber) {
+      if (!confirm('Tem certeza que deseja excluir este cartão?')) return;
+      try {
+        const response = await fetch('/.netlify/functions/app-function/cards', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+          },
+          body: JSON.stringify({ cardNumber })
+        });
+        if (!response.ok) {
+          debug.error(`Erro na API /cards: Status ${response.status}`);
+          alert('Erro ao excluir cartão. Tente novamente.');
+          return;
+        }
+        const data = await response.json();
+        if (data.success) {
+          debug.log('Cartão excluído: ' + cardNumber);
+          alert('Cartão excluído com sucesso!');
+          loadCards();
+        } else {
+          debug.error('Erro ao excluir cartão: ' + (data.error || 'Erro desconhecido'));
+          alert('Erro ao excluir cartão: ' + (data.error || 'Erro desconhecido'));
+        }
+      } catch (error) {
+        debug.error('Erro ao excluir cartão: ' + error.message);
+        alert('Erro ao excluir cartão. Tente novamente.');
       }
     }
 
@@ -262,32 +360,76 @@
         const response = await fetch('/.netlify/functions/app-function/cardprices', {
           headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
         });
+        if (!response.ok) {
+          debug.error(`Erro na API /cardprices: Status ${response.status}`);
+          alert('Erro ao carregar preços. Tente novamente.');
+          return;
+        }
         const prices = await response.json();
-        const container = document.getElementById('prices-container');
+        const container = document.getElementById('prices-list');
         container.innerHTML = '';
         prices.forEach(price => {
-          const priceElement = document.createElement('div');
-          priceElement.className = 'p-4 bg-gray-100 rounded-md';
-          priceElement.innerHTML = DOMPurify.sanitize(`
-            <p><strong>Nível:</strong> ${price.nivel}</p>
-            <p><strong>Preço:</strong> R$${price.price.toFixed(2)}</p>
-            <div class="mt-2 flex gap-2">
-              <input type="number" step="0.01" id="price-${price.nivel}" class="p-2 border rounded-md w-24" placeholder="Novo preço" />
-              <button onclick="updatePrice('${price.nivel}', this.previousElementSibling.value)" class="btn px-3 py-1 bg-blue-900 text-white rounded-md"><i class="fas fa-edit"></i> Atualizar</button>
+          const priceHtml = `
+            <div class="card bg-gray-100 rounded-md p-4">
+              <p><strong>Nível:</strong> ${DOMPurify.sanitize(price.nivel)}</p>
+              <p><strong>Preço:</strong> R$${price.price.toFixed(2)}</p>
+              <div class="flex gap-2 mt-2">
+                <input type="number" id="price-${price.nivel}" placeholder="Novo preço" class="p-2 border rounded-md">
+                <button class="btn bg-blue-900 text-white p-2 rounded-md hover:bg-blue-800" onclick="updatePrice('${DOMPurify.sanitize(price.nivel)}', document.getElementById('price-${price.nivel}').value)"><i class="fas fa-edit mr-2"></i>Atualizar Preço</button>
+              </div>
             </div>
-          `);
-          container.appendChild(priceElement);
+          `;
+          container.insertAdjacentHTML('beforeend', priceHtml);
         });
         debug.log('Preços carregados: ' + prices.length);
+        await loadPriceLevels(); // Atualizar seletores após carregar preços
       } catch (error) {
         debug.error('Erro ao carregar preços: ' + error.message);
         alert('Erro ao carregar preços. Tente novamente.');
       }
     }
 
+    async function addPrice(event) {
+      event.preventDefault();
+      const level = document.getElementById('price-level').value;
+      const price = document.getElementById('price-value').value.trim();
+      if (!level || !price || price < 0) {
+        alert('Nível e preço válidos são obrigatórios.');
+        return;
+      }
+      try {
+        const response = await fetch('/.netlify/functions/app-function/cardprices', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+          },
+          body: JSON.stringify({ nivel: level, price: parseFloat(price) })
+        });
+        if (!response.ok) {
+          debug.error(`Erro na API /cardprices: Status ${response.status}`);
+          alert('Erro ao adicionar preço. Tente novamente.');
+          return;
+        }
+        const data = await response.json();
+        if (data.success) {
+          debug.log('Preço adicionado/atualizado: ' + level);
+          alert('Preço adicionado/atualizado com sucesso!');
+          document.getElementById('add-price-form').reset();
+          loadPrices();
+        } else {
+          debug.error('Erro ao adicionar preço: ' + (data.error || 'Erro desconhecido'));
+          alert('Erro ao adicionar preço: ' + (data.error || 'Erro desconhecido'));
+        }
+      } catch (error) {
+        debug.error('Erro ao adicionar preço: ' + error.message);
+        alert('Erro ao adicionar preço. Tente novamente.');
+      }
+    }
+
     async function updatePrice(nivel, price) {
-      if (!price || price <= 0) {
-        alert('Preço inválido');
+      if (!price || price < 0) {
+        alert('Preço inválido.');
         return;
       }
       try {
@@ -299,12 +441,19 @@
           },
           body: JSON.stringify({ nivel, price: parseFloat(price) })
         });
+        if (!response.ok) {
+          debug.error(`Erro na API /cardprices: Status ${response.status}`);
+          alert('Erro ao atualizar preço. Tente novamente.');
+          return;
+        }
         const data = await response.json();
         if (data.success) {
+          debug.log('Preço atualizado: ' + nivel);
           alert('Preço atualizado com sucesso!');
           loadPrices();
         } else {
-          alert(data.error || 'Erro ao atualizar preço');
+          debug.error('Erro ao atualizar preço: ' + (data.error || 'Erro desconhecido'));
+          alert('Erro ao atualizar preço: ' + (data.error || 'Erro desconhecido'));
         }
       } catch (error) {
         debug.error('Erro ao atualizar preço: ' + error.message);
@@ -317,30 +466,79 @@
         const response = await fetch('/.netlify/functions/app-function/cardprices', {
           headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
         });
+        if (!response.ok) {
+          debug.error(`Erro na API /cardprices: Status ${response.status}`);
+          alert('Erro ao carregar links de pagamento. Tente novamente.');
+          return;
+        }
         const prices = await response.json();
-        const container = document.getElementById('payment-links-container');
+        const container = document.getElementById('payment-links-list');
         container.innerHTML = '';
         prices.forEach(price => {
-          const linkElement = document.createElement('div');
-          linkElement.className = 'p-4 bg-gray-100 rounded-md';
-          linkElement.innerHTML = DOMPurify.sanitize(`
-            <p><strong>Nível:</strong> ${price.nivel}</p>
-            <p><strong>Link:</strong> <a href="${price.paymentLink || '#'}" target="_blank">${price.paymentLink || 'Não definido'}</a></p>
-            <div class="mt-2 flex gap-2">
-              <input type="url" id="link-${price.nivel}" class="p-2 border rounded-md w-full" placeholder="Novo link" value="${price.paymentLink || ''}" />
-              <button onclick="updatePaymentLink('${price.nivel}', this.previousElementSibling.value)" class="btn px-3 py-1 bg-blue-900 text-white rounded-md"><i class="fas fa-edit"></i> Atualizar</button>
-            </div>
-          `);
-          container.appendChild(linkElement);
+          if (price.paymentLink) {
+            const linkHtml = `
+              <div class="card bg-gray-100 rounded-md p-4">
+                <p><strong>Nível:</strong> ${DOMPurify.sanitize(price.nivel)}</p>
+                <p><strong>Link:</strong> <a href="${DOMPurify.sanitize(price.paymentLink)}" target="_blank" class="text-blue-900 hover:underline">${DOMPurify.sanitize(price.paymentLink)}</a></p>
+                <div class="flex gap-2 mt-2">
+                  <input type="url" id="link-${price.nivel}" placeholder="Novo link" class="p-2 border rounded-md">
+                  <button class="btn bg-blue-900 text-white p-2 rounded-md hover:bg-blue-800" onclick="updatePaymentLink('${DOMPurify.sanitize(price.nivel)}', document.getElementById('link-${price.nivel}').value)"><i class="fas fa-edit mr-2"></i>Atualizar Link</button>
+                </div>
+              </div>
+            `;
+            container.insertAdjacentHTML('beforeend', linkHtml);
+          }
         });
-        debug.log('Links de pagamento carregados: ' + prices.length);
+        debug.log('Links de pagamento carregados: ' + prices.filter(p => p.paymentLink).length);
       } catch (error) {
         debug.error('Erro ao carregar links de pagamento: ' + error.message);
         alert('Erro ao carregar links de pagamento. Tente novamente.');
       }
     }
 
+    async function addPaymentLink(event) {
+      event.preventDefault();
+      const level = document.getElementById('payment-link-level').value;
+      const paymentLink = document.getElementById('payment-link-url').value.trim();
+      if (!level || !paymentLink || !utils.isValidUrl(paymentLink)) {
+        alert('Nível e URL válida são obrigatórios.');
+        return;
+      }
+      try {
+        const response = await fetch('/.netlify/functions/app-function/cardprices', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+          },
+          body: JSON.stringify({ nivel: level, paymentLink })
+        });
+        if (!response.ok) {
+          debug.error(`Erro na API /cardprices: Status ${response.status}`);
+          alert('Erro ao adicionar link de pagamento. Tente novamente.');
+          return;
+        }
+        const data = await response.json();
+        if (data.success) {
+          debug.log('Link de pagamento adicionado/atualizado: ' + level);
+          alert('Link de pagamento adicionado/atualizado com sucesso!');
+          document.getElementById('add-payment-link-form').reset();
+          loadPaymentLinks();
+        } else {
+          debug.error('Erro ao adicionar link de pagamento: ' + (data.error || 'Erro desconhecido'));
+          alert('Erro ao adicionar link de pagamento: ' + (data.error || 'Erro desconhecido'));
+        }
+      } catch (error) {
+        debug.error('Erro ao adicionar link de pagamento: ' + error.message);
+        alert('Erro ao adicionar link de pagamento. Tente novamente.');
+      }
+    }
+
     async function updatePaymentLink(nivel, paymentLink) {
+      if (!paymentLink || !utils.isValidUrl(paymentLink)) {
+        alert('URL inválida.');
+        return;
+      }
       try {
         const response = await fetch('/.netlify/functions/app-function/cardprices', {
           method: 'PUT',
@@ -350,12 +548,19 @@
           },
           body: JSON.stringify({ nivel, paymentLink })
         });
+        if (!response.ok) {
+          debug.error(`Erro na API /cardprices: Status ${response.status}`);
+          alert('Erro ao atualizar link de pagamento. Tente novamente.');
+          return;
+        }
         const data = await response.json();
         if (data.success) {
+          debug.log('Link de pagamento atualizado: ' + nivel);
           alert('Link de pagamento atualizado com sucesso!');
           loadPaymentLinks();
         } else {
-          alert(data.error || 'Erro ao atualizar link de pagamento');
+          debug.error('Erro ao atualizar link de pagamento: ' + (data.error || 'Erro desconhecido'));
+          alert('Erro ao atualizar link de pagamento: ' + (data.error || 'Erro desconhecido'));
         }
       } catch (error) {
         debug.error('Erro ao atualizar link de pagamento: ' + error.message);
@@ -363,14 +568,14 @@
       }
     }
 
-    async function init() {
-      const user = await checkAuth();
-      if (!user) return;
-      await Promise.all([loadUsers(), loadCards(), loadPrices(), loadPaymentLinks()]);
-      document.getElementById('add-card-form').addEventListener('submit', addCard);
-    }
+    document.getElementById('add-card-form').addEventListener('submit', addCard);
+    document.getElementById('add-price-form').addEventListener('submit', addPrice);
+    document.getElementById('add-payment-link-form').addEventListener('submit', addPaymentLink);
 
-    document.addEventListener('DOMContentLoaded', init);
+    (async () => {
+      await checkAuth();
+      await Promise.all([loadUsers(), loadCards(), loadPrices(), loadPaymentLinks()]);
+    })();
   </script>
 </body>
 </html>

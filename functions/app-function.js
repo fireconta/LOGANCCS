@@ -12,6 +12,8 @@ async function connectToDB() {
     await client.connect();
     console.log('Conexão com MongoDB Atlas estabelecida');
     db = client.db('loganccs');
+    const collections = await db.listCollections().toArray();
+    console.log('Coleções disponíveis:', collections.map(c => c.name));
     return db;
   } catch (error) {
     console.error('Erro ao conectar ao MongoDB:', error.message);
@@ -23,7 +25,7 @@ async function connectToDB() {
 function verifyJWT(req, res, requireAdmin = false) {
   const token = req.headers.authorization?.split('Bearer ')[1];
   if (!token) {
-    console.error('Token JWT não fornecido');
+    console.error('Token JWT não fornecido na requisição:', req.path);
     return res.status(401).json({ success: false, error: 'Token não fornecido' });
   }
   try {
@@ -42,8 +44,16 @@ function verifyJWT(req, res, requireAdmin = false) {
 // Configuração do Express
 const express = require('express');
 const serverless = require('serverless-http');
+const cors = require('cors');
 const app = express();
 app.use(express.json());
+app.use(cors({ origin: '*' })); // Permite requisições de qualquer origem
+
+// Middleware para log de requisições
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] Recebida requisição ${req.method} ${req.path}`);
+  next();
+});
 
 // Rota para login (index.html)
 app.post('/login', async (req, res) => {
@@ -395,6 +405,12 @@ app.get('/shop', async (req, res) => {
     console.error('Erro na rota /shop:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
+});
+
+// Tratamento de erro 404 para rotas não encontradas
+app.use((req, res) => {
+  console.error(`Rota não encontrada: ${req.method} ${req.path}`);
+  res.status(404).json({ success: false, error: 'Rota não encontrada' });
 });
 
 module.exports.handler = serverless(app);

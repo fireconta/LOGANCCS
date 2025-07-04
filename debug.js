@@ -1,53 +1,53 @@
 const Debug = {
-    log: function (message, data) {
-        const debugOutput = document.getElementById('debug-output');
-        if (!debugOutput) return;
-        const timestamp = new Date().toLocaleTimeString('pt-BR');
-        const formattedMessage = `[${timestamp}] LOG: ${message}`;
-        const logEntry = document.createElement('div');
-        logEntry.className = 'debug-info';
-        logEntry.textContent = formattedMessage;
-        if (data) {
-            const dataEntry = document.createElement('pre');
-            dataEntry.className = 'debug-info';
-            dataEntry.textContent = JSON.stringify(data, null, 2);
-            logEntry.appendChild(dataEntry);
-        }
-        debugOutput.appendChild(logEntry);
-        debugOutput.scrollTop = debugOutput.scrollHeight;
-    },
-    warn: function (message) {
-        const debugOutput = document.getElementById('debug-output');
-        if (!debugOutput) return;
-        const timestamp = new Date().toLocaleTimeString('pt-BR');
-        const logEntry = document.createElement('div');
-        logEntry.className = 'debug-warn';
-        logEntry.textContent = `[${timestamp}] WARN: ${message}`;
-        debugOutput.appendChild(logEntry);
-        debugOutput.scrollTop = debugOutput.scrollHeight;
-    },
-    error: function (message) {
-        const debugOutput = document.getElementById('debug-output');
-        if (!debugOutput) return;
-        const timestamp = new Date().toLocaleTimeString('pt-BR');
-        const logEntry = document.createElement('div');
-        logEntry.className = 'debug-error';
-        logEntry.textContent = `[${timestamp}] ERROR: ${message}`;
-        debugOutput.appendChild(logEntry);
-        debugOutput.scrollTop = debugOutput.scrollHeight;
-    },
-    success: function (message) {
-        const debugOutput = document.getElementById('debug-output');
-        if (!debugOutput) return;
-        const timestamp = new Date().toLocaleTimeString('pt-BR');
-        const logEntry = document.createElement('div');
-        logEntry.className = 'debug-success';
-        logEntry.textContent = `[${timestamp}] SUCCESS: ${message}`;
-        debugOutput.appendChild(logEntry);
-        debugOutput.scrollTop = debugOutput.scrollHeight;
-    },
-    clear: function () {
-        const debugOutput = document.getElementById('debug-output');
-        if (debugOutput) debugOutput.innerHTML = '';
+  log: (message) => {
+    const debugOutput = document.getElementById('debug-output');
+    if (debugOutput) {
+      const logEntry = document.createElement('div');
+      logEntry.className = 'debug-info';
+      logEntry.textContent = DOMPurify.sanitize(`[${new Date().toLocaleTimeString()}] ${message}`);
+      debugOutput.appendChild(logEntry);
+      debugOutput.scrollTop = debugOutput.scrollHeight;
     }
+  },
+  warn: (message) => {
+    const debugOutput = document.getElementById('debug-output');
+    if (debugOutput) {
+      const logEntry = document.createElement('div');
+      logEntry.className = 'debug-warn';
+      logEntry.textContent = DOMPurify.sanitize(`[${new Date().toLocaleTimeString()}] WARN: ${message}`);
+      debugOutput.appendChild(logEntry);
+      debugOutput.scrollTop = debugOutput.scrollHeight;
+    }
+  },
+  error: (message) => {
+    const debugOutput = document.getElementById('debug-output');
+    if (debugOutput) {
+      const logEntry = document.createElement('div');
+      logEntry.className = 'debug-error';
+      logEntry.textContent = DOMPurify.sanitize(`[${new Date().toLocaleTimeString()}] ERROR: ${message}`);
+      debugOutput.appendChild(logEntry);
+      debugOutput.scrollTop = debugOutput.scrollHeight;
+    }
+  },
+  clear: () => {
+    const debugOutput = document.getElementById('debug-output');
+    if (debugOutput) {
+      debugOutput.innerHTML = '';
+    }
+  }
 };
+
+function showDebugNotification(message, isError = false) {
+  const notifications = document.getElementById('notifications');
+  if (notifications) {
+    const notification = document.createElement('div');
+    notification.className = `notification ${isError ? 'notification-error' : 'notification-success'}`;
+    notification.innerHTML = DOMPurify.sanitize(message) + '<button onclick="this.parentElement.remove()" class="text-white hover:text-gray-300">✖</button>';
+    notifications.appendChild(notification);
+    setTimeout(() => {
+      if (notification.parentElement) {
+        notification.remove();
+      }
+    }, 5000);
+  }
+}

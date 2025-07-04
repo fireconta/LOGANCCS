@@ -1,168 +1,208 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Loja - LOGANCCS</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.0/purify.min.js"></script>
-    <style>
-        #globalLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 9999; visibility: hidden; }
-        .spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid #10b981; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #notifications { position: fixed; top: 1rem; right: 1rem; z-index: 10000; max-width: 320px; }
-        .notification { background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; justify-content: space-between; align-items: center; animation: slideIn 0.3s ease-out; }
-        .notification-error { background: #ef4444; }
-        .notification-success { background: #10b981; }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        #debug { position: fixed; bottom: 4rem; left: 1rem; background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; max-width: 400px; max-height: 300px; overflow-y: auto; z-index: 1000; font-size: 0.75rem; }
-        #toggleDebug { position: fixed; bottom: 1rem; left: 1rem; background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer; z-index: 1001; }
-        .debug-info { color: #10b981; }
-        .debug-warn { color: #f59e0b; }
-        .debug-error { color: #ef4444; }
-        .debug-success { color: #10b981; }
-        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
-        .card-item { background: #1f2937; padding: 1rem; border-radius: 0.5rem; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LOGAN CC's - Loja</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.0/purify.min.js"></script>
+  <style>
+    #debug { 
+      position: fixed; 
+      bottom: 4rem; 
+      left: 1rem; 
+      background: #1f2937; 
+      color: white; 
+      padding: 1rem; 
+      border-radius: 0.5rem; 
+      max-width: 400px; 
+      max-height: 300px; 
+      overflow-y: auto; 
+      z-index: 1000; 
+      font-size: 0.75rem; 
+      display: block; 
+    }
+    #toggleDebug { 
+      position: fixed; 
+      bottom: 1rem; 
+      left: 1rem; 
+      background: #10b981; 
+      color: white; 
+      padding: 0.5rem 1rem; 
+      border-radius: 0.25rem; 
+      cursor: pointer; 
+      z-index: 1001; 
+    }
+    .debug-info { color: #10b981; }
+    .debug-warn { color: #f59e0b; }
+    .debug-error { color: #ef4444; }
+    .debug-success { color: #10b981; }
+    #notifications { 
+      position: fixed; 
+      top: 1rem; 
+      right: 1rem; 
+      z-index: 10000; 
+      max-width: 320px; 
+    }
+    .notification { 
+      background: #1f2937; 
+      color: white; 
+      padding: 1rem; 
+      border-radius: 0.5rem; 
+      margin-bottom: 0.5rem; 
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      animation: slideIn 0.3s ease-out; 
+    }
+    .notification-error { background: #ef4444; }
+    .notification-success { background: #10b981; }
+    @keyframes slideIn { 
+      from { transform: translateX(100%); opacity: 0; } 
+      to { transform: translateX(0); opacity: 1; } 
+    }
+  </style>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen container mx-auto p-6">
-    <div id="globalLoader" aria-hidden="true"><div class="spinner"></div></div>
-    <div id="notifications" class="space-y-2" aria-live="polite"></div>
-    <header class="bg-gray-800 p-4 flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-green-500 flex items-center">
-            <i class="fas fa-credit-card mr-2" aria-hidden="true"></i> LOGAN CC's - Loja
-        </h1>
-        <div class="flex items-center space-x-4">
-            <span id="userBalance" class="text-gray-300">Saldo: Carregando...</span>
-            <button id="logoutButton" onclick="logout()" class="text-gray-300 hover:text-red-500 flex items-center" aria-label="Sair">
-                <i class="fas fa-sign-out-alt mr-2" aria-hidden="true"></i> Sair
-            </button>
-        </div>
-    </header>
-    <main>
-        <section>
-            <h2 class="text-xl font-semibold mb-4">Cartões Disponíveis</h2>
-            <div id="cardsGrid" class="card-grid"></div>
-        </section>
-    </main>
-    <button id="toggleDebug" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg fixed bottom-4 left-4" aria-label="Alternar debug">Esconder Debug</button>
-    <div id="debug" aria-live="assertive"><div id="debug-output"></div></div>
-    <script src="/debug.js"></script>
-    <script src="/utils.js"></script>
-    <script>
-        async function checkEnvironment() {
-            Debug.log('Verificando ambiente e conexão com MongoDB');
-            try {
-                const response = await fetchWithTimeout('/api/check-env');
-                const data = await response.json();
-                if (!response.ok) {
-                    Debug.error(`Erro ao verificar ambiente: ${data.error || 'Desconhecido'}`);
-                    showDebugNotification(`Erro: ${data.error || 'Falha na verificação do ambiente'}`, true);
-                    return;
-                }
-                Debug.log(`MongoDB conectado: ${data.mongodbConnected ? 'Sim' : 'Não'}`);
-                showDebugNotification(`MongoDB conectado: ${data.mongodbConnected ? 'Sim' : 'Não'}`, !data.mongodbConnected);
-                for (const [collection, status] of Object.entries(data.collections)) {
-                    Debug.log(`Coleção ${collection}: ${status.exists ? 'Acessível' : 'Inacessível'}`);
-                    showDebugNotification(`Coleção ${collection}: ${status.exists ? 'Acessível' : 'Inacessível'}`, !status.exists);
-                }
-                for (const [envVar, status] of Object.entries(data.environment)) {
-                    Debug.log(`Variável ${envVar}: ${status.exists ? 'Configurada' : 'Não configurada'}`);
-                    showDebugNotification(`Variável ${envVar}: ${status.exists ? 'Configurada' : 'Não configurada'}`, !status.exists);
-                }
-            } catch (err) {
-                Debug.error(`Erro ao verificar ambiente: ${err.message}`);
-                showDebugNotification(`Erro: ${err.message}`, true);
-            }
+<body class="min-h-screen text-gray-100 bg-gray-900">
+  <div id="notifications" class="space-y-2" aria-live="polite"></div>
+  <div class="max-w-4xl mx-auto p-8">
+    <h1 class="text-3xl font-bold text-center mb-6">Loja - LOGAN CC's</h1>
+    <div class="flex justify-between mb-6">
+      <div>
+        <span id="username" class="font-semibold"></span> | Saldo: <span id="balance">0</span>
+      </div>
+      <button onclick="logout()" class="py-2 px-4 bg-red-600 hover:bg-red-700 rounded-md text-white">Sair</button>
+    </div>
+    <div id="cards" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"></div>
+    <p id="error" class="text-red-500 text-sm hidden mt-4" role="alert"></p>
+  </div>
+  <button id="toggleDebug" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg" aria-label="Alternar debug">Esconder Debug</button>
+  <div id="debug" aria-live="assertive"><div id="debug-output"></div></div>
+  <script src="/utils.js"></script>
+  <script src="/debug.js"></script>
+  <script>
+    async function loadUser() {
+      const userId = localStorage.getItem('userId');
+      const username = localStorage.getItem('username');
+      if (!userId || !username) {
+        Debug.error('Usuário não logado. Redirecionando para login.');
+        showDebugNotification('Usuário não logado.', true);
+        window.location.href = '/index.html';
+        return;
+      }
+      try {
+        const response = await fetchWithTimeout(`/api/user?userId=${userId}`, { timeout: 10000 });
+        const data = await response.json();
+        if (!response.ok) {
+          Debug.error(`Erro ao carregar usuário: ${data.error || 'Desconhecido'}`);
+          showDebugNotification(`Erro ao carregar usuário: ${data.error || 'Desconhecido'}`, true);
+          window.location.href = '/index.html';
+          return;
         }
+        document.getElementById('username').textContent = username;
+        document.getElementById('balance').textContent = data.balance.toFixed(2);
+        Debug.log(`Usuário carregado: ${username}, saldo: ${data.balance}`);
+      } catch (err) {
+        const errorMsg = err.message.includes('timeout') 
+          ? 'Timeout ao carregar usuário. Verifique a conexão com o servidor.'
+          : `Erro ao carregar usuário: ${err.message}`;
+        Debug.error(errorMsg);
+        showDebugNotification(errorMsg, true);
+        window.location.href = '/index.html';
+      }
+    }
 
-        async function checkAuth() {
-            Debug.log('Verificando autenticação');
-            const userId = localStorage.getItem('userId');
-            if (!userId) {
-                Debug.error('Nenhum userId encontrado no localStorage');
-                showDebugNotification('Usuário não autenticado.', true);
-                setTimeout(() => { window.location.href = '/index.html'; }, 1000);
-                return false;
-            }
-            try {
-                const response = await fetchWithTimeout(`/api/user?userId=${encodeURIComponent(userId)}`);
-                const user = await response.json();
-                if (!response.ok) {
-                    Debug.error(`Erro na API: ${user.error || 'Desconhecido'}`);
-                    showDebugNotification('Erro ao verificar autenticação.', true);
-                    setTimeout(() => { window.location.href = '/index.html'; }, 1000);
-                    return false;
-                }
-                document.getElementById('userBalance').textContent = `Saldo: ${formatCurrency(user.balance)}`;
-                return true;
-            } catch (err) {
-                Debug.error('Erro ao verificar autenticação: %s', err.message);
-                showDebugNotification(`Erro: ${err.message}`, true);
-                setTimeout(() => { window.location.href = '/index.html'; }, 1000);
-                return false;
-            }
+    async function loadCards() {
+      const userId = localStorage.getItem('userId');
+      if (!userId) return;
+      try {
+        const response = await fetchWithTimeout(`/api/get-card-prices?userId=${userId}`, { timeout: 10000 });
+        const data = await response.json();
+        if (!response.ok) {
+          document.getElementById('error').textContent = data.error || 'Erro ao carregar cartões';
+          document.getElementById('error').classList.remove('hidden');
+          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
+          return;
         }
-
-        async function loadCards() {
-            Debug.log('Carregando cartões');
-            const cardsGrid = document.getElementById('cardsGrid');
-            cardsGrid.innerHTML = '<p class="text-gray-500 text-center"><i class="fas fa-spinner animate-spin mr-2"></i> Carregando...</p>';
-            try {
-                const response = await fetchWithTimeout(`/api/get-card-prices?userId=${encodeURIComponent(localStorage.getItem('userId'))}`);
-                const cards = await response.json();
-                if (!response.ok) throw new Error(cards.error || 'Erro ao carregar cartões');
-                cardsGrid.innerHTML = '';
-                cards.forEach(card => {
-                    const cardDiv = document.createElement('div');
-                    cardDiv.className = 'card-item';
-                    cardDiv.innerHTML = `
-                        <p class="text-gray-300 font-semibold">${DOMPurify.sanitize(card.nivel)}</p>
-                        <p class="text-gray-300">Preço: ${formatCurrency(card.price)}</p>
-                        <button onclick="buyCard('${card.nivel}')" class="mt-2 py-1 px-2 bg-blue-600 text-white rounded hover:bg-blue-700">Comprar</button>
-                    `;
-                    cardsGrid.appendChild(cardDiv);
-                });
-            } catch (err) {
-                Debug.error('Erro ao carregar cartões: %s', err.message);
-                cardsGrid.innerHTML = `<p class="text-center text-red-500">Erro: ${DOMPurify.sanitize(err.message)}</p>`;
-                showDebugNotification(`Erro: ${err.message}`, true);
-            }
-        }
-
-        async function buyCard(nivel) {
-            Debug.log(`Tentando comprar cartão: ${nivel}`);
-            try {
-                const response = await fetchWithTimeout(`/api/buy-card?userId=${encodeURIComponent(localStorage.getItem('userId'))}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nivel })
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || 'Erro ao comprar cartão');
-                document.getElementById('userBalance').textContent = `Saldo: ${formatCurrency(data.newBalance)}`;
-                showDebugNotification('Cartão comprado com sucesso!');
-            } catch (err) {
-                Debug.error('Erro ao comprar cartão: %s', err.message);
-                showDebugNotification(`Erro: ${err.message}`, true);
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            Debug.log('DOM carregado');
-            const debugDiv = document.getetElementById('debug');
-            debugDiv.style.display = 'block';
-            document.getElementById('toggleDebug').addEventListener('click', () => {
-                debugDiv.style.display = debugDiv.style.display === 'none' ? 'block' : 'none';
-                document.getElementById('toggleDebug').textContent = debugDiv.style.display === 'none' ? 'Mostrar Debug' : 'Esconder Debug';
-                Debug.log(`Debug ${debugDiv.style.display === 'none' ? 'desativado' : 'ativado'}`);
-            });
-            await checkEnvironment();
-            if (await checkAuth()) {
-                await loadCards();
-            }
+        const cardsDiv = document.getElementById('cards');
+        cardsDiv.innerHTML = '';
+        data.forEach(card => {
+          const cardDiv = document.createElement('div');
+          cardDiv.className = 'bg-gray-800 p-4 rounded-md';
+          cardDiv.innerHTML = `
+            <h3 class="text-lg font-semibold">${DOMPurify.sanitize(card.nivel)}</h3>
+            <p>Preço: ${card.price.toFixed(2)}</p>
+            <button onclick="buyCard('${DOMPurify.sanitize(card.nivel)}')" class="mt-2 py-1 px-3 bg-blue-600 hover:bg-blue-700 rounded-md text-white">Comprar</button>
+          `;
+          cardsDiv.appendChild(cardDiv);
         });
-    </script>
+        Debug.log(`Cartões carregados: ${data.length} encontrados`);
+      } catch (err) {
+        const errorMsg = err.message.includes('timeout') 
+          ? 'Timeout ao carregar cartões. Verifique a conexão com o servidor.'
+          : `Erro ao carregar cartões: ${err.message}`;
+        document.getElementById('error').textContent = errorMsg;
+        document.getElementById('error').classList.remove('hidden');
+        Debug.error(errorMsg);
+      }
+    }
+
+    async function buyCard(nivel) {
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        Debug.error('Usuário não logado.');
+        showDebugNotification('Usuário não logado.', true);
+        window.location.href = '/index.html';
+        return;
+      }
+      try {
+        const response = await fetchWithTimeout(`/api/buy-card?userId=${userId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nivel })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          document.getElementById('error').textContent = data.error || 'Erro ao comprar cartão';
+          document.getElementById('error').classList.remove('hidden');
+          Debug.error(`Erro na API: ${data.error || 'Desconhecido'}`);
+          return;
+        }
+        document.getElementById('balance').textContent = data.newBalance.toFixed(2);
+        showDebugNotification('Cartão comprado com sucesso!', false);
+        Debug.log(`Cartão ${nivel} comprado, novo saldo: ${data.newBalance}`);
+      } catch (err) {
+        const errorMsg = err.message.includes('timeout') 
+          ? 'Timeout ao comprar cartão. Verifique a conexão com o servidor.'
+          : `Erro ao comprar cartão: ${err.message}`;
+        document.getElementById('error').textContent = errorMsg;
+        document.getElementById('error').classList.remove('hidden');
+        Debug.error(errorMsg);
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('userId');
+      localStorage.removeItem('username');
+      Debug.log('Usuário deslogado');
+      showDebugNotification('Deslogado com sucesso!', false);
+      window.location.href = '/index.html';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Debug.log('DOM carregado');
+      const debugDiv = document.getElementById('debug');
+      debugDiv.style.display = 'block';
+      document.getElementById('toggleDebug').addEventListener('click', () => {
+        debugDiv.style.display = debugDiv.style.display === 'none' ? 'block' : 'none';
+        document.getElementById('toggleDebug').textContent = debugDiv.style.display === 'none' ? 'Mostrar Debug' : 'Esconder Debug';
+        Debug.log(`Debug ${debugDiv.style.display === 'none' ? 'desativado' : 'ativado'}`);
+      });
+      loadUser();
+      loadCards();
+      checkEnvironment();
+    });
+  </script>
 </body>
 </html>

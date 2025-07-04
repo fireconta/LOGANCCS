@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login e Registro - LoganCCS</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.0/purify.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <script src="/debug.js"></script>
   <style>
     body { font-family: 'Inter', sans-serif; }
@@ -26,7 +26,6 @@
       <button id="login-tab" class="tab px-4 py-2 rounded-md bg-blue-900 text-white active">Login</button>
       <button id="register-tab" class="tab px-4 py-2 rounded-md bg-gray-200 text-gray-700">Registro</button>
     </div>
-    <!-- Formulário de Login -->
     <div id="login-form-container">
       <form id="login-form">
         <div class="mb-4">
@@ -40,8 +39,8 @@
         <div id="login-error" class="text-red-500 text-sm mb-4 hidden"></div>
         <button type="submit" class="btn w-full bg-blue-900 text-white p-3 rounded-md hover:bg-blue-800"><i class="fas fa-sign-in-alt mr-2"></i>Entrar</button>
       </form>
+      <p class="text-center text-sm mt-4">Não tem uma conta? <a href="#" id="to-register" class="text-blue-900 hover:underline">Registre-se</a></p>
     </div>
-    <!-- Formulário de Registro -->
     <div id="register-form-container" class="hidden">
       <form id="register-form">
         <div class="mb-4">
@@ -59,6 +58,7 @@
         <div id="register-error" class="text-red-500 text-sm mb-4 hidden"></div>
         <button type="submit" class="btn w-full bg-blue-900 text-white p-3 rounded-md hover:bg-blue-800"><i class="fas fa-user-plus mr-2"></i>Registrar</button>
       </form>
+      <p class="text-center text-sm mt-4">Já tem uma conta? <a href="#" id="to-login" class="text-blue-900 hover:underline">Faça login</a></p>
     </div>
   </div>
   <script>
@@ -70,74 +70,118 @@
       document.querySelectorAll('#login-form-container, #register-form-container').forEach(c => c.classList.add('hidden'));
       document.getElementById(`${tab}-tab`).classList.add('active');
       document.getElementById(`${tab}-form-container`).classList.remove('hidden');
+      document.getElementById('login-error').classList.add('hidden');
+      document.getElementById('register-error').classList.add('hidden');
     }
 
     async function handleLogin(event) {
       event.preventDefault();
-      const username = document.getElementById('login-username').value;
+      const username = document.getElementById('login-username').value.trim();
       const password = document.getElementById('login-password').value;
       const errorDiv = document.getElementById('login-error');
 
+      if (!username || !password) {
+        errorDiv.textContent = 'Preencha todos os campos';
+        errorDiv.classList.remove('hidden');
+        debug.error('Campos de login vazios');
+        return;
+      }
+
       try {
+        debug.log(`Enviando requisição de login para usuário: ${username}`);
         const response = await fetch('/.netlify/functions/app-function/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
         });
+
+        if (!response.ok) {
+          const text = await response.text();
+          debug.error(`Erro na API /login: Status ${response.status}, Resposta: ${text}`);
+          errorDiv.textContent = text.includes('<') ? 
+            `Erro ${response.status}: Servidor retornou uma página de erro. Verifique a configuração da API.` : 
+            `Erro ${response.status}: ${text}`;
+          errorDiv.classList.remove('hidden');
+          return;
+        }
+
         const data = await response.json();
         if (data.token) {
           localStorage.setItem('token', data.token);
+          debug.log(`Login bem-sucedido para usuário: ${username}`);
           window.location.href = '/shop.html';
         } else {
           errorDiv.textContent = data.error || 'Credenciais inválidas';
           errorDiv.classList.remove('hidden');
-          debug.error('Erro no login: ' + (data.error || 'Credenciais inválidas'));
+          debug.error(`Erro no login: ${data.error || 'Credenciais inválidas'}`);
         }
       } catch (error) {
-        errorDiv.textContent = 'Erro ao conectar ao servidor';
+        debug.error(`Erro ao conectar ao servidor: ${error.message}`);
+        errorDiv.textContent = 'Erro ao conectar ao servidor. Verifique sua conexão ou a configuração da API.';
         errorDiv.classList.remove('hidden');
-        debug.error('Erro no login: ' + error.message);
       }
     }
 
     async function handleRegister(event) {
       event.preventDefault();
-      const username = document.getElementById('register-username').value;
+      const username = document.getElementById('register-username').value.trim();
       const password = document.getElementById('register-password').value;
       const confirmPassword = document.getElementById('register-confirm-password').value;
       const errorDiv = document.getElementById('register-error');
 
+      if (!username || !password || !confirmPassword) {
+        errorDiv.textContent = 'Preencha todos os campos';
+        errorDiv.classList.remove('hidden');
+        debug.error('Campos de registro vazios');
+        return;
+      }
+
       if (password !== confirmPassword) {
         errorDiv.textContent = 'As senhas não coincidem';
         errorDiv.classList.remove('hidden');
-        debug.error('Erro no registro: senhas não coincidem');
+        debug.error('Senhas não coincidem');
         return;
       }
 
       try {
+        debug.log(`Enviando requisição de registro para usuário: ${username}`);
         const response = await fetch('/.netlify/functions/app-function/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
         });
+
+        if (!response.ok) {
+          const text = await response.text();
+          debug.error(`Erro na API /register: Status ${response.status}, Resposta: ${text}`);
+          errorDiv.textContent = text.includes('<') ? 
+            `Erro ${response.status}: Servidor retornou uma página de erro. Verifique a configuração da API.` : 
+            `Erro ${response.status}: ${text}`;
+          errorDiv.classList.remove('hidden');
+          return;
+        }
+
         const data = await response.json();
         if (data.success) {
-          alert('Usuário registrado com sucesso! Faça login.');
+          debug.log(`Registro bem-sucedido para usuário: ${username}`);
+          alert('Registro bem-sucedido! Faça login.');
           switchTab('login');
         } else {
           errorDiv.textContent = data.error || 'Erro ao registrar usuário';
           errorDiv.classList.remove('hidden');
-          debug.error('Erro no registro: ' + (data.error || 'Erro desconhecido'));
+          debug.error(`Erro no registro: ${data.error || 'Erro desconhecido'}`);
         }
       } catch (error) {
-        errorDiv.textContent = 'Erro ao conectar ao servidor';
+        debug.error(`Erro ao conectar ao servidor: ${error.message}`);
+        errorDiv.textContent = 'Erro ao conectar ao servidor. Verifique sua conexão ou a configuração da API.';
         errorDiv.classList.remove('hidden');
-        debug.error('Erro no registro: ' + error.message);
       }
     }
 
     document.getElementById('login-tab').addEventListener('click', () => switchTab('login'));
     document.getElementById('register-tab').addEventListener('click', () => switchTab('register'));
+    document.getElementById('to-register').addEventListener('click', () => switchTab('register'));
+    document.getElementById('to-login').addEventListener('click', () => switchTab('login'));
     document.getElementById('login-form').addEventListener('submit', handleLogin);
     document.getElementById('register-form').addEventListener('submit', handleRegister);
   </script>

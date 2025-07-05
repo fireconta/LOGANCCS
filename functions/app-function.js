@@ -61,9 +61,9 @@ exports.handler = async function(event, context) {
       try {
         const decoded = jwt.verify(token, tokenSecret);
         const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
-        if (!user) {
-          console.log(`Usuário não encontrado para a rota /banks: ${decoded.userId}`);
-          return { statusCode: 401, headers, body: JSON.stringify({ error: 'Usuário não encontrado' }) };
+        if (!user || !user.isAdmin) {
+          console.log(`Acesso negado à rota /banks para usuário: ${user?.username || 'desconhecido'}`);
+          return { statusCode: 403, headers, body: JSON.stringify({ error: 'Acesso negado' }) };
         }
         const banks = await db.collection('banks').find({}).toArray();
         console.log(`Bancos listados: ${banks.length} encontrados`);

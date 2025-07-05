@@ -357,7 +357,46 @@
       const cardNumber = document.getElementById('modal-confirm').dataset.cardNumber;
       const level = document.getElementById('modal-confirm').dataset.level;
       const errorDiv = document.getElementById('modal-error');
+      
       try {
+        // Verificar saldo do usuário
+        const user = await checkAuth();
+        if (!user) {
+          debug.error('Usuário não autenticado ao tentar comprar');
+          alert('Erro: Usuário não autenticado. Faça login novamente.');
+          return;
+        }
+        const userBalance = user.balance;
+        debug.log(`Saldo do usuário: R$${userBalance.toFixed(2)}`);
+
+        // Obter preço do cartão
+        const prices = await loadCardPrices();
+        const priceData = prices[level];
+        if (!priceData || typeof priceData.price !== 'number') {
+          debug.error(`Preço não encontrado para o nível: ${level}`);
+          errorDiv.textContent = 'Erro: Preço do cartão não encontrado.';
+          errorDiv.classList.remove('hidden');
+          return;
+        }
+        const cardPrice = priceData.price;
+        debug.log(`Preço do cartão (${level}): R$${cardPrice.toFixed(2)}`);
+
+        // Verificar se o saldo é suficiente
+        if (userBalance < cardPrice) {
+          if (!priceData.paymentLink) {
+            debug.error(`Link de pagamento não encontrado para o nível: ${level}`);
+            errorDiv.textContent = 'Erro: Link de pagamento não disponível para este cartão.';
+            errorDiv.classList.remove('hidden');
+            return;
+          }
+          debug.log(`Saldo insuficiente. Redirecionando para o link de pagamento: ${priceData.paymentLink}`);
+          alert(`Saldo insuficiente (R$${userBalance.toFixed(2)}). Você precisa de R$${cardPrice.toFixed(2)}. Redirecionando para adicionar saldo.`);
+          window.open(priceData.paymentLink, '_blank');
+          document.getElementById('purchase-modal').classList.remove('active');
+          return;
+        }
+
+        // Prosseguir com a compra se o saldo for suficiente
         const response = await fetch('/.netlify/functions/app-function/purchase', {
           method: 'POST',
           headers: {
@@ -379,16 +418,13 @@
         if (data.success) {
           debug.log('Compra bem-sucedida para cartão: ' + cardNumber);
           document.getElementById('purchase-modal').classList.remove('active');
-          if (data.paymentLink) {
-            window.open(data.paymentLink, '_blank');
-          }
           alert('Compra realizada com sucesso! Verifique sua carteira.');
           switchTab('wallet');
           await loadPurchasedCards();
           await loadCards();
-          const user = await checkAuth();
-          if (user) {
-            document.getElementById('user-info').textContent = `Usuário: ${user.username} | Saldo: R$${user.balance.toFixed(2)}`;
+          const updatedUser = await checkAuth();
+          if (updatedUser) {
+            document.getElementById('user-info').textContent = `Usuário: ${updatedUser.username} | Saldo: R$${updatedUser.balance.toFixed(2)}`;
           }
         } else {
           errorDiv.textContent = data.error || 'Erro ao processar compra';

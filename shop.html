@@ -136,7 +136,10 @@
 
     let cachedPrices = null;
     async function loadCardPrices() {
-      if (cachedPrices) return cachedPrices;
+      if (cachedPrices) {
+        debug.log('Usando preços em cache');
+        return cachedPrices;
+      }
       try {
         const response = await fetch('/.netlify/functions/app-function/cardprices');
         if (!response.ok) {
@@ -145,15 +148,22 @@
           return {};
         }
         const prices = await response.json();
+        if (!Array.isArray(prices)) {
+          debug.error('Resposta da API /cardprices inválida: não é um array. Resposta: ' + JSON.stringify(prices));
+          alert('Erro nos dados de preços: formato inválido. Contate o suporte.');
+          return {};
+        }
         cachedPrices = prices.reduce((map, price) => {
-          map[price.nivel] = price;
+          if (price.nivel && typeof price.price === 'number') {
+            map[price.nivel] = price;
+          }
           return map;
         }, {});
-        debug.log('Preços carregados: ' + prices.length + ' níveis');
+        debug.log('Preços carregados: ' + Object.keys(cachedPrices).length + ' níveis');
         return cachedPrices;
       } catch (error) {
         debug.error('Erro ao carregar preços: ' + error.message);
-        alert('Erro ao carregar preços. Tente novamente.');
+        alert('Erro ao carregar preços: ' + error.message);
         return {};
       }
     }
@@ -180,29 +190,50 @@
         const banks = [...new Set(cards.map(card => card.bank))];
         const levels = [...new Set(cards.map(card => card.level))];
 
+        filterBrand.innerHTML = '<option value="">Todas as Bandeiras</option>';
         brands.forEach(brand => {
           const option = document.createElement('option');
           option.value = brand;
           option.textContent = brand;
           filterBrand.appendChild(option);
         });
-        banks.forEach(bank => {
-          const option = document.createElement('option');
-          option.value = bank;
-          option.textContent = bank;
-          filterBank.appendChild(option);
-        });
-        levels.forEach(level => {
-          const option = document.createElement('option');
-          option.value = level;
-          option.textContent = level;
-          filterLevel.appendChild(option);
-        });
 
-        debug.log('Filtros carregados: ' + brands.length + ' bandeiras, ' + banks.length + ' bancos, ' + levels.length + ' níveis');
+        filterBank.innerHTML = '<option value="">Todos os Bancos</option>';
+        if (banks.length === 0) {
+          debug.log('Nenhum banco encontrado na coleção cards');
+          filterBank.innerHTML = '<option value="" disabled selected>Nenhum banco disponível</option>';
+          alert('Nenhum banco associado aos cartões disponíveis.');
+        } else {
+          banks.forEach(bank => {
+            const option = document.createElement('option');
+            option.value = bank;
+            option.textContent = bank;
+            filterBank.appendChild(option);
+          });
+          debug.log(`Bancos carregados com sucesso: ${banks.length} bancos`);
+        }
+
+        filterLevel.innerHTML = '<option value="">Todos os Níveis</option>';
+        if (!Array.isArray(prices) || prices.length === 0) {
+          debug.error('Nenhum preço encontrado na coleção cardprices');
+          filterLevel.innerHTML = '<option value="" disabled selected>Nenhum nível disponível</option>';
+          alert('Nenhum nível de cartão cadastrado na coleção cardprices.');
+        } else {
+          prices.forEach(price => {
+            if (price.nivel && typeof price.price === 'number') {
+              const option = document.createElement('option');
+              option.value = price.nivel;
+              option.textContent = `${price.nivel} - R$${price.price.toFixed(2)}`;
+              filterLevel.appendChild(option);
+            }
+          });
+          debug.log(`Níveis carregados com preços: ${prices.length} níveis`);
+        }
+
+        debug.log('Filtros carregados: ' + brands.length + ' bandeiras, ' + banks.length + ' bancos, ' + prices.length + ' níveis');
       } catch (error) {
         debug.error('Erro ao carregar filtros: ' + error.message);
-        alert('Erro ao carregar filtros. Tente novamente.');
+        alert('Erro ao carregar filtros: ' + error.message);
       }
     }
 
@@ -249,7 +280,7 @@
         debug.log('Cartões carregados: ' + filteredCards.length);
       } catch (error) {
         debug.error('Erro ao carregar cartões: ' + error.message);
-        alert('Erro ao carregar cartões. Tente novamente.');
+        alert('Erro ao carregar cartões: ' + error.message);
       }
     }
 
@@ -284,7 +315,7 @@
         debug.log('Cartões comprados carregados: ' + purchases.length);
       } catch (error) {
         debug.error('Erro ao carregar cartões comprados: ' + error.message);
-        alert('Erro ao carregar cartões comprados. Tente novamente.');
+        alert('Erro ao carregar cartões comprados: ' + error.message);
       }
     }
 

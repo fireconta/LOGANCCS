@@ -51,6 +51,29 @@ exports.handler = async function(event, context) {
       };
     }
 
+    // Listar bancos
+    if (path === '/banks' && event.httpMethod === 'GET') {
+      const token = event.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        console.log('Tentativa de acesso à rota /banks sem token');
+        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) };
+      }
+      try {
+        const decoded = jwt.verify(token, tokenSecret);
+        const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
+        if (!user || !user.isAdmin) {
+          console.log(`Acesso negado à rota /banks para usuário: ${user?.username || 'desconhecido'}`);
+          return { statusCode: 403, headers, body: JSON.stringify({ error: 'Acesso negado' }) };
+        }
+        const banks = await db.collection('banks').find({}).toArray();
+        console.log(`Bancos listados: ${banks.length} encontrados`);
+        return { statusCode: 200, headers, body: JSON.stringify(banks) };
+      } catch (error) {
+        console.error('Erro ao listar bancos:', error);
+        return { statusCode: 500, headers, body: JSON.stringify({ error: `Erro ao listar bancos: ${error.message}` }) };
+      }
+    }
+
     // Registro
     if (path === '/register' && event.httpMethod === 'POST') {
       const { username, password } = JSON.parse(event.body);

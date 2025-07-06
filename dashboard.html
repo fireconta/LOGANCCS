@@ -302,7 +302,7 @@
       const paymentLink = document.getElementById('new-payment-link').value.trim();
       if (!level || !price || price < 0 || !utils.isValidUrl(paymentLink)) {
         debug.error('Validação falhou: Nível, preço ou URL inválidos');
-        alert('Nível, preço válido e URL válida são obrigatórios.');
+        alert('Nível, preço válido (positivo) e URL válida (https://...) são obrigatórios.');
         return;
       }
       try {
@@ -316,8 +316,9 @@
           body: JSON.stringify({ nivel: level, price: parseFloat(price), paymentLink })
         });
         if (!response.ok) {
-          debug.error(`Erro na API /cardprices: Status ${response.status} - ${response.statusText}`);
-          alert('Erro ao adicionar nível. Tente novamente.');
+          const errorData = await response.json();
+          debug.error(`Erro na API /cardprices: Status ${response.status} - ${errorData.error || response.statusText}`);
+          alert(`Erro ao adicionar nível: ${errorData.error || 'Tente novamente.'}`);
           return;
         }
         const data = await response.json();
@@ -328,11 +329,11 @@
           await Promise.all([loadLevels(), loadPriceLevels()]);
         } else {
           debug.error('Erro ao adicionar nível: ' + (data.error || 'Erro desconhecido'));
-          alert('Erro ao adicionar nível: ' + (data.error || 'Erro desconhecido'));
+          alert(`Erro ao adicionar nível: ${data.error || 'Erro desconhecido'}`);
         }
       } catch (error) {
         debug.error('Erro ao adicionar nível: ' + error.message);
-        alert('Erro ao adicionar nível. Tente novamente.');
+        alert(`Erro ao adicionar nível: ${error.message}. Verifique sua conexão ou contate o suporte.`);
       }
     }
 

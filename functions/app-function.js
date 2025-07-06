@@ -197,6 +197,48 @@ exports.handler = async function(event, context) {
       return { statusCode: 200, headers, body: JSON.stringify(prices) };
     }
 
+    // Adicionar preço
+    if (path === '/cardprices' && event.httpMethod === 'POST') {
+      const token = event.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        console.log('Tentativa de acesso à rota /cardprices sem token');
+        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) };
+      }
+      try {
+        const decoded = jwt.verify(token, tokenSecret);
+        const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
+        if (!user || !user.isAdmin) {
+          console.log(`Acesso negado à rota /cardprices para usuário: ${user?.username || 'desconhecido'}`);
+          return { statusCode: 403, headers, body: JSON.stringify({ error: 'Acesso negado' }) };
+        }
+        const { nivel, price, paymentLink } = JSON.parse(event.body);
+        if (!nivel || price === undefined || !paymentLink) {
+          return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nível, preço e link de pagamento são obrigatórios' }) };
+        }
+        if (typeof price !== 'number' || price <= 0) {
+          return { statusCode: 400, headers, body: JSON.stringify({ error: 'Preço deve ser um número positivo' }) };
+        }
+        if (!/^[a-zA-Z0-9\s]+$/.test(nivel)) {
+          return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nível deve conter apenas letras, números e espaços' }) };
+        }
+        const existingPrice = await db.collection('cardprices').findOne({ nivel });
+        if (existingPrice) {
+          return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nível já existe' }) };
+        }
+        await db.collection('cardprices').insertOne({
+          nivel,
+          price,
+          paymentLink,
+          createdAt: new Date()
+        });
+        console.log(`Nível adicionado: ${nivel}, preço: ${price}`);
+        return { statusCode: 200, headers, body: JSON.stringify({ success: true, message: 'Nível adicionado com sucesso' }) };
+      } catch (error) {
+        console.error('Erro ao adicionar nível:', error);
+        return { statusCode: 500, headers, body: JSON.stringify({ error: `Erro ao adicionar nível: ${error.message}` }) };
+      }
+    }
+
     // Atualizar preço ou link de pagamento
     if (path === '/cardprices' && event.httpMethod === 'PUT') {
       const token = event.headers.authorization?.replace('Bearer ', '');
@@ -212,18 +254,53 @@ exports.handler = async function(event, context) {
       if (!nivel) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nível é obrigatório' }) };
       }
+      if (price !== undefined && (typeof price !== 'number' || price <= 0)) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Preço deve ser um número positivo' }) };
+      }
       const updateFields = {};
       if (price !== undefined) updateFields.price = price;
       if (paymentLink !== undefined) updateFields.paymentLink = paymentLink;
       const result = await db.collection('cardprices').updateOne(
         { nivel },
-        { $set: updateFields },
-        { upsert: true }
+        { $set: updateFields }
       );
-      if (result.modifiedCount === 0 && result.upsertedCount === 0) {
+      if (result.matchedCount === 0) {
+        return { statusCode: 404, headers, body: JSON.stringify({ error: 'Nível não encontrado' }) };
+      }
+      if (result.modifiedCount === 0) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nenhum preço ou link atualizado' }) };
       }
       return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
+    }
+
+    // Excluir preço
+    if (path === '/cardprices' && event.httpMethod === 'DELETE') {
+      const token = event.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        console.log('Tentativa de acesso à rota /cardprices sem token');
+        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) };
+      }
+      try {
+        const decoded = jwt.verify(token, tokenSecret);
+        const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
+        if (!user || !user.isAdmin) {
+          console.log(`Acesso negado à rota /cardprices para usuário: ${user?.username || 'desconhecido'}`);
+          return { statusCode: 403, headers, body: JSON.stringify({ error: 'Acesso negado' }) };
+        }
+        const { nivel } = JSON.parse(event.body);
+        if (!nivel) {
+          return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nível é obrigatório' }) };
+        }
+        const result = await db.collection('cardprices').deleteOne({ nivel });
+        if (result.deletedCount === 0) {
+          return { statusCode: 404, headers, body: JSON.stringify({ error: 'Nível não encontrado' }) };
+        }
+        console.log(`Nível excluído: ${nivel}`);
+        return { statusCode: 200, headers, body: JSON.stringify({ success: true, message: 'Nível excluído com sucesso' }) };
+      } catch (error) {
+        console.error('Erro ao excluir nível:', error);
+        return { statusCode: 500, headers, body: JSON.stringify({ error: `Erro ao excluir nível: ${error.message}` }) };
+      }
     }
 
     // Processar compra

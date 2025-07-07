@@ -3,187 +3,296 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login e Registro - LoganCCS</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.0/purify.min.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-  <script src="/debug.js"></script>
+  <title>LOGAN CC'S - Login e Registro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" rel="stylesheet">
   <style>
-    body { font-family: 'Inter', sans-serif; }
-    .gradient-bg { background: linear-gradient(135deg, #1a237e, #1565c0); }
-    .card { transition: all 0.3s ease; }
-    .card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); }
-    .tab { cursor: pointer; transition: background-color 0.3s ease; }
-    .tab.active { background-color: #1565c0; color: white; }
-    .btn { transition: background-color 0.3s ease; }
-    .btn:hover { background-color: #1e40af; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(45deg, #1e3a8a, #7c3aed, #db2777, #22d3ee);
+      background-size: 400%;
+      animation: gradientShift 10s ease infinite;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .hero {
+      background: url('https://source.unsplash.com/random/1920x1080/?cyber') no-repeat center;
+      background-size: cover;
+      background-blend-mode: overlay;
+      background-color: rgba(0, 0, 0, 0.7);
+    }
+    .form-container {
+      animation: slideIn 0.8s ease-out;
+      backdrop-filter: blur(12px);
+      background: rgba(31, 41, 55, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .btn {
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    .btn::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+      transition: 0.4s;
+    }
+    .btn:hover::after {
+      left: 100%;
+    }
+    .loader {
+      display: none;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #db2777;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .error {
+      display: none;
+      color: #f87171;
+      font-size: 0.875rem;
+      animation: fadeIn 0.3s;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .navbar-toggle {
+      transition: transform 0.3s;
+    }
+    .navbar-toggle.open {
+      transform: rotate(90deg);
+    }
   </style>
 </head>
-<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl shadow-xl card max-w-md w-full p-8">
-    <h1 class="text-3xl font-bold text-center text-blue-900 mb-6">LoganCCS</h1>
-    <div class="flex justify-center gap-4 mb-6">
-      <button id="login-tab" class="tab px-4 py-2 rounded-md bg-blue-900 text-white active">Login</button>
-      <button id="register-tab" class="tab px-4 py-2 rounded-md bg-gray-200 text-gray-700">Registro</button>
+<body class="text-gray-200">
+  <header class="bg-gray-900 shadow-lg sticky top-0 z-20">
+    <nav class="container mx-auto p-4 flex justify-between items-center">
+      <h1 class="text-3xl font-bold text-white font-montserrat">LOGAN CC'S</h1>
+      <div class="flex items-center">
+        <button id="toggle-nav" class="text-white md:hidden navbar-toggle"><i class="fas fa-bars"></i></button>
+        <div id="nav-links" class="hidden md:flex space-x-4">
+          <a href="#login" class="text-white hover:text-cyan-400 transition">Login</a>
+          <a href="#register" class="text-white hover:text-cyan-400 transition">Registro</a>
+        </div>
+      </div>
+    </nav>
+    <div id="mobile-nav" class="hidden md:hidden bg-gray-800 p-4">
+      <a href="#login" class="block text-white hover:text-cyan-400 py-2">Login</a>
+      <a href="#register" class="block text-white hover:text-cyan-400 py-2">Registro</a>
     </div>
-    <div id="login-form-container">
-      <form id="login-form">
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1"><i class="fas fa-user mr-2"></i>Usuário</label>
-          <input id="login-username" type="text" class="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
-        </div>
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-700 mb-1"><i class="fas fa-lock mr-2"></i>Senha</label>
-          <input id="login-password" type="password" class="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
-        </div>
-        <div id="login-error" class="text-red-500 text-sm mb-4 hidden"></div>
-        <button type="submit" class="btn w-full bg-blue-900 text-white p-3 rounded-md hover:bg-blue-800"><i class="fas fa-sign-in-alt mr-2"></i>Entrar</button>
-      </form>
-      <p class="text-center text-sm mt-4">Não tem uma conta? <a href="#" id="to-register" class="text-blue-900 hover:underline">Registre-se</a></p>
-    </div>
-    <div id="register-form-container" class="hidden">
-      <form id="register-form">
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1"><i class="fas fa-user mr-2"></i>Usuário</label>
-          <input id="register-username" type="text" class="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
-        </div>
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1"><i class="fas fa-lock mr-2"></i>Senha</label>
-          <input id="register-password" type="password" class="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
-        </div>
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-700 mb-1"><i class="fas fa-lock mr-2"></i>Confirmar Senha</label>
-          <input id="register-confirm-password" type="password" class="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
-        </div>
-        <div id="register-error" class="text-red-500 text-sm mb-4 hidden"></div>
-        <button type="submit" class="btn w-full bg-blue-900 text-white p-3 rounded-md hover:bg-blue-800"><i class="fas fa-user-plus mr-2"></i>Registrar</button>
-      </form>
-      <p class="text-center text-sm mt-4">Já tem uma conta? <a href="#" id="to-login" class="text-blue-900 hover:underline">Faça login</a></p>
-    </div>
-  </div>
-  <script>
-    debug.init('debug-panel', true);
-    debug.log('Inicializando index.html');
+  </header>
 
-    function switchTab(tab) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('#login-form-container, #register-form-container').forEach(c => c.classList.add('hidden'));
-      document.getElementById(`${tab}-tab`).classList.add('active');
-      document.getElementById(`${tab}-form-container`).classList.remove('hidden');
-      document.getElementById('login-error').classList.add('hidden');
-      document.getElementById('register-error').classList.add('hidden');
+  <section class="hero py-16 text-center">
+    <h2 class="text-5xl font-bold text-white font-montserrat mb-4">LOGAN CC'S</h2>
+    <p class="text-xl text-gray-300">A plataforma mais segura e moderna para compra de cartões!</p>
+  </section>
+
+  <main class="container mx-auto p-6 flex-grow flex items-center justify-center">
+    <div class="max-w-md w-full rounded-xl shadow-2xl p-8 form-container">
+      <div id="login" class="space-y-6">
+        <h2 class="text-3xl font-semibold text-center text-cyan-400 font-montserrat">Login</h2>
+        <form id="login-form" class="space-y-4" aria-label="Formulário de Login">
+          <div>
+            <label for="login-username" class="block text-sm font-medium">Usuário</label>
+            <input type="text" id="login-username" name="username" class="mt-1 w-full p-3 rounded-md bg-gray-700 text-white border border-gray-600 focus:ring-2 focus:ring-cyan-500 transition" placeholder="Digite seu usuário" required aria-required="true" aria-describedby="username-help login-error">
+            <p id="username-help" class="text-xs text-gray-400 mt-1">Mínimo de 3 caracteres alfanuméricos</p>
+            <p id="login-error" class="error"></p>
+          </div>
+          <div>
+            <label for="login-password" class="block text-sm font-medium">Senha</label>
+            <input type="password" id="login-password" name="password" class="mt-1 w-full p-3 rounded-md bg-gray-700 text-white border border-gray-600 focus:ring-2 focus:ring-cyan-500 transition" placeholder="Digite sua senha" required aria-required="true" aria-describedby="login-error">
+          </div>
+          <button type="submit" class="btn w-full bg-cyan-600 text-white p-3 rounded-md hover:bg-cyan-700 flex items-center justify-center gap-2">
+            <span class="loader" id="login-loader"></span>
+            <i class="fas fa-sign-in-alt"></i> Entrar
+          </button>
+        </form>
+        <p class="text-center text-sm">Não tem uma conta? <a href="#register" class="text-cyan-400 hover:underline">Registre-se</a></p>
+      </div>
+
+      <div id="register" class="space-y-6 hidden">
+        <h2 class="text-3xl font-semibold text-center text-cyan-400 font-montserrat">Registrar</h2>
+        <form id="register-form" class="space-y-4" aria-label="Formulário de Registro">
+          <div>
+            <label for="register-username" class="block text-sm font-medium">Usuário</label>
+            <input type="text" id="register-username" name="username" class="mt-1 w-full p-3 rounded-md bg-gray-700 text-white border border-gray-600 focus:ring-2 focus:ring-cyan-500 transition" placeholder="Digite seu usuário" required aria-required="true" aria-describedby="username-help register-error">
+            <p id="register-error" class="error"></p>
+          </div>
+          <div>
+            <label for="register-password" class="block text-sm font-medium">Senha</label>
+            <input type="password" id="register-password" name="password" class="mt-1 w-full p-3 rounded-md bg-gray-700 text-white border border-gray-600 focus:ring-2 focus:ring-cyan-500 transition" placeholder="Digite sua senha" required aria-required="true">
+          </div>
+          <div>
+            <label for="register-confirm-password" class="block text-sm font-medium">Confirmar Senha</label>
+            <input type="password" id="register-confirm-password" name="confirm-password" class="mt-1 w-full p-3 rounded-md bg-gray-700 text-white border border-gray-600 focus:ring-2 focus:ring-cyan-500 transition" placeholder="Confirme sua senha" required aria-required="true" aria-describedby="register-error">
+          </div>
+          <button type="submit" class="btn w-full bg-cyan-600 text-white p-3 rounded-md hover:bg-cyan-700 flex items-center justify-center gap-2">
+            <span class="loader" id="register-loader"></span>
+            <i class="fas fa-user-plus"></i> Registrar
+          </button>
+        </form>
+        <p class="text-center text-sm">Já tem uma conta? <a href="#login" class="text-cyan-400 hover:underline">Faça login</a></p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="bg-gray-900 text-center p-4 text-sm text-gray-400">
+    © 2025 LOGAN CC'S. Todos os direitos reservados.
+  </footer>
+
+  <script src="/utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+  <script>
+    const { validateCardNumber, validateCvv, validateExpiry, validateUrl, validateBank, validateLevel, formatPrice } = window.utils;
+    const API_BASE = '/api';
+
+    function showToast(message, type = 'success') {
+      Toastify({
+        text: message,
+        duration: 3000,
+        style: { background: type === 'success' ? '#22c55e' : '#ef4444' },
+        position: 'top-right'
+      }).showToast();
     }
 
-    async function handleLogin(event) {
-      event.preventDefault();
-      const username = document.getElementById('login-username').value.trim();
-      const password = document.getElementById('login-password').value;
-      const errorDiv = document.getElementById('login-error');
+    function showLoader(id) {
+      document.getElementById(id).style.display = 'inline-block';
+    }
 
-      if (!username || !password) {
-        errorDiv.textContent = 'Preencha todos os campos';
-        errorDiv.classList.remove('hidden');
-        debug.error('Campos de login vazios');
+    function hideLoader(id) {
+      document.getElementById(id).style.display = 'none';
+    }
+
+    function showError(id, message) {
+      const error = document.getElementById(id);
+      error.textContent = message;
+      error.style.display = 'block';
+    }
+
+    function clearError(id) {
+      const error = document.getElementById(id);
+      error.textContent = '';
+      error.style.display = 'none';
+    }
+
+    // Alternar entre login e registro
+    document.querySelectorAll('a[href="#login"], a[href="#register"]').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('login').classList.toggle('hidden', e.target.getAttribute('href') !== '#login');
+        document.getElementById('register').classList.toggle('hidden', e.target.getAttribute('href') !== '#register');
+        document.getElementById('mobile-nav').classList.add('hidden');
+        document.getElementById('toggle-nav').classList.remove('open');
+      });
+    });
+
+    // Toggle menu móvel
+    document.getElementById('toggle-nav').addEventListener('click', () => {
+      document.getElementById('mobile-nav').classList.toggle('hidden');
+      document.getElementById('toggle-nav').classList.toggle('open');
+    });
+
+    // Login
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('login-username').value;
+      const password = document.getElementById('login-password').value;
+      clearError('login-error');
+      showLoader('login-loader');
+
+      if (username.length < 3 || !/^[a-zA-Z0-9]+$/.test(username)) {
+        showError('login-error', 'Usuário deve ter pelo menos 3 caracteres alfanuméricos');
+        hideLoader('login-loader');
+        return;
+      }
+      if (password.length < 6) {
+        showError('login-error', 'Senha deve ter pelo menos 6 caracteres');
+        hideLoader('login-loader');
         return;
       }
 
       try {
-        debug.log(`Enviando requisição de login para usuário: ${username}`);
-        const response = await fetch('/.netlify/functions/app-function/login', {
+        const response = await fetch(`${API_BASE}/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
         });
-
-        if (!response.ok) {
-          const text = await response.text();
-          debug.error(`Erro na API /login: Status ${response.status}, Resposta: ${text}`);
-          errorDiv.textContent = text.includes('<') ? 
-            `Erro ${response.status}: Servidor retornou uma página de erro. Verifique a configuração da API.` : 
-            `Erro ${response.status}: ${text}`;
-          errorDiv.classList.remove('hidden');
-          return;
-        }
-
         const data = await response.json();
-        if (data.token) {
-          localStorage.setItem('token', data.token);
-          debug.log(`Login bem-sucedido para usuário: ${username}`);
-          window.location.href = '/shop.html';
-        } else {
-          errorDiv.textContent = data.error || 'Credenciais inválidas';
-          errorDiv.classList.remove('hidden');
-          debug.error(`Erro no login: ${data.error || 'Credenciais inválidas'}`);
-        }
+        if (!response.ok) throw new Error(data.error || 'Erro ao fazer login');
+        localStorage.setItem('token', data.token);
+        showToast('Login realizado com sucesso!');
+        window.location.href = data.user.isAdmin ? '/dashboard' : '/shop';
       } catch (error) {
-        debug.error(`Erro ao conectar ao servidor: ${error.message}`);
-        errorDiv.textContent = 'Erro ao conectar ao servidor. Verifique sua conexão ou a configuração da API.';
-        errorDiv.classList.remove('hidden');
+        showError('login-error', error.message);
+      } finally {
+        hideLoader('login-loader');
       }
-    }
+    });
 
-    async function handleRegister(event) {
-      event.preventDefault();
-      const username = document.getElementById('register-username').value.trim();
+    // Registro
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('register-username').value;
       const password = document.getElementById('register-password').value;
       const confirmPassword = document.getElementById('register-confirm-password').value;
-      const errorDiv = document.getElementById('register-error');
+      clearError('register-error');
+      showLoader('register-loader');
 
-      if (!username || !password || !confirmPassword) {
-        errorDiv.textContent = 'Preencha todos os campos';
-        errorDiv.classList.remove('hidden');
-        debug.error('Campos de registro vazios');
+      if (username.length < 3 || !/^[a-zA-Z0-9]+$/.test(username)) {
+        showError('register-error', 'Usuário deve ter pelo menos 3 caracteres alfanuméricos');
+        hideLoader('register-loader');
         return;
       }
-
+      if (password.length < 6) {
+        showError('register-error', 'Senha deve ter pelo menos 6 caracteres');
+        hideLoader('register-loader');
+        return;
+      }
       if (password !== confirmPassword) {
-        errorDiv.textContent = 'As senhas não coincidem';
-        errorDiv.classList.remove('hidden');
-        debug.error('Senhas não coincidem');
+        showError('register-error', 'As senhas não coincidem');
+        hideLoader('register-loader');
         return;
       }
 
       try {
-        debug.log(`Enviando requisição de registro para usuário: ${username}`);
-        const response = await fetch('/.netlify/functions/app-function/register', {
+        const response = await fetch(`${API_BASE}/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify({ username, password, confirmPassword })
         });
-
-        if (!response.ok) {
-          const text = await response.text();
-          debug.error(`Erro na API /register: Status ${response.status}, Resposta: ${text}`);
-          errorDiv.textContent = text.includes('<') ? 
-            `Erro ${response.status}: Servidor retornou uma página de erro. Verifique a configuração da API.` : 
-            `Erro ${response.status}: ${text}`;
-          errorDiv.classList.remove('hidden');
-          return;
-        }
-
         const data = await response.json();
-        if (data.success) {
-          debug.log(`Registro bem-sucedido para usuário: ${username}`);
-          alert('Registro bem-sucedido! Faça login.');
-          switchTab('login');
-        } else {
-          errorDiv.textContent = data.error || 'Erro ao registrar usuário';
-          errorDiv.classList.remove('hidden');
-          debug.error(`Erro no registro: ${data.error || 'Erro desconhecido'}`);
-        }
+        if (!response.ok) throw new Error(data.error || 'Erro ao registrar');
+        showToast('Registro realizado com sucesso! Faça login.');
+        document.getElementById('register').classList.add('hidden');
+        document.getElementById('login').classList.remove('hidden');
       } catch (error) {
-        debug.error(`Erro ao conectar ao servidor: ${error.message}`);
-        errorDiv.textContent = 'Erro ao conectar ao servidor. Verifique sua conexão ou a configuração da API.';
-        errorDiv.classList.remove('hidden');
+        showError('register-error', error.message);
+      } finally {
+        hideLoader('register-loader');
       }
-    }
-
-    document.getElementById('login-tab').addEventListener('click', () => switchTab('login'));
-    document.getElementById('register-tab').addEventListener('click', () => switchTab('register'));
-    document.getElementById('to-register').addEventListener('click', () => switchTab('register'));
-    document.getElementById('to-login').addEventListener('click', () => switchTab('login'));
-    document.getElementById('login-form').addEventListener('submit', handleLogin);
-    document.getElementById('register-form').addEventListener('submit', handleRegister);
+    });
   </script>
-</body>
-</html>

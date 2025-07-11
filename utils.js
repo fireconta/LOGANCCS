@@ -38,7 +38,6 @@ const utils = {
   validateCardNumber(cardNumber) {
     cardNumber = cardNumber.replace(/\s/g, '');
     if (!/^\d{13,19}$/.test(cardNumber)) return false;
-    // Validação de Luhn
     let sum = 0;
     let isEven = false;
     for (let i = cardNumber.length - 1; i >= 0; i--) {

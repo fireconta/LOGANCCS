@@ -1,431 +1,132 @@
-const { MongoClient, ObjectId } = require('mongodb');
+const { MongoClient } = require('mongodb');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 
-exports.handler = async function(event, context) {
+exports.handler = async (event, context) => {
+  const { httpMethod, path, body, headers } = event;
   const uri = process.env.MONGODB_URI;
-  if (!uri) {
-    console.error('Erro: MONGODB_URI não está definido');
-    return {
-      statusCode: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ error: 'Configuração do servidor incompleta: MONGODB_URI não definido' })
-    };
-  }
+  const secret = process.env.JWT_SECRET;
+  const adminPassword = process.env.ADMIN_PASSWORD;
 
-  const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-  const db = client.db('loganccs');
-  const path = event.path.replace('/.netlify/functions/app-function', '');
-  const tokenSecret = process.env.JWT_SECRET || 'your_jwt_secret';
-
-  const headers = {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-  };
-
+  let client;
   try {
+    client = new MongoClient(uri);
     await client.connect();
+    const db = client.db('loganccs');
 
-    // Verificar ambiente
-    if (path === '/check-env' && event.httpMethod === 'GET') {
-      const collections = await db.listCollections().toArray();
-      const collectionNames = collections.map(c => c.name);
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          mongodbConnected: true,
-          collections: {
-            users: collectionNames.includes('users'),
-            cards: collectionNames.includes('cards'),
-            cardprices: collectionNames.includes('cardprices'),
-            purchases: collectionNames.includes('purchases')
-          },
-          environment: {
-            MONGODB_URI: !!process.env.MONGODB_URI,
-            JWT_SECRET: !!process.env.JWT_SECRET
-          }
-        })
-      };
-    }
-
-    // Listar bancos
-    if (path === '/banks' && event.httpMethod === 'GET') {
-      const token = event.headers.authorization?.replace('Bearer ', '');
-      if (!token) {
-        console.log('Tentativa de acesso à rota /banks sem token');
-        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) };
-      }
-      try {
-        const decoded = jwt.verify(token, tokenSecret);
-        const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
-        if (!user || !user.isAdmin) {
-          console.log(`Acesso negado à rota /banks para usuário: ${user?.username || 'desconhecido'}`);
-          return { statusCode: 403, headers, body: JSON.stringify({ error: 'Acesso negado' }) };
-        }
-        const banks = await db.collection('banks').find({}).toArray();
-        console.log(`Bancos listados: ${banks.length} encontrados`);
-        return { statusCode: 200, headers, body: JSON.stringify(banks) };
-      } catch (error) {
-        console.error('Erro ao listar bancos:', error);
-        return { statusCode: 500, headers, body: JSON.stringify({ error: `Erro ao listar bancos: ${error.message}` }) };
-      }
-    }
-
-    // Registro
-    if (path === '/register' && event.httpMethod === 'POST') {
-      const { username, password } = JSON.parse(event.body);
-      if (!username || !password || username.length < 3 || password.length < 6 || !/^[a-zA-Z0-9]+$/.test(username)) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Usuário (mín. 3 caracteres, alfanumérico) e senha (mín. 6 caracteres) são obrigatórios' }) };
+    if (path === '/api/register' && httpMethod === 'POST') {
+      const { username, password, isAdmin, adminPassword: providedAdminPassword } = JSON.parse(body);
+      if (!username || !password || username.length < 3 || password.length < 6) {
+        return { statusCode: 400, body: JSON.stringify({ error: '❌ Usuário deve ter no mínimo 3 caracteres e senha 6 caracteres' }) };
       }
       const existingUser = await db.collection('users').findOne({ username });
       if (existingUser) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Usuário já existe' }) };
+        return { statusCode: 400, body: JSON.stringify({ error: '❌ Usuário já existe' }) };
       }
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const isAdmin = username === 'LVz' && password === process.env.ADMIN_PASSWORD;
-      await db.collection('users').insertOne({
-        username,
-        password: hashedPassword,
-        balance: 1000,
-        isAdmin,
-        createdAt: new Date()
-      });
-      console.log(`Usuário registrado: ${username}, isAdmin: ${isAdmin}`);
-      return { statusCode: 200, headers, body: JSON.stringify({ success: true, message: 'Usuário registrado com sucesso' }) };
+      const user = { username, password, isAdmin: isAdmin && providedAdminPassword === adminPassword };
+      await db.collection('users').insertOne(user);
+      const token = jwt.sign({ username, isAdmin: user.isAdmin }, secret, { expiresIn: '1h' });
+      return { statusCode: 200, body: JSON.stringify({ token, isAdmin: user.isAdmin }) };
     }
 
-    // Login
-    if (path === '/login' && event.httpMethod === 'POST') {
-      const { username, password } = JSON.parse(event.body);
+    if (path === '/api/login' && httpMethod === 'POST') {
+      const { username, password } = JSON.parse(body);
       if (!username || !password) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Usuário e senha são obrigatórios' }) };
+        return { statusCode: 400, body: JSON.stringify({ error: '❌ Usuário e senha são obrigatórios' }) };
       }
-      const user = await db.collection('users').findOne({ username });
-      if (!user || !(await bcrypt.compare(password, user.password))) {
-        console.log(`Tentativa de login falhou para usuário: ${username}`);
-        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Credenciais inválidas' }) };
-      }
-      const token = jwt.sign({ userId: user._id.toString() }, tokenSecret, { expiresIn: '1h' });
-      console.log(`Login bem-sucedido para usuário: ${username}`);
-      return { statusCode: 200, headers, body: JSON.stringify({ token, username: user.username, isAdmin: user.isAdmin }) };
-    }
-
-    // Verificar autenticação
-    if (path === '/check-auth' && event.httpMethod === 'GET') {
-      const token = event.headers.authorization?.replace('Bearer ', '');
-      if (!token) {
-        return { statusCode: 401, headers, body: JSON.stringify({ authenticated: false, error: 'Token não fornecido' }) };
-      }
-      try {
-        const decoded = jwt.verify(token, tokenSecret);
-        const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
-        if (!user) {
-          return { statusCode: 401, headers, body: JSON.stringify({ authenticated: false, error: 'Usuário não encontrado' }) };
-        }
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({ authenticated: true, user: { _id: user._id, username: user.username, balance: user.balance, isAdmin: user.isAdmin } })
-        };
-      } catch (error) {
-        return { statusCode: 401, headers, body: JSON.stringify({ authenticated: false, error: 'Token inválido' }) };
-      }
-    }
-
-    // Listar cartões
-    if (path === '/cards' && event.httpMethod === 'GET') {
-      const cards = await db.collection('cards').find({}).toArray();
-      return { statusCode: 200, headers, body: JSON.stringify(cards) };
-    }
-
-    // Adicionar cartão
-    if (path === '/cards' && event.httpMethod === 'POST') {
-      const token = event.headers.authorization?.replace('Bearer ', '');
-      if (!token) {
-        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) };
-      }
-      const decoded = jwt.verify(token, tokenSecret);
-      const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
-      if (!user || !user.isAdmin) {
-        return { statusCode: 403, headers, body: JSON.stringify({ error: 'Acesso negado' }) };
-      }
-      const { bank, brand, level, cardNumber, cvv, expiryMonth, expiryYear } = JSON.parse(event.body);
-      if (!bank || !brand || !level || !cardNumber || !cvv || !expiryMonth || !expiryYear) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Todos os campos são obrigatórios' }) };
-      }
-      const existingCard = await db.collection('cards').findOne({ cardNumber });
-      if (existingCard) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Cartão já existe' }) };
-      }
-      await db.collection('cards').insertOne({
-        bank,
-        brand,
-        level,
-        cardNumber,
-        cvv,
-        expiryMonth: String(expiryMonth).padStart(2, '0'),
-        expiryYear: String(expiryYear)
-      });
-      return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
-    }
-
-    // Remover cartão
-    if (path === '/cards' && event.httpMethod === 'DELETE') {
-      const token = event.headers.authorization?.replace('Bearer ', '');
-      if (!token) {
-        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) };
-      }
-      const decoded = jwt.verify(token, tokenSecret);
-      const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
-      if (!user || !user.isAdmin) {
-        return { statusCode: 403, headers, body: JSON.stringify({ error: 'Acesso negado' }) };
-      }
-      const { cardNumber } = JSON.parse(event.body);
-      const result = await db.collection('cards').deleteOne({ cardNumber });
-      if (result.deletedCount === 0) {
-        return { statusCode: 404, headers, body: JSON.stringify({ error: 'Cartão não encontrado' }) };
-      }
-      return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
-    }
-
-    // Listar preços
-    if (path === '/cardprices' && event.httpMethod === 'GET') {
-      const prices = await db.collection('cardprices').find({}).toArray();
-      return { statusCode: 200, headers, body: JSON.stringify(prices) };
-    }
-
-    // Adicionar preço
-    if (path === '/cardprices' && event.httpMethod === 'POST') {
-      const token = event.headers.authorization?.replace('Bearer ', '');
-      if (!token) {
-        console.log('Tentativa de acesso à rota /cardprices sem token');
-        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) };
-      }
-      try {
-        const decoded = jwt.verify(token, tokenSecret);
-        const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
-        if (!user || !user.isAdmin) {
-          console.log(`Acesso negado à rota /cardprices para usuário: ${user?.username || 'desconhecido'}`);
-          return { statusCode: 403, headers, body: JSON.stringify({ error: 'Acesso negado' }) };
-        }
-        const { nivel, price, paymentLink } = JSON.parse(event.body);
-        if (!nivel || price === undefined || !paymentLink) {
-          return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nível, preço e link de pagamento são obrigatórios' }) };
-        }
-        if (typeof price !== 'number' || price <= 0) {
-          return { statusCode: 400, headers, body: JSON.stringify({ error: 'Preço deve ser um número positivo' }) };
-        }
-        if (!/^[a-zA-Z0-9\s]+$/.test(nivel)) {
-          return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nível deve conter apenas letras, números e espaços' }) };
-        }
-        const existingPrice = await db.collection('cardprices').findOne({ nivel });
-        if (existingPrice) {
-          return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nível já existe' }) };
-        }
-        await db.collection('cardprices').insertOne({
-          nivel,
-          price,
-          paymentLink,
-          createdAt: new Date()
-        });
-        console.log(`Nível adicionado: ${nivel}, preço: ${price}`);
-        return { statusCode: 200, headers, body: JSON.stringify({ success: true, message: 'Nível adicionado com sucesso' }) };
-      } catch (error) {
-        console.error('Erro ao adicionar nível:', error);
-        return { statusCode: 500, headers, body: JSON.stringify({ error: `Erro ao adicionar nível: ${error.message}` }) };
-      }
-    }
-
-    // Atualizar preço ou link de pagamento
-    if (path === '/cardprices' && event.httpMethod === 'PUT') {
-      const token = event.headers.authorization?.replace('Bearer ', '');
-      if (!token) {
-        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) };
-      }
-      const decoded = jwt.verify(token, tokenSecret);
-      const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
-      if (!user || !user.isAdmin) {
-        return { statusCode: 403, headers, body: JSON.stringify({ error: 'Acesso negado' }) };
-      }
-      const { nivel, price, paymentLink } = JSON.parse(event.body);
-      if (!nivel) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nível é obrigatório' }) };
-      }
-      if (price !== undefined && (typeof price !== 'number' || price <= 0)) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Preço deve ser um número positivo' }) };
-      }
-      const updateFields = {};
-      if (price !== undefined) updateFields.price = price;
-      if (paymentLink !== undefined) updateFields.paymentLink = paymentLink;
-      const result = await db.collection('cardprices').updateOne(
-        { nivel },
-        { $set: updateFields }
-      );
-      if (result.matchedCount === 0) {
-        return { statusCode: 404, headers, body: JSON.stringify({ error: 'Nível não encontrado' }) };
-      }
-      if (result.modifiedCount === 0) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nenhum preço ou link atualizado' }) };
-      }
-      return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
-    }
-
-    // Excluir preço
-    if (path === '/cardprices' && event.httpMethod === 'DELETE') {
-      const token = event.headers.authorization?.replace('Bearer ', '');
-      if (!token) {
-        console.log('Tentativa de acesso à rota /cardprices sem token');
-        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) };
-      }
-      try {
-        const decoded = jwt.verify(token, tokenSecret);
-        const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
-        if (!user || !user.isAdmin) {
-          console.log(`Acesso negado à rota /cardprices para usuário: ${user?.username || 'desconhecido'}`);
-          return { statusCode: 403, headers, body: JSON.stringify({ error: 'Acesso negado' }) };
-        }
-        const { nivel } = JSON.parse(event.body);
-        if (!nivel) {
-          return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nível é obrigatório' }) };
-        }
-        const result = await db.collection('cardprices').deleteOne({ nivel });
-        if (result.deletedCount === 0) {
-          return { statusCode: 404, headers, body: JSON.stringify({ error: 'Nível não encontrado' }) };
-        }
-        console.log(`Nível excluído: ${nivel}`);
-        return { statusCode: 200, headers, body: JSON.stringify({ success: true, message: 'Nível excluído com sucesso' }) };
-      } catch (error) {
-        console.error('Erro ao excluir nível:', error);
-        return { statusCode: 500, headers, body: JSON.stringify({ error: `Erro ao excluir nível: ${error.message}` }) };
-      }
-    }
-
-    // Processar compra
-    if (path === '/purchase' && event.httpMethod === 'POST') {
-      const token = event.headers.authorization?.replace('Bearer ', '');
-      if (!token) {
-        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) };
-      }
-      const decoded = jwt.verify(token, tokenSecret);
-      const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
+      const user = await db.collection('users').findOne({ username, password });
       if (!user) {
-        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Usuário não encontrado' }) };
+        return { statusCode: 401, body: JSON.stringify({ error: '❌ Credenciais inválidas' }) };
       }
-      const { cardNumber, level } = JSON.parse(event.body);
-      const card = await db.collection('cards').findOne({ cardNumber: { $regex: `${cardNumber}$` }, level });
-      if (!card) {
-        return { statusCode: 404, headers, body: JSON.stringify({ error: 'Cartão não encontrado' }) };
-      }
-      const price = await db.collection('cardprices').findOne({ nivel: level });
-      if (!price) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nível de cartão inválido' }) };
-      }
-      if (user.balance < price.price) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Saldo insuficiente' }) };
-      }
-      await db.collection('users').updateOne(
-        { _id: user._id },
-        { $set: { balance: user.balance - price.price } }
-      );
+      const token = jwt.sign({ username, isAdmin: user.isAdmin }, secret, { expiresIn: '1h' });
+      return { statusCode: 200, body: JSON.stringify({ token, isAdmin: user.isAdmin }) };
+    }
+
+    if (path === '/api/users' && httpMethod === 'GET') {
+      const token = headers.authorization?.split(' ')[1];
+      if (!token) return { statusCode: 401, body: JSON.stringify({ error: '❌ Token não fornecido' }) };
+      const decoded = jwt.verify(token, secret);
+      if (!decoded.isAdmin) return { statusCode: 403, body: JSON.stringify({ error: '❌ Acesso negado' }) };
+      const users = await db.collection('users').find({}).toArray();
+      return { statusCode: 200, body: JSON.stringify(users) };
+    }
+
+    if (path === '/api/delete-user' && httpMethod === 'POST') {
+      const token = headers.authorization?.split(' ')[1];
+      if (!token) return { statusCode: 401, body: JSON.stringify({ error: '❌ Token não fornecido' }) };
+      const decoded = jwt.verify(token, secret);
+      if (!decoded.isAdmin) return { statusCode: 403, body: JSON.stringify({ error: '❌ Acesso negado' }) };
+      const { username } = JSON.parse(body);
+      await db.collection('users').deleteOne({ username });
+      return { statusCode: 200, body: JSON.stringify({ message: '✅ Usuário deletado' }) };
+    }
+
+    if (path === '/api/banks' && httpMethod === 'GET') {
+      const banks = await db.collection('banks').find({}).toArray();
+      return { statusCode: 200, body: JSON.stringify(banks) };
+    }
+
+    if (path === '/api/cards' && httpMethod === 'GET') {
+      const token = headers.authorization?.split(' ')[1];
+      if (!token) return { statusCode: 401, body: JSON.stringify({ error: '❌ Token não fornecido' }) };
+      jwt.verify(token, secret);
+      const cards = await db.collection('cards').find({}).toArray();
+      return { statusCode: 200, body: JSON.stringify(cards) };
+    }
+
+    if (path === '/api/cards' && httpMethod === 'POST') {
+      const token = headers.authorization?.split(' ')[1];
+      if (!token) return { statusCode: 401, body: JSON.stringify({ error: '❌ Token não fornecido' }) };
+      const decoded = jwt.verify(token, secret);
+      if (!decoded.isAdmin) return { statusCode: 403, body: JSON.stringify({ error: '❌ Acesso negado' }) };
+      const card = JSON.parse(body);
+      await db.collection('cards').insertOne(card);
+      return { statusCode: 200, body: JSON.stringify({ message: '✅ Cartão adicionado' }) };
+    }
+
+    if (path === '/api/cardprices' && httpMethod === 'GET') {
+      const prices = await db.collection('cardprices').find({}).toArray();
+      return { statusCode: 200, body: JSON.stringify(prices) };
+    }
+
+    if (path === '/api/cardprices' && httpMethod === 'POST') {
+      const token = headers.authorization?.split(' ')[1];
+      if (!token) return { statusCode: 401, body: JSON.stringify({ error: '❌ Token não fornecido' }) };
+      const decoded = jwt.verify(token, secret);
+      if (!decoded.isAdmin) return { statusCode: 403, body: JSON.stringify({ error: '❌ Acesso negado' }) };
+      const price = JSON.parse(body);
+      await db.collection('cardprices').insertOne(price);
+      return { statusCode: 200, body: JSON.stringify({ message: '✅ Preço adicionado' }) };
+    }
+
+    if (path === '/api/purchase' && httpMethod === 'POST') {
+      const token = headers.authorization?.split(' ')[1];
+      if (!token) return { statusCode: 401, body: JSON.stringify({ error: '❌ Token não fornecido' }) };
+      const decoded = jwt.verify(token, secret);
+      const { cardNumber, level } = JSON.parse(body);
+      const card = await db.collection('cards').findOne({ cardNumber });
+      if (!card) return { statusCode: 404, body: JSON.stringify({ error: '❌ Cartão não encontrado' }) };
       await db.collection('purchases').insertOne({
-        userId: user._id,
-        card: {
-          cardNumber: card.cardNumber,
-          bank: card.bank,
-          brand: card.brand,
-          level: card.level,
-          cvv: card.cvv,
-          expiryMonth: card.expiryMonth,
-          expiryYear: card.expiryYear
-        },
-        purchasedAt: new Date()
+        user: decoded.username,
+        card,
+        purchasedAt: new Date(),
       });
-      await db.collection('cards').deleteOne({ cardNumber: card.cardNumber });
-      return { statusCode: 200, headers, body: JSON.stringify({ success: true, paymentLink: price.paymentLink }) };
+      const price = await db.collection('cardprices').findOne({ nivel: level });
+      return { statusCode: 200, body: JSON.stringify({ paymentLink: price?.paymentLink || 'https://example.com/pay' }) };
     }
 
-    // Listar compras
-    if (path === '/purchases' && event.httpMethod === 'GET') {
-      const token = event.headers.authorization?.replace('Bearer ', '');
-      if (!token) {
-        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) };
-      }
-      const decoded = jwt.verify(token, tokenSecret);
-      const purchases = await db.collection('purchases').find({ userId: new ObjectId(decoded.userId) }).toArray();
-      return { statusCode: 200, headers, body: JSON.stringify(purchases) };
+    if (path === '/api/purchases' && httpMethod === 'GET') {
+      const token = headers.authorization?.split(' ')[1];
+      if (!token) return { statusCode: 401, body: JSON.stringify({ error: '❌ Token não fornecido' }) };
+      const decoded = jwt.verify(token, secret);
+      const purchases = await db.collection('purchases').find({ user: decoded.username }).toArray();
+      return { statusCode: 200, body: JSON.stringify(purchases) };
     }
 
-    // Listar usuários (admin)
-    if (path === '/users' && event.httpMethod === 'GET') {
-      const token = event.headers.authorization?.replace('Bearer ', '');
-      if (!token) {
-        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) };
-      }
-      const decoded = jwt.verify(token, tokenSecret);
-      const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
-      if (!user || !user.isAdmin) {
-        return { statusCode: 403, headers, body: JSON.stringify({ error: 'Acesso negado' }) };
-      }
-      const users = await db.collection('users').find({}, { projection: { password: 0 } }).toArray();
-      return { statusCode: 200, headers, body: JSON.stringify(users) };
-    }
-
-    // Atualizar usuário (admin)
-    if (path === '/users' && event.httpMethod === 'PUT') {
-      const token = event.headers.authorization?.replace('Bearer ', '');
-      if (!token) {
-        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) };
-      }
-      const decoded = jwt.verify(token, tokenSecret);
-      const admin = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
-      if (!admin || !admin.isAdmin) {
-        return { statusCode: 403, headers, body: JSON.stringify({ error: 'Acesso negado' }) };
-      }
-      const { userId, balance, isAdmin } = JSON.parse(event.body);
-      const updateFields = {};
-      if (balance !== undefined) updateFields.balance = balance;
-      if (isAdmin !== undefined) updateFields.isAdmin = isAdmin;
-      const result = await db.collection('users').updateOne(
-        { _id: new ObjectId(userId) },
-        { $set: updateFields }
-      );
-      if (result.modifiedCount === 0) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Nenhum usuário atualizado' }) };
-      }
-      return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
-    }
-
-    // Excluir usuário (admin)
-    if (path === '/delete-user' && event.httpMethod === 'DELETE') {
-      const token = event.headers.authorization?.replace('Bearer ', '');
-      if (!token) {
-        return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) };
-      }
-      const decoded = jwt.verify(token, tokenSecret);
-      const admin = await db.collection('users').findOne({ _id: new ObjectId(decoded.userId) });
-      if (!admin || !admin.isAdmin) {
-        return { statusCode: 403, headers, body: JSON.stringify({ error: 'Acesso negado' }) };
-      }
-      const { targetId } = JSON.parse(event.body);
-      const target = await db.collection('users').findOne({ _id: new ObjectId(targetId) });
-      if (!target) {
-        return { statusCode: 404, headers, body: JSON.stringify({ error: 'Usuário não encontrado' }) };
-      }
-      if (target.username === 'LVz') {
-        return { statusCode: 403, headers, body: JSON.stringify({ error: 'Não é possível excluir o administrador principal' }) };
-      }
-      await db.collection('users').deleteOne({ _id: new ObjectId(targetId) });
-      return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
-    }
-
-    return { statusCode: 404, headers, body: JSON.stringify({ error: 'Rota não encontrada' }) };
+    return { statusCode: 404, body: JSON.stringify({ error: '❌ Rota não encontrada' }) };
   } catch (error) {
     console.error('Erro no servidor:', error);
-    return { statusCode: 500, headers, body: JSON.stringify({ error: `Erro interno do servidor: ${error.message}` }) };
+    return { statusCode: 500, body: JSON.stringify({ error: '❌ Erro interno do servidor' }) };
   } finally {
-    await client.close();
+    if (client) await client.close();
   }
 };

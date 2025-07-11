@@ -3,187 +3,164 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login e Registro - LoganCCS</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.0/purify.min.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-  <script src="/debug.js"></script>
-  <style>
-    body { font-family: 'Inter', sans-serif; }
-    .gradient-bg { background: linear-gradient(135deg, #1a237e, #1565c0); }
-    .card { transition: all 0.3s ease; }
-    .card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); }
-    .tab { cursor: pointer; transition: background-color 0.3s ease; }
-    .tab.active { background-color: #1565c0; color: white; }
-    .btn { transition: background-color 0.3s ease; }
-    .btn:hover { background-color: #1e40af; }
-  </style>
+  <title>🔐 LoganCCS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/heroicons/2.0.18/dist/heroicons.min.css" rel="stylesheet">
 </head>
-<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl shadow-xl card max-w-md w-full p-8">
-    <h1 class="text-3xl font-bold text-center text-blue-900 mb-6">LoganCCS</h1>
-    <div class="flex justify-center gap-4 mb-6">
-      <button id="login-tab" class="tab px-4 py-2 rounded-md bg-blue-900 text-white active">Login</button>
-      <button id="register-tab" class="tab px-4 py-2 rounded-md bg-gray-200 text-gray-700">Registro</button>
-    </div>
-    <div id="login-form-container">
-      <form id="login-form">
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1"><i class="fas fa-user mr-2"></i>Usuário</label>
-          <input id="login-username" type="text" class="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
+<body class="bg-gradient-to-r from-blue-100 to-gray-100 min-h-screen flex items-center justify-center">
+  <div class="max-w-md w-full mx-auto bg-white p-6 rounded-lg shadow-lg">
+    <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">🔐 LoganCCS</h1>
+
+    <!-- Abas -->
+    <ul class="flex justify-center mb-6" data-tabs-toggle="#auth-tabs">
+      <li>
+        <button id="login-tab" class="px-4 py-2 font-semibold text-blue-600 border-b-2 border-blue-600 flex items-center" aria-selected="true" aria-controls="login-form">
+          <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14"></path>
+          </svg>
+          🔐 Login
+        </button>
+      </li>
+      <li>
+        <button id="register-tab" class="px-4 py-2 font-semibold text-gray-600 hover:text-blue-600 flex items-center" aria-selected="false" aria-controls="register-form">
+          <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          📝 Registro
+        </button>
+      </li>
+    </ul>
+
+    <!-- Feedback -->
+    <div id="feedback" class="hidden p-4 mb-4 rounded-lg text-sm"></div>
+
+    <!-- Formulário de Login -->
+    <div id="auth-tabs">
+      <div id="login-form" class="space-y-4">
+        <div>
+          <label for="login-username" class="block text-sm font-medium text-gray-700">👤 Usuário</label>
+          <input id="login-username" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite seu usuário" required aria-label="Usuário">
         </div>
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-700 mb-1"><i class="fas fa-lock mr-2"></i>Senha</label>
-          <input id="login-password" type="password" class="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
+        <div>
+          <label for="login-password" class="block text-sm font-medium text-gray-700">🔒 Senha</label>
+          <input id="login-password" type="password" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite sua senha" required aria-label="Senha">
         </div>
-        <div id="login-error" class="text-red-500 text-sm mb-4 hidden"></div>
-        <button type="submit" class="btn w-full bg-blue-900 text-white p-3 rounded-md hover:bg-blue-800"><i class="fas fa-sign-in-alt mr-2"></i>Entrar</button>
-      </form>
-      <p class="text-center text-sm mt-4">Não tem uma conta? <a href="#" id="to-register" class="text-blue-900 hover:underline">Registre-se</a></p>
-    </div>
-    <div id="register-form-container" class="hidden">
-      <form id="register-form">
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1"><i class="fas fa-user mr-2"></i>Usuário</label>
-          <input id="register-username" type="text" class="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
+        <button id="login-button" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-center transition transform hover:scale-105" aria-label="Entrar">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14"></path>
+          </svg>
+          ✅ Entrar
+        </button>
+      </div>
+
+      <!-- Formulário de Registro -->
+      <div id="register-form" class="space-y-4 hidden">
+        <div>
+          <label for="register-username" class="block text-sm font-medium text-gray-700">👤 Usuário</label>
+          <input id="register-username" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite seu usuário" required aria-label="Usuário">
         </div>
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1"><i class="fas fa-lock mr-2"></i>Senha</label>
-          <input id="register-password" type="password" class="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
+        <div>
+          <label for="register-password" class="block text-sm font-medium text-gray-700">🔒 Senha</label>
+          <input id="register-password" type="password" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite sua senha" required aria-label="Senha">
         </div>
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-700 mb-1"><i class="fas fa-lock mr-2"></i>Confirmar Senha</label>
-          <input id="register-confirm-password" type="password" class="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
+        <div>
+          <label for="register-confirm-password" class="block text-sm font-medium text-gray-700">🔒 Confirmar Senha</label>
+          <input id="register-confirm-password" type="password" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Confirme sua senha" required aria-label="Confirmar Senha">
         </div>
-        <div id="register-error" class="text-red-500 text-sm mb-4 hidden"></div>
-        <button type="submit" class="btn w-full bg-blue-900 text-white p-3 rounded-md hover:bg-blue-800"><i class="fas fa-user-plus mr-2"></i>Registrar</button>
-      </form>
-      <p class="text-center text-sm mt-4">Já tem uma conta? <a href="#" id="to-login" class="text-blue-900 hover:underline">Faça login</a></p>
+        <button id="register-button" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-center transition transform hover:scale-105" aria-label="Registrar">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          ✅ Registrar
+        </button>
+      </div>
     </div>
   </div>
+
   <script>
-    debug.init('debug-panel', true);
-    debug.log('Inicializando index.html');
+    // Alternar abas
+    const loginTab = document.getElementById('login-tab');
+    const registerTab = document.getElementById('register-tab');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const feedback = document.getElementById('feedback');
 
-    function switchTab(tab) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('#login-form-container, #register-form-container').forEach(c => c.classList.add('hidden'));
-      document.getElementById(`${tab}-tab`).classList.add('active');
-      document.getElementById(`${tab}-form-container`).classList.remove('hidden');
-      document.getElementById('login-error').classList.add('hidden');
-      document.getElementById('register-error').classList.add('hidden');
-    }
+    loginTab.addEventListener('click', () => {
+      loginTab.classList.add('border-blue-600', 'text-blue-600');
+      loginTab.setAttribute('aria-selected', 'true');
+      registerTab.classList.remove('border-blue-600', 'text-blue-600');
+      registerTab.setAttribute('aria-selected', 'false');
+      loginForm.classList.remove('hidden');
+      registerForm.classList.add('hidden');
+    });
 
-    async function handleLogin(event) {
-      event.preventDefault();
-      const username = document.getElementById('login-username').value.trim();
+    registerTab.addEventListener('click', () => {
+      registerTab.classList.add('border-blue-600', 'text-blue-600');
+      registerTab.setAttribute('aria-selected', 'true');
+      loginTab.classList.remove('border-blue-600', 'text-blue-600');
+      loginTab.setAttribute('aria-selected', 'false');
+      registerForm.classList.remove('hidden');
+      loginForm.classList.add('hidden');
+    });
+
+    // Validação e submissão de login
+    document.getElementById('login-button').addEventListener('click', async () => {
+      const username = document.getElementById('login-username').value;
       const password = document.getElementById('login-password').value;
-      const errorDiv = document.getElementById('login-error');
 
-      if (!username || !password) {
-        errorDiv.textContent = 'Preencha todos os campos';
-        errorDiv.classList.remove('hidden');
-        debug.error('Campos de login vazios');
+      if (username.length < 3 || password.length < 6) {
+        showFeedback('❌ Usuário (mín. 3 caracteres) e senha (mín. 6 caracteres) são obrigatórios', 'bg-red-100 text-red-700');
         return;
       }
 
+      showFeedback('⏳ Carregando...', 'bg-blue-100 text-blue-700');
       try {
-        debug.log(`Enviando requisição de login para usuário: ${username}`);
-        const response = await fetch('/.netlify/functions/app-function/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
-        });
-
-        if (!response.ok) {
-          const text = await response.text();
-          debug.error(`Erro na API /login: Status ${response.status}, Resposta: ${text}`);
-          errorDiv.textContent = text.includes('<') ? 
-            `Erro ${response.status}: Servidor retornou uma página de erro. Verifique a configuração da API.` : 
-            `Erro ${response.status}: ${text}`;
-          errorDiv.classList.remove('hidden');
-          return;
-        }
-
-        const data = await response.json();
-        if (data.token) {
-          localStorage.setItem('token', data.token);
-          debug.log(`Login bem-sucedido para usuário: ${username}`);
-          window.location.href = '/shop.html';
-        } else {
-          errorDiv.textContent = data.error || 'Credenciais inválidas';
-          errorDiv.classList.remove('hidden');
-          debug.error(`Erro no login: ${data.error || 'Credenciais inválidas'}`);
-        }
+        const response = await axios.post('/api/login', { username, password });
+        showFeedback('✅ Login bem-sucedido! Redirecionando...', 'bg-green-100 text-green-700');
+        localStorage.setItem('token', response.data.token);
+        setTimeout(() => window.location.href = '/dashboard', 1000);
       } catch (error) {
-        debug.error(`Erro ao conectar ao servidor: ${error.message}`);
-        errorDiv.textContent = 'Erro ao conectar ao servidor. Verifique sua conexão ou a configuração da API.';
-        errorDiv.classList.remove('hidden');
+        showFeedback(`❌ Erro ao fazer login: ${error.response?.data?.error || 'Erro desconhecido'}`, 'bg-red-100 text-red-700');
       }
-    }
+    });
 
-    async function handleRegister(event) {
-      event.preventDefault();
-      const username = document.getElementById('register-username').value.trim();
+    // Validação e submissão de registro
+    document.getElementById('register-button').addEventListener('click', async () => {
+      const username = document.getElementById('register-username').value;
       const password = document.getElementById('register-password').value;
       const confirmPassword = document.getElementById('register-confirm-password').value;
-      const errorDiv = document.getElementById('register-error');
 
-      if (!username || !password || !confirmPassword) {
-        errorDiv.textContent = 'Preencha todos os campos';
-        errorDiv.classList.remove('hidden');
-        debug.error('Campos de registro vazios');
+      if (username.length < 3 || !/^[a-zA-Z0-9]+$/.test(username)) {
+        showFeedback('❌ Usuário deve ter no mínimo 3 caracteres alfanuméricos', 'bg-red-100 text-red-700');
         return;
       }
-
+      if (password.length < 6) {
+        showFeedback('❌ Senha deve ter no mínimo 6 caracteres', 'bg-red-100 text-red-700');
+        return;
+      }
       if (password !== confirmPassword) {
-        errorDiv.textContent = 'As senhas não coincidem';
-        errorDiv.classList.remove('hidden');
-        debug.error('Senhas não coincidem');
+        showFeedback('❌ As senhas não coincidem', 'bg-red-100 text-red-700');
         return;
       }
 
+      showFeedback('⏳ Carregando...', 'bg-blue-100 text-blue-700');
       try {
-        debug.log(`Enviando requisição de registro para usuário: ${username}`);
-        const response = await fetch('/.netlify/functions/app-function/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
-        });
-
-        if (!response.ok) {
-          const text = await response.text();
-          debug.error(`Erro na API /register: Status ${response.status}, Resposta: ${text}`);
-          errorDiv.textContent = text.includes('<') ? 
-            `Erro ${response.status}: Servidor retornou uma página de erro. Verifique a configuração da API.` : 
-            `Erro ${response.status}: ${text}`;
-          errorDiv.classList.remove('hidden');
-          return;
-        }
-
-        const data = await response.json();
-        if (data.success) {
-          debug.log(`Registro bem-sucedido para usuário: ${username}`);
-          alert('Registro bem-sucedido! Faça login.');
-          switchTab('login');
-        } else {
-          errorDiv.textContent = data.error || 'Erro ao registrar usuário';
-          errorDiv.classList.remove('hidden');
-          debug.error(`Erro no registro: ${data.error || 'Erro desconhecido'}`);
-        }
+        const response = await axios.post('/api/register', { username, password });
+        showFeedback('✅ Registro bem-sucedido! Redirecionando...', 'bg-green-100 text-green-700');
+        setTimeout(() => loginTab.click(), 1000);
       } catch (error) {
-        debug.error(`Erro ao conectar ao servidor: ${error.message}`);
-        errorDiv.textContent = 'Erro ao conectar ao servidor. Verifique sua conexão ou a configuração da API.';
-        errorDiv.classList.remove('hidden');
+        showFeedback(`❌ Erro ao registrar: ${error.response?.data?.error || 'Erro desconhecido'}`, 'bg-red-100 text-red-700');
       }
-    }
+    });
 
-    document.getElementById('login-tab').addEventListener('click', () => switchTab('login'));
-    document.getElementById('register-tab').addEventListener('click', () => switchTab('register'));
-    document.getElementById('to-register').addEventListener('click', () => switchTab('register'));
-    document.getElementById('to-login').addEventListener('click', () => switchTab('login'));
-    document.getElementById('login-form').addEventListener('submit', handleLogin);
-    document.getElementById('register-form').addEventListener('submit', handleRegister);
+    // Função para exibir feedback
+    function showFeedback(message, classes) {
+      feedback.classList.remove('hidden');
+      feedback.textContent = message;
+      feedback.className = `p-4 mb-4 rounded-lg text-sm ${classes}`;
+    }
   </script>
 </body>
 </html>

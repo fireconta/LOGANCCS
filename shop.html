@@ -3,478 +3,300 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Loja de Cartões - LoganCCS</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.0/purify.min.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-  <script src="/debug.js"></script>
-  <style>
-    body { font-family: 'Inter', sans-serif; }
-    .gradient-bg { background: linear-gradient(135deg, #1a237e, #1565c0); }
-    .card { transition: all 0.3s ease; }
-    .card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); }
-    .modal { display: none; }
-    .modal.active { display: flex; }
-    .brand-visa { background: linear-gradient(135deg, #1a237e, #3f51b5); }
-    .brand-mastercard { background: linear-gradient(135deg, #eb001b, #f79e1b); }
-    .brand-elo { background: linear-gradient(135deg, #00a1e4, #00ddeb); }
-    .brand-amex { background: linear-gradient(135deg, #0077b6, #00b4d8); }
-    .tab-button.active { background: linear-gradient(135deg, #1a237e, #1565c0); color: white; }
-    .buy-button { transition: background-color 0.3s ease; }
-    .buy-button:hover { background-color: #1e40af; }
-    .modal-content { max-height: 80vh; overflow-y: auto; }
-  </style>
+  <title>🛒 Loja de Cartões</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/heroicons/2.0.18/dist/heroicons.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-100">
-  <nav class="gradient-bg text-white p-6 flex justify-between items-center shadow-lg">
-    <h1 class="text-3xl font-bold">Loja de Cartões</h1>
-    <div class="flex items-center space-x-6">
-      <span id="user-info" class="text-lg font-medium"></span>
-      <a href="/index.html" class="hover:underline text-lg"><i class="fas fa-sign-out-alt mr-2"></i>Logout</a>
-      <a id="dashboard-link" href="/dashboard.html" class="hover:underline text-lg hidden"><i class="fas fa-tachometer-alt mr-2"></i>Dashboard</a>
+<body class="bg-gradient-to-r from-blue-100 to-gray-100 min-h-screen">
+  <header class="bg-blue-800 text-white p-4 shadow sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold">🛒 Loja de Cartões</h1>
+      <nav class="flex space-x-4">
+        <a href="#" onclick="logout()" class="hover:underline flex items-center" aria-label="Sair">
+          <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7"></path>
+          </svg>
+          🔒 Logout
+        </a>
+        <a href="/dashboard" class="hover:underline flex items-center" aria-label="Ir para o Dashboard">
+          <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"></path>
+          </svg>
+          📊 Dashboard
+        </a>
+      </nav>
     </div>
-  </nav>
-  <div class="container mx-auto p-6">
-    <div id="shop-tab" class="tab-content">
-      <div class="flex flex-col md:flex-row gap-4 mb-8">
-        <select id="filter-brand" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900 bg-white shadow-sm">
-          <option value="">Todas as Bandeiras</option>
-        </select>
-        <select id="filter-bank" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900 bg-white shadow-sm">
-          <option value="">Todos os Bancos</option>
-        </select>
-        <select id="filter-level" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900 bg-white shadow-sm">
-          <option value="">Todos os Níveis</option>
-        </select>
-      </div>
-      <div id="cards-container" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+  </header>
+
+  <main class="max-w-7xl mx-auto p-6">
+    <!-- Botões de Navegação -->
+    <div class="flex space-x-4 mb-6">
+      <button id="shop-btn" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 flex items-center">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h18l-1.68 9H4.68L3 3zm2 14a2 2 0 100 4 2 2 0 000-4zm14 0a2 2 0 100 4 2 2 0 000-4z"></path>
+        </svg>
+        🛒 Loja
+      </button>
+      <button id="wallet-btn" class="px-6 py-3 bg-gray-300 text-gray-800 rounded-lg font-semibold hover:bg-gray-400 flex items-center">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 6h18M3 14h18M3 18h18"></path>
+        </svg>
+        💼 Carteira
+      </button>
     </div>
-    <div id="wallet-tab" class="tab-content hidden">
-      <div class="flex flex-col items-center mb-8">
-        <img id="user-avatar" src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp" alt="Avatar" class="w-24 h-24 rounded-full mb-4 shadow-md">
-        <h2 id="user-name" class="text-2xl font-bold text-gray-800"></h2>
-        <p id="user-id" class="text-sm text-gray-600"></p>
+
+    <!-- Feedback -->
+    <div id="feedback" class="hidden p-4 mb-4 rounded-lg text-sm"></div>
+
+    <!-- Loja -->
+    <section id="shop-section">
+      <div class="flex flex-col md:flex-row gap-4 mb-6">
+        <div class="flex-1">
+          <label for="filter-brand" class="block text-sm font-medium text-gray-700">🏷️ Bandeira</label>
+          <select id="filter-brand" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Filtrar por bandeira">
+            <option value="">Todas as Bandeiras</option>
+            <option value="Visa">Visa</option>
+            <option value="Mastercard">Mastercard</option>
+            <option value="Elo">Elo</option>
+            <option value="American Express">American Express</option>
+            <option value="Hipercard">Hipercard</option>
+          </select>
+        </div>
+        <div class="flex-1">
+          <label for="filter-bank" class="block text-sm font-medium text-gray-700">🏦 Banco</label>
+          <select id="filter-bank" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Filtrar por banco"></select>
+        </div>
+        <div class="flex-1">
+          <label for="filter-level" class="block text-sm font-medium text-gray-700">⭐ Nível</label>
+          <select id="filter-level" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Filtrar por nível"></select>
+        </div>
       </div>
-      <div id="purchased-cards" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+      <div id="cards-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </section>
+
+    <!-- Carteira -->
+    <section id="wallet-section" class="hidden">
+      <h2 class="text-xl font-semibold mb-4 flex items-center">💼 Carteira</h2>
+      <table class="w-full border-collapse bg-white rounded-lg shadow">
+        <thead>
+          <tr class="bg-gray-100">
+            <th class="border p-3 text-left">💳 Cartão</th>
+            <th class="border p-3 text-left">🏦 Banco</th>
+            <th class="border p-3 text-left">🏷️ Bandeira</th>
+            <th class="border p-3 text-left">⭐ Nível</th>
+            <th class="border p-3 text-left">📅 Data de Compra</th>
+          </tr>
+        </thead>
+        <tbody id="purchases-table"></tbody>
+      </table>
+    </section>
+
+    <!-- Modal de Compra -->
+    <div id="purchase-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden" aria-hidden="true">
+      <div class="bg-white p-6 rounded-lg max-w-md w-full animate-fade-in">
+        <h2 class="text-xl font-semibold mb-4">💳 Confirmar Compra</h2>
+        <div id="purchase-details" class="space-y-2">
+          <p><strong>🏦 Banco:</strong> <span id="modal-bank"></span></p>
+          <p><strong>🏷️ Bandeira:</strong> <span id="modal-brand"></span></p>
+          <p><strong>⭐ Nível:</strong> <span id="modal-level"></span></p>
+          <p><strong>🔢 BIN:</strong> <span id="modal-bin"></span></p>
+          <p><strong>📅 Validade:</strong> <span id="modal-expiry"></span></p>
+          <p><strong>💰 Preço:</strong> R$<span id="modal-price"></span></p>
+        </div>
+        <div class="flex justify-end space-x-4 mt-6">
+          <button id="cancel-purchase" class="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 flex items-center" aria-label="Cancelar compra">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            ❌ Cancelar
+          </button>
+          <button id="confirm-purchase" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center" aria-label="Confirmar compra">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            ✅ Confirmar
+          </button>
+        </div>
+      </div>
     </div>
-  </div>
-  <div id="purchase-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-    <div class="bg-white p-8 rounded-xl shadow-xl modal-content max-w-md w-full">
-      <h2 class="text-2xl font-bold mb-6 text-blue-900">Confirmar Compra</h2>
-      <div id="modal-card-info" class="mb-6 bg-gray-100 p-4 rounded-md">
-        <p class="mb-2"><strong>Banco:</strong> <span id="modal-bank"></span></p>
-        <p class="mb-2"><strong>Bandeira:</strong> <span id="modal-brand"></span></p>
-        <p class="mb-2"><strong>Nível:</strong> <span id="modal-level"></span></p>
-        <p class="mb-2"><strong>BIN:</strong> <span id="modal-bin"></span></p>
-        <p class="mb-2"><strong>Validade:</strong> <span id="modal-expiry"></span></p>
-        <p class="mb-2"><strong>Preço:</strong> R$<span id="modal-price"></span></p>
-      </div>
-      <div id="modal-error" class="text-red-500 text-sm mb-6 hidden"></div>
-      <div class="flex justify-end gap-4">
-        <button type="button" id="modal-cancel" class="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 transition"><i class="fas fa-times mr-2"></i>Cancelar</button>
-        <button type="button" id="modal-confirm" class="px-4 py-2 bg-blue-900 text-white rounded-md hover:bg-blue-800 transition"><i class="fas fa-check mr-2"></i>Confirmar Compra</button>
-      </div>
-    </div>
-  </div>
-  <div class="fixed bottom-0 left-0 right-0 bg-white p-4 flex justify-center gap-6 border-t shadow-lg">
-    <button id="shop-tab-button" class="tab-button px-6 py-3 rounded-md flex items-center gap-2 bg-blue-900 text-white active">
-      <i class="fas fa-store"></i> Loja
-    </button>
-    <button id="wallet-tab-button" class="tab-button px-6 py-3 rounded-md flex items-center gap-2 bg-gray-200 text-gray-700">
-      <i class="fas fa-wallet"></i> Carteira
-    </button>
-  </div>
-  <footer class="gradient-bg text-white p-6 text-center">
-    <p class="text-sm">© 2025 LoganCCS. Todos os direitos reservados.</p>
+  </main>
+
+  <footer class="bg-blue-800 text-white text-center p-4">
+    <p>© 2025 LoganCCS. Todos os direitos reservados.</p>
   </footer>
+
+  <style>
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+      animation: fade-in 0.3s ease-out;
+    }
+  </style>
+
   <script>
-    debug.init('debug-panel', true);
-    debug.log('Inicializando shop.html');
+    // Alternar seções
+    const shopBtn = document.getElementById('shop-btn');
+    const walletBtn = document.getElementById('wallet-btn');
+    const shopSection = document.getElementById('shop-section');
+    const walletSection = document.getElementById('wallet-section');
+    const feedback = document.getElementById('feedback');
 
-    function formatBin(cardNumber) {
-      return cardNumber.slice(0, 6);
-    }
+    shopBtn.addEventListener('click', () => {
+      shopBtn.classList.add('bg-blue-600', 'text-white');
+      shopBtn.classList.remove('bg-gray-300', 'text-gray-800');
+      walletBtn.classList.add('bg-gray-300', 'text-gray-800');
+      walletBtn.classList.remove('bg-blue-600', 'text-white');
+      shopSection.classList.remove('hidden');
+      walletSection.classList.add('hidden');
+      loadCards();
+    });
 
-    function formatExpiry(month, year) {
-      return `${month.padStart(2, '0')}/${year}`;
-    }
+    walletBtn.addEventListener('click', () => {
+      walletBtn.classList.add('bg-blue-600', 'text-white');
+      walletBtn.classList.remove('bg-gray-300', 'text-gray-800');
+      shopBtn.classList.add('bg-gray-300', 'text-gray-800');
+      shopBtn.classList.remove('bg-blue-600', 'text-white');
+      walletSection.classList.remove('hidden');
+      shopSection.classList.add('hidden');
+      loadPurchases();
+    });
 
-    function generateUserId(mongoId) {
-      return (parseInt(mongoId, 16) % 1000000000).toString().padStart(9, '0');
-    }
-
-    async function checkAuth() {
-      try {
-        const response = await fetch('/.netlify/functions/app-function/check-auth', {
-          headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
-        });
-        if (!response.ok) {
-          debug.error(`Erro na API /check-auth: Status ${response.status}`);
-          window.location.href = '/index.html';
-          return null;
-        }
-        const data = await response.json();
-        if (!data.authenticated) {
-          debug.error('Usuário não autenticado');
-          window.location.href = '/index.html';
-          return null;
-        }
-        document.getElementById('user-info').textContent = `Usuário: ${data.user.username} | Saldo: R$${data.user.balance.toFixed(2)}`;
-        document.getElementById('user-name').textContent = data.user.username;
-        document.getElementById('user-id').textContent = `ID: ${generateUserId(data.user._id)}`;
-        if (data.user.isAdmin) {
-          document.getElementById('dashboard-link').classList.remove('hidden');
-        }
-        debug.log(`Autenticação bem-sucedida para usuário: ${data.user.username}`);
-        return data.user;
-      } catch (error) {
-        debug.error('Erro ao verificar autenticação: ' + error.message);
-        window.location.href = '/index.html';
-        return null;
-      }
-    }
-
-    let cachedPrices = null;
-    async function loadCardPrices() {
-      if (cachedPrices) {
-        debug.log('Usando preços em cache');
-        return cachedPrices;
-      }
-      try {
-        const response = await fetch('/.netlify/functions/app-function/cardprices');
-        if (!response.ok) {
-          debug.error(`Erro na API /cardprices: Status ${response.status}`);
-          alert('Erro ao carregar preços. Tente novamente.');
-          return {};
-        }
-        const prices = await response.json();
-        if (!Array.isArray(prices)) {
-          debug.error('Resposta da API /cardprices inválida: não é um array. Resposta: ' + JSON.stringify(prices));
-          alert('Erro nos dados de preços: formato inválido. Contate o suporte.');
-          return {};
-        }
-        cachedPrices = prices.reduce((map, price) => {
-          if (price.nivel && typeof price.price === 'number') {
-            map[price.nivel] = price;
-          }
-          return map;
-        }, {});
-        debug.log('Preços carregados: ' + Object.keys(cachedPrices).length + ' níveis');
-        return cachedPrices;
-      } catch (error) {
-        debug.error('Erro ao carregar preços: ' + error.message);
-        alert('Erro ao carregar preços: ' + error.message);
-        return {};
-      }
-    }
-
-    async function loadFilters() {
-      try {
-        const [cardsResponse, pricesResponse] = await Promise.all([
-          fetch('/.netlify/functions/app-function/cards'),
-          fetch('/.netlify/functions/app-function/cardprices')
-        ]);
-        if (!cardsResponse.ok || !pricesResponse.ok) {
-          debug.error(`Erro nas APIs /cards ou /cardprices: Status ${cardsResponse.status}, ${pricesResponse.status}`);
-          alert('Erro ao carregar filtros. Tente novamente.');
-          return;
-        }
-        const cards = await cardsResponse.json();
-        const prices = await pricesResponse.json();
-
-        const filterBrand = document.getElementById('filter-brand');
-        const filterBank = document.getElementById('filter-bank');
-        const filterLevel = document.getElementById('filter-level');
-
-        const brands = [...new Set(cards.map(card => card.brand))];
-        const banks = [...new Set(cards.map(card => card.bank))];
-        const levels = [...new Set(cards.map(card => card.level))];
-
-        filterBrand.innerHTML = '<option value="">Todas as Bandeiras</option>';
-        brands.forEach(brand => {
-          const option = document.createElement('option');
-          option.value = brand;
-          option.textContent = brand;
-          filterBrand.appendChild(option);
-        });
-
-        filterBank.innerHTML = '<option value="">Todos os Bancos</option>';
-        if (banks.length === 0) {
-          debug.log('Nenhum banco encontrado na coleção cards');
-          filterBank.innerHTML = '<option value="" disabled selected>Nenhum banco disponível</option>';
-          alert('Nenhum banco associado aos cartões disponíveis.');
-        } else {
-          banks.forEach(bank => {
-            const option = document.createElement('option');
-            option.value = bank;
-            option.textContent = bank;
-            filterBank.appendChild(option);
-          });
-          debug.log(`Bancos carregados com sucesso: ${banks.length} bancos`);
-        }
-
-        filterLevel.innerHTML = '<option value="">Todos os Níveis</option>';
-        if (!Array.isArray(prices) || prices.length === 0) {
-          debug.error('Nenhum preço encontrado na coleção cardprices');
-          filterLevel.innerHTML = '<option value="" disabled selected>Nenhum nível disponível</option>';
-          alert('Nenhum nível de cartão cadastrado na coleção cardprices.');
-        } else {
-          prices.forEach(price => {
-            if (price.nivel && typeof price.price === 'number') {
-              const option = document.createElement('option');
-              option.value = price.nivel;
-              option.textContent = `${price.nivel} - R$${price.price.toFixed(2)}`;
-              filterLevel.appendChild(option);
-            }
-          });
-          debug.log(`Níveis carregados com preços: ${prices.length} níveis`);
-        }
-
-        debug.log('Filtros carregados: ' + brands.length + ' bandeiras, ' + banks.length + ' bancos, ' + prices.length + ' níveis');
-      } catch (error) {
-        debug.error('Erro ao carregar filtros: ' + error.message);
-        alert('Erro ao carregar filtros: ' + error.message);
-      }
-    }
-
+    // Carregar filtros e cartões
     async function loadCards() {
       try {
-        const brand = document.getElementById('filter-brand').value;
-        const bank = document.getElementById('filter-bank').value;
-        const level = document.getElementById('filter-level').value;
-        const response = await fetch('/.netlify/functions/app-function/cards');
-        if (!response.ok) {
-          debug.error(`Erro na API /cards: Status ${response.status}`);
-          alert('Erro ao carregar cartões. Tente novamente.');
-          return;
-        }
-        const cards = await response.json();
-        const prices = await loadCardPrices();
-        const container = document.getElementById('cards-container');
-        container.innerHTML = '';
-        const filteredCards = cards.filter(card => 
-          (!brand || card.brand === brand) &&
-          (!bank || card.bank === bank) &&
-          (!level || card.level === level)
-        );
-        filteredCards.forEach(card => {
-          const price = prices[card.level]?.price || 0;
-          const cardHtml = `
-            <div class="card bg-white rounded-xl shadow-lg p-6 brand-${card.brand.toLowerCase()} text-white">
-              <h3 class="text-xl font-bold mb-2">${card.level}</h3>
-              <p class="mb-2"><strong>Banco:</strong> ${DOMPurify.sanitize(card.bank)}</p>
-              <p class="mb-2"><strong>Bandeira:</strong> ${DOMPurify.sanitize(card.brand)}</p>
-              <p class="mb-2"><strong>BIN:</strong> ${formatBin(DOMPurify.sanitize(card.cardNumber))}</p>
-              <p class="mb-2"><strong>Validade:</strong> ${formatExpiry(DOMPurify.sanitize(card.expiryMonth), DOMPurify.sanitize(card.expiryYear))}</p>
-              <p class="mb-4"><strong>Preço:</strong> R$${price.toFixed(2)}</p>
-              <button class="buy-button w-full bg-blue-900 text-white p-3 rounded-md hover:bg-blue-800 transition" data-card-number="${DOMPurify.sanitize(card.cardNumber)}" data-level="${DOMPurify.sanitize(card.level)}">
-                <i class="fas fa-shopping-cart mr-2"></i>Comprar
-              </button>
-            </div>
-          `;
-          container.insertAdjacentHTML('beforeend', cardHtml);
-        });
-        document.querySelectorAll('.buy-button').forEach(button => {
-          button.addEventListener('click', () => openPurchaseModal(button.dataset.cardNumber, button.dataset.level));
-        });
-        debug.log('Cartões carregados: ' + filteredCards.length);
+        showFeedback('⏳ Carregando cartões...', 'bg-blue-100 text-blue-700');
+        const [banksResponse, levelsResponse, cardsResponse] = await Promise.all([
+          axios.get('/api/banks', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }),
+          axios.get('/api/cardprices', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }),
+          axios.get('/api/cards', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+        ]);
+
+        const bankSelect = document.getElementById('filter-bank');
+        const levelSelect = document.getElementById('filter-level');
+        bankSelect.innerHTML = '<option value="">🏦 Todos os Bancos</option>' + banksResponse.data.map(bank => `<option value="${bank._id}">${bank.name}</option>`).join('');
+        levelSelect.innerHTML = '<option value="">⭐ Todos os Níveis</option>' + levelsResponse.data.map(level => `<option value="${level.nivel}">${level.nivel}</option>`).join('');
+
+        filterCards(cardsResponse.data, levelsResponse.data);
+        showFeedback('✅ Cartões carregados!', 'bg-green-100 text-green-700');
       } catch (error) {
-        debug.error('Erro ao carregar cartões: ' + error.message);
-        alert('Erro ao carregar cartões: ' + error.message);
+        showFeedback(`❌ Erro ao carregar dados: ${error.response?.data?.error || 'Erro desconhecido'}`, 'bg-red-100 text-red-700');
       }
     }
 
-    async function loadPurchasedCards() {
+    // Filtrar cartões
+    function filterCards(cards, prices) {
+      const brand = document.getElementById('filter-brand').value;
+      const bank = document.getElementById('filter-bank').value;
+      const level = document.getElementById('filter-level').value;
+
+      const filteredCards = cards.filter(card => 
+        (!brand || card.brand === brand) &&
+        (!bank || card.bank === bank) &&
+        (!level || card.level === level)
+      );
+
+      const cardsList = document.getElementById('cards-list');
+      cardsList.innerHTML = filteredCards.map(card => {
+        const price = prices.find(p => p.nivel === card.level)?.price || 'N/A';
+        return `
+          <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition transform hover:scale-105">
+            <p><strong>🏦 Banco:</strong> ${card.bank}</p>
+            <p><strong>🏷️ Bandeira:</strong> ${card.brand}</p>
+            <p><strong>⭐ Nível:</strong> ${card.level}</p>
+            <p><strong>🔢 BIN:</strong> ${utils.formatBin(card.cardNumber)}</p>
+            <p><strong>📅 Validade:</strong> ${utils.formatExpiry(card.expiryMonth, card.expiryYear)}</p>
+            <p><strong>💰 Preço:</strong> R$${price}</p>
+            <button onclick="showPurchaseModal('${card.cardNumber}', '${card.bank}', '${card.brand}', '${card.level}', '${utils.formatBin(card.cardNumber)}', '${utils.formatExpiry(card.expiryMonth, card.expiryYear)}', ${price})" class="mt-4 w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 flex items-center justify-center">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h18l-1.68 9H4.68L3 3zm2 14a2 2 0 100 4 2 2 0 000-4zm14 0a2 2 0 100 4 2 2 0 000-4z"></path>
+              </svg>
+              🛒 Comprar
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Carregar compras
+    async function loadPurchases() {
       try {
-        const response = await fetch('/.netlify/functions/app-function/purchases', {
-          headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
-        });
-        if (!response.ok) {
-          debug.error(`Erro na API /purchases: Status ${response.status}`);
-          alert('Erro ao carregar cartões comprados. Tente novamente.');
-          return;
-        }
-        const purchases = await response.json();
-        const container = document.getElementById('purchased-cards');
-        container.innerHTML = '';
-        purchases.forEach(purchase => {
-          const card = purchase.card;
-          const purchaseDateTime = new Date(purchase.purchasedAt).toLocaleString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-          });
-          const cardHtml = `
-            <div class="card bg-white rounded-xl shadow-lg p-6 brand-${card.brand.toLowerCase()} text-white">
-              <h3 class="text-xl font-bold mb-2">${DOMPurify.sanitize(card.level)}</h3>
-              <p class="mb-2"><strong>Banco:</strong> ${DOMPurify.sanitize(card.bank)}</p>
-              <p class="mb-2"><strong>Bandeira:</strong> ${DOMPurify.sanitize(card.brand)}</p>
-              <p class="mb-2"><strong>Número:</strong> ${DOMPurify.sanitize(card.cardNumber)}</p>
-              <p class="mb-2"><strong>CVV:</strong> ${DOMPurify.sanitize(card.cvv)}</p>
-              <p class="mb-2"><strong>Validade:</strong> ${formatExpiry(DOMPurify.sanitize(card.expiryMonth), DOMPurify.sanitize(card.expiryYear))}</p>
-              <p class="mb-2"><strong>Comprado em:</strong> ${purchaseDateTime}</p>
-            </div>
-          `;
-          container.insertAdjacentHTML('beforeend', cardHtml);
-        });
-        debug.log('Cartões comprados carregados: ' + purchases.length);
+        showFeedback('⏳ Carregando compras...', 'bg-blue-100 text-blue-700');
+        const response = await axios.get('/api/purchases', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+        const purchasesTable = document.getElementById('purchases-table');
+        purchasesTable.innerHTML = response.data.map(purchase => `
+          <tr class="hover:bg-gray-50">
+            <td class="border p-3">💳 ${utils.formatBin(purchase.card.cardNumber)}</td>
+            <td class="border p-3">🏦 ${purchase.card.bank}</td>
+            <td class="border p-3">🏷️ ${purchase.card.brand}</td>
+            <td class="border p-3">⭐ ${purchase.card.level}</td>
+            <td class="border p-3">📅 ${new Date(purchase.purchasedAt).toLocaleString('pt-BR')}</td>
+          </tr>
+        `).join('');
+        showFeedback('✅ Compras carregadas!', 'bg-green-100 text-green-700');
       } catch (error) {
-        debug.error('Erro ao carregar cartões comprados: ' + error.message);
-        alert('Erro ao carregar cartões comprados: ' + error.message);
+        showFeedback(`❌ Erro ao carregar compras: ${error.response?.data?.error || 'Erro desconhecido'}`, 'bg-red-100 text-red-700');
       }
     }
 
-    async function openPurchaseModal(cardNumber, level) {
+    // Mostrar modal de compra
+    function showPurchaseModal(cardNumber, bank, brand, level, bin, expiry, price) {
+      document.getElementById('modal-bank').textContent = bank;
+      document.getElementById('modal-brand').textContent = brand;
+      document.getElementById('modal-level').textContent = level;
+      document.getElementById('modal-bin').textContent = bin;
+      document.getElementById('modal-expiry').textContent = expiry;
+      document.getElementById('modal-price').textContent = price;
+      document.getElementById('purchase-modal').classList.remove('hidden');
+      document.getElementById('purchase-modal').setAttribute('aria-hidden', 'false');
+      document.getElementById('confirm-purchase').onclick = () => confirmPurchase(cardNumber, level);
+    }
+
+    // Confirmar compra
+    async function confirmPurchase(cardNumber, level) {
       try {
-        const response = await fetch('/.netlify/functions/app-function/cards');
-        if (!response.ok) {
-          debug.error(`Erro na API /cards: Status ${response.status}`);
-          alert('Erro ao carregar detalhes do cartão. Tente novamente.');
-          return;
-        }
-        const cards = await response.json();
-        const card = cards.find(c => c.cardNumber === cardNumber && c.level === level);
-        if (!card) {
-          debug.error('Cartão não encontrado: ' + cardNumber);
-          alert('Cartão não encontrado.');
-          return;
-        }
-        const prices = await loadCardPrices();
-        const price = prices[card.level]?.price || 0;
-        document.getElementById('modal-bank').textContent = DOMPurify.sanitize(card.bank);
-        document.getElementById('modal-brand').textContent = DOMPurify.sanitize(card.brand);
-        document.getElementById('modal-level').textContent = DOMPurify.sanitize(card.level);
-        document.getElementById('modal-bin').textContent = formatBin(DOMPurify.sanitize(card.cardNumber));
-        document.getElementById('modal-expiry').textContent = formatExpiry(DOMPurify.sanitize(card.expiryMonth), DOMPurify.sanitize(card.expiryYear));
-        document.getElementById('modal-price').textContent = price.toFixed(2);
-        document.getElementById('modal-error').classList.add('hidden');
-        document.getElementById('modal-confirm').dataset.cardNumber = cardNumber;
-        document.getElementById('modal-confirm').dataset.level = level;
-        document.getElementById('purchase-modal').classList.add('active');
-        debug.log('Modal de compra aberto para cartão: ' + cardNumber);
+        showFeedback('⏳ Processando compra...', 'bg-blue-100 text-blue-700');
+        const response = await axios.post('/api/purchase', { cardNumber, level }, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+        showFeedback('✅ Compra realizada! Redirecionando para o pagamento...', 'bg-green-100 text-green-700');
+        setTimeout(() => {
+          window.location.href = response.data.paymentLink;
+        }, 1000);
       } catch (error) {
-        debug.error('Erro ao abrir modal de compra: ' + error.message);
-        alert('Erro ao abrir modal de compra. Tente novamente.');
+        showFeedback(`❌ Erro ao processar compra: ${error.response?.data?.error || 'Erro desconhecido'}`, 'bg-red-100 text-red-700');
       }
+      document.getElementById('purchase-modal').classList.add('hidden');
+      document.getElementById('purchase-modal').setAttribute('aria-hidden', 'true');
     }
 
-    async function handlePurchase() {
-      const cardNumber = document.getElementById('modal-confirm').dataset.cardNumber;
-      const level = document.getElementById('modal-confirm').dataset.level;
-      const errorDiv = document.getElementById('modal-error');
-      
-      try {
-        // Verificar saldo do usuário
-        const user = await checkAuth();
-        if (!user) {
-          debug.error('Usuário não autenticado ao tentar comprar');
-          alert('Erro: Usuário não autenticado. Faça login novamente.');
-          return;
-        }
-        const userBalance = user.balance;
-        debug.log(`Saldo do usuário: R$${userBalance.toFixed(2)}`);
-
-        // Obter preço do cartão
-        const prices = await loadCardPrices();
-        const priceData = prices[level];
-        if (!priceData || typeof priceData.price !== 'number') {
-          debug.error(`Preço não encontrado para o nível: ${level}`);
-          errorDiv.textContent = 'Erro: Preço do cartão não encontrado.';
-          errorDiv.classList.remove('hidden');
-          return;
-        }
-        const cardPrice = priceData.price;
-        debug.log(`Preço do cartão (${level}): R$${cardPrice.toFixed(2)}`);
-
-        // Verificar se o saldo é suficiente
-        if (userBalance < cardPrice) {
-          if (!priceData.paymentLink) {
-            debug.error(`Link de pagamento não encontrado para o nível: ${level}`);
-            errorDiv.textContent = 'Erro: Link de pagamento não disponível para este cartão.';
-            errorDiv.classList.remove('hidden');
-            return;
-          }
-          debug.log(`Saldo insuficiente. Redirecionando para o link de pagamento: ${priceData.paymentLink}`);
-          alert(`Saldo insuficiente (R$${userBalance.toFixed(2)}). Você precisa de R$${cardPrice.toFixed(2)}. Redirecionando para adicionar saldo.`);
-          window.open(priceData.paymentLink, '_blank');
-          document.getElementById('purchase-modal').classList.remove('active');
-          return;
-        }
-
-        // Prosseguir com a compra se o saldo for suficiente
-        const response = await fetch('/.netlify/functions/app-function/purchase', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('token')
-          },
-          body: JSON.stringify({ cardNumber, level })
-        });
-        if (!response.ok) {
-          const text = await response.text();
-          debug.error(`Erro na API /purchase: Status ${response.status}, Resposta: ${text}`);
-          errorDiv.textContent = text.includes('<') ? 
-            `Erro ${response.status}: Servidor retornou uma página de erro. Verifique a configuração da API.` : 
-            `Erro ${response.status}: ${text}`;
-          errorDiv.classList.remove('hidden');
-          return;
-        }
-        const data = await response.json();
-        if (data.success) {
-          debug.log('Compra bem-sucedida para cartão: ' + cardNumber);
-          document.getElementById('purchase-modal').classList.remove('active');
-          alert('Compra realizada com sucesso! Verifique sua carteira.');
-          switchTab('wallet');
-          await loadPurchasedCards();
-          await loadCards();
-          const updatedUser = await checkAuth();
-          if (updatedUser) {
-            document.getElementById('user-info').textContent = `Usuário: ${updatedUser.username} | Saldo: R$${updatedUser.balance.toFixed(2)}`;
-          }
-        } else {
-          errorDiv.textContent = data.error || 'Erro ao processar compra';
-          errorDiv.classList.remove('hidden');
-          debug.error('Erro na compra: ' + (data.error || 'Erro desconhecido'));
-        }
-      } catch (error) {
-        debug.error('Erro ao processar compra: ' + error.message);
-        errorDiv.textContent = 'Erro ao conectar ao servidor. Verifique sua conexão ou a configuração da API.';
-        errorDiv.classList.remove('hidden');
-      }
-    }
-
-    function switchTab(tab) {
-      document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
-      document.getElementById(`${tab}-tab-button`).classList.add('active');
-      document.getElementById(`${tab}-tab`).classList.remove('hidden');
-      if (tab === 'wallet') {
-        loadPurchasedCards();
-      } else {
-        loadCards();
-      }
-      debug.log(`Aba alterada para: ${tab}`);
-    }
-
-    document.getElementById('shop-tab-button').addEventListener('click', () => switchTab('shop'));
-    document.getElementById('wallet-tab-button').addEventListener('click', () => switchTab('wallet'));
-    document.getElementById('modal-cancel').addEventListener('click', () => {
-      document.getElementById('purchase-modal').classList.remove('active');
-      debug.log('Modal de compra fechado');
+    // Fechar modal
+    document.getElementById('cancel-purchase').addEventListener('click', () => {
+      document.getElementById('purchase-modal').classList.add('hidden');
+      document.getElementById('purchase-modal').setAttribute('aria-hidden', 'true');
     });
-    document.getElementById('modal-confirm').addEventListener('click', handlePurchase);
+
+    // Logout
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = '/';
+    }
+
+    // Feedback
+    function showFeedback(message, classes) {
+      feedback.classList.remove('hidden');
+      feedback.textContent = message;
+      feedback.className = `p-4 mb-4 rounded-lg text-sm ${classes}`;
+    }
+
+    // Atualizar filtros
     document.getElementById('filter-brand').addEventListener('change', loadCards);
     document.getElementById('filter-bank').addEventListener('change', loadCards);
     document.getElementById('filter-level').addEventListener('change', loadCards);
 
-    (async () => {
-      await checkAuth();
-      await loadFilters();
-      await loadCards();
-    })();
+    // Inicializar
+    loadCards();
   </script>
 </body>
 </html>

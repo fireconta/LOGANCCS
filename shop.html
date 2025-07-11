@@ -31,7 +31,6 @@
   </header>
 
   <main class="max-w-7xl mx-auto p-6">
-    <!-- Botões de Navegação -->
     <div class="flex space-x-4 mb-6">
       <button id="shop-btn" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 flex items-center">
         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -46,11 +45,8 @@
         💼 Carteira
       </button>
     </div>
-
-    <!-- Feedback -->
     <div id="feedback" class="hidden p-4 mb-4 rounded-lg text-sm"></div>
 
-    <!-- Loja -->
     <section id="shop-section">
       <div class="flex flex-col md:flex-row gap-4 mb-6">
         <div class="flex-1">
@@ -76,7 +72,6 @@
       <div id="cards-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
     </section>
 
-    <!-- Carteira -->
     <section id="wallet-section" class="hidden">
       <h2 class="text-xl font-semibold mb-4 flex items-center">💼 Carteira</h2>
       <table class="w-full border-collapse bg-white rounded-lg shadow">
@@ -93,7 +88,6 @@
       </table>
     </section>
 
-    <!-- Modal de Compra -->
     <div id="purchase-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden" aria-hidden="true">
       <div class="bg-white p-6 rounded-lg max-w-md w-full animate-fade-in">
         <h2 class="text-xl font-semibold mb-4">💳 Confirmar Compra</h2>
@@ -138,7 +132,6 @@
   </style>
 
   <script>
-    // Alternar seções
     const shopBtn = document.getElementById('shop-btn');
     const walletBtn = document.getElementById('wallet-btn');
     const shopSection = document.getElementById('shop-section');
@@ -165,7 +158,6 @@
       loadPurchases();
     });
 
-    // Carregar filtros e cartões
     async function loadCards() {
       try {
         showFeedback('⏳ Carregando cartões...', 'bg-blue-100 text-blue-700');
@@ -183,11 +175,11 @@
         filterCards(cardsResponse.data, levelsResponse.data);
         showFeedback('✅ Cartões carregados!', 'bg-green-100 text-green-700');
       } catch (error) {
-        showFeedback(`❌ Erro ao carregar dados: ${error.response?.data?.error || 'Erro desconhecido'}`, 'bg-red-100 text-red-700');
+        const errorMessage = error.response?.data?.error || '❌ Erro ao carregar dados';
+        showFeedback(errorMessage, 'bg-red-100 text-red-700');
       }
     }
 
-    // Filtrar cartões
     function filterCards(cards, prices) {
       const brand = document.getElementById('filter-brand').value;
       const bank = document.getElementById('filter-bank').value;
@@ -221,7 +213,6 @@
       }).join('');
     }
 
-    // Carregar compras
     async function loadPurchases() {
       try {
         showFeedback('⏳ Carregando compras...', 'bg-blue-100 text-blue-700');
@@ -238,11 +229,11 @@
         `).join('');
         showFeedback('✅ Compras carregadas!', 'bg-green-100 text-green-700');
       } catch (error) {
-        showFeedback(`❌ Erro ao carregar compras: ${error.response?.data?.error || 'Erro desconhecido'}`, 'bg-red-100 text-red-700');
+        const errorMessage = error.response?.data?.error || '❌ Erro ao carregar compras';
+        showFeedback(errorMessage, 'bg-red-100 text-red-700');
       }
     }
 
-    // Mostrar modal de compra
     function showPurchaseModal(cardNumber, bank, brand, level, bin, expiry, price) {
       document.getElementById('modal-bank').textContent = bank;
       document.getElementById('modal-brand').textContent = brand;
@@ -255,7 +246,6 @@
       document.getElementById('confirm-purchase').onclick = () => confirmPurchase(cardNumber, level);
     }
 
-    // Confirmar compra
     async function confirmPurchase(cardNumber, level) {
       try {
         showFeedback('⏳ Processando compra...', 'bg-blue-100 text-blue-700');
@@ -265,37 +255,33 @@
           window.location.href = response.data.paymentLink;
         }, 1000);
       } catch (error) {
-        showFeedback(`❌ Erro ao processar compra: ${error.response?.data?.error || 'Erro desconhecido'}`, 'bg-red-100 text-red-700');
+        const errorMessage = error.response?.data?.error || '❌ Erro ao processar compra';
+        showFeedback(errorMessage, 'bg-red-100 text-red-700');
       }
       document.getElementById('purchase-modal').classList.add('hidden');
       document.getElementById('purchase-modal').setAttribute('aria-hidden', 'true');
     }
 
-    // Fechar modal
     document.getElementById('cancel-purchase').addEventListener('click', () => {
       document.getElementById('purchase-modal').classList.add('hidden');
       document.getElementById('purchase-modal').setAttribute('aria-hidden', 'true');
     });
 
-    // Logout
     function logout() {
       localStorage.removeItem('token');
       window.location.href = '/';
     }
 
-    // Feedback
     function showFeedback(message, classes) {
       feedback.classList.remove('hidden');
       feedback.textContent = message;
       feedback.className = `p-4 mb-4 rounded-lg text-sm ${classes}`;
     }
 
-    // Atualizar filtros
     document.getElementById('filter-brand').addEventListener('change', loadCards);
     document.getElementById('filter-bank').addEventListener('change', loadCards);
     document.getElementById('filter-level').addEventListener('change', loadCards);
 
-    // Inicializar
     loadCards();
   </script>
 </body>

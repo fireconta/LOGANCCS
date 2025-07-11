@@ -1,10 +1,7 @@
+```toml
 [build]
-  command = ""
   publish = "."
-
-[functions]
-  directory = "functions"
-  node_bundler = "esbuild"
+  functions = "functions"
 
 [[redirects]]
   from = "/api/*"
@@ -26,3 +23,4 @@
   from = "/*"
   to = "/index.html"
   status = 200
+```

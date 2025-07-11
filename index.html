@@ -54,6 +54,10 @@
       transform: scale(1.05);
       box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
     }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
     .btn::after {
       content: '';
       position: absolute;
@@ -69,11 +73,11 @@
     }
     .loader {
       display: none;
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #3b82f6;
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #3b82f6;
       border-radius: 50%;
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
       animation: spin 1s linear infinite;
     }
     @keyframes spin {
@@ -85,6 +89,9 @@
       color: #ef4444;
       font-size: 0.875rem;
       animation: fadeIn 0.3s;
+      padding: 8px;
+      background: rgba(239, 68, 68, 0.1);
+      border-radius: 4px;
     }
     .password-strength {
       font-size: 0.75rem;
@@ -131,6 +138,7 @@
     @media (max-width: 640px) {
       .form-container { padding: 1.5rem; }
       .hero { padding: 2rem 1rem; }
+      .btn { padding: 0.75rem; }
     }
   </style>
 </head>
@@ -165,17 +173,17 @@
         <form id="login-form" class="space-y-4" role="form" aria-label="Formulário de Login" lang="pt-BR">
           <div class="relative">
             <label for="login-username" class="block text-sm font-medium">Usuário</label>
-            <input type="text" id="login-username" name="username" class="mt-1 w-full p-3 rounded-md bg-gray-800 text-white border border-gray-600 focus:ring-2 focus:ring-blue-500 transition" placeholder="Digite seu usuário" required aria-required="true" aria-describedby="username-help login-error">
+            <input type="text" id="login-username" name="username" class="mt-1 w-full p-3 rounded-md bg-gray-800 text-white border border-gray-600 focus:ring-2 focus:ring-blue-500 transition" placeholder="Digite seu usuário" required aria-required="true" aria-describedby="username-help login-error" aria-invalid="false">
             <p id="username-help" class="text-xs text-gray-400 mt-1">Mínimo de 3 caracteres alfanuméricos</p>
-            <p id="login-error" class="error" role="alert" aria-live="polite"></p>
+            <p id="login-error" class="error" role="alert" aria-live="assertive"></p>
           </div>
           <div class="relative">
             <label for="login-password" class="block text-sm font-medium">Senha</label>
-            <input type="password" id="login-password" name="password" class="mt-1 w-full p-3 rounded-md bg-gray-800 text-white border border-gray-600 focus:ring-2 focus:ring-blue-500 transition pr-10" placeholder="Digite sua senha" required aria-required="true" aria-describedby="login-error">
-            <span class="password-toggle" id="login-password-toggle" aria-label="Mostrar/esconder senha"><i class="fas fa-eye"></i></span>
+            <input type="password" id="login-password" name="password" class="mt-1 w-full p-3 rounded-md bg-gray-800 text-white border border-gray-600 focus:ring-2 focus:ring-blue-500 transition pr-10" placeholder="Digite sua senha" required aria-required="true" aria-describedby="login-error" aria-invalid="false">
+            <span class="password-toggle" id="login-password-toggle" aria-label="Mostrar senha"><i class="fas fa-eye"></i></span>
             <p class="text-sm text-right mt-1"><a href="#forgot-password" class="text-blue-400 hover:underline" aria-label="Recuperar senha">Esqueceu sua senha?</a></p>
           </div>
-          <button type="submit" class="btn w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Entrar">
+          <button type="submit" id="login-submit" class="btn w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Entrar">
             <span class="loader" id="login-loader"></span>
             <i class="fas fa-sign-in-alt"></i> Entrar
           </button>
@@ -188,22 +196,22 @@
         <form id="register-form" class="space-y-4" role="form" aria-label="Formulário de Registro" lang="pt-BR">
           <div class="relative">
             <label for="register-username" class="block text-sm font-medium">Usuário</label>
-            <input type="text" id="register-username" name="username" class="mt-1 w-full p-3 rounded-md bg-gray-800 text-white border border-gray-600 focus:ring-2 focus:ring-blue-500 transition" placeholder="Digite seu usuário" required aria-required="true" aria-describedby="username-help register-error">
+            <input type="text" id="register-username" name="username" class="mt-1 w-full p-3 rounded-md bg-gray-800 text-white border border-gray-600 focus:ring-2 focus:ring-blue-500 transition" placeholder="Digite seu usuário" required aria-required="true" aria-describedby="username-help register-error" aria-invalid="false">
             <p id="username-help" class="text-xs text-gray-400 mt-1">3-20 caracteres, apenas letras e números</p>
-            <p id="register-error" class="error" role="alert" aria-live="polite"></p>
+            <p id="register-error" class="error" role="alert" aria-live="assertive"></p>
           </div>
           <div class="relative">
             <label for="register-password" class="block text-sm font-medium">Senha</label>
-            <input type="password" id="register-password" name="password" class="mt-1 w-full p-3 rounded-md bg-gray-800 text-white border border-gray-600 focus:ring-2 focus:ring-blue-500 transition pr-10" placeholder="Digite sua senha" required aria-required="true" aria-describedby="password-strength">
-            <span class="password-toggle" id="register-password-toggle" aria-label="Mostrar/esconder senha"><i class="fas fa-eye"></i></span>
+            <input type="password" id="register-password" name="password" class="mt-1 w-full p-3 rounded-md bg-gray-800 text-white border border-gray-600 focus:ring-2 focus:ring-blue-500 transition pr-10" placeholder="Digite sua senha" required aria-required="true" aria-describedby="password-strength" aria-invalid="false">
+            <span class="password-toggle" id="register-password-toggle" aria-label="Mostrar senha"><i class="fas fa-eye"></i></span>
             <div id="password-strength" class="password-strength"></div>
           </div>
           <div class="relative">
             <label for="register-confirm-password" class="block text-sm font-medium">Confirmar Senha</label>
-            <input type="password" id="register-confirm-password" name="confirm-password" class="mt-1 w-full p-3 rounded-md bg-gray-800 text-white border border-gray-600 focus:ring-2 focus:ring-blue-500 transition pr-10" placeholder="Confirme sua senha" required aria-required="true" aria-describedby="register-error">
-            <span class="password-toggle" id="confirm-password-toggle" aria-label="Mostrar/esconder senha"><i class="fas fa-eye"></i></span>
+            <input type="password" id="register-confirm-password" name="confirm-password" class="mt-1 w-full p-3 rounded-md bg-gray-800 text-white border border-gray-600 focus:ring-2 focus:ring-blue-500 transition pr-10" placeholder="Confirme sua senha" required aria-required="true" aria-describedby="register-error" aria-invalid="false">
+            <span class="password-toggle" id="confirm-password-toggle" aria-label="Mostrar senha"><i class="fas fa-eye"></i></span>
           </div>
-          <button type="submit" class="btn w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Registrar">
+          <button type="submit" id="register-submit" class="btn w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Registrar">
             <span class="loader" id="register-loader"></span>
             <i class="fas fa-user-plus"></i> Registrar
           </button>
@@ -222,11 +230,12 @@
   <script>
     const { validateUsername, validatePassword } = window.utils;
     const API_BASE = '/api';
+    let isSubmitting = false;
 
     function showToast(message, type = 'success') {
       Toastify({
         text: message,
-        duration: 3000,
+        duration: type === 'error' ? 5000 : 3000,
         style: { background: type === 'success' ? '#22c55e' : '#ef4444' },
         position: 'top-right'
       }).showToast();
@@ -234,22 +243,31 @@
 
     function showLoader(id) {
       document.getElementById(id).style.display = 'inline-block';
+      document.getElementById(`${id.replace('-loader', '-submit')}`).disabled = true;
     }
 
     function hideLoader(id) {
       document.getElementById(id).style.display = 'none';
+      document.getElementById(`${id.replace('-loader', '-submit')}`).disabled = false;
     }
 
-    function showError(id, message) {
+    function showError(id, message, inputId = null) {
       const error = document.getElementById(id);
       error.textContent = DOMPurify.sanitize(message);
       error.style.display = 'block';
+      if (inputId) {
+        document.getElementById(inputId).setAttribute('aria-invalid', 'true');
+        document.getElementById(inputId).focus();
+      }
     }
 
-    function clearError(id) {
+    function clearError(id, inputId = null) {
       const error = document.getElementById(id);
       error.textContent = '';
       error.style.display = 'none';
+      if (inputId) {
+        document.getElementById(inputId).setAttribute('aria-invalid', 'false');
+      }
     }
 
     function updatePasswordStrength() {
@@ -288,7 +306,6 @@
       });
     }
 
-    // Alternar entre login e registro
     function switchForm(formId) {
       const loginForm = document.getElementById('login');
       const registerForm = document.getElementById('register');
@@ -299,13 +316,33 @@
         registerForm.classList.toggle('hidden', formId !== 'register');
         document.getElementById('login-form').reset();
         document.getElementById('register-form').reset();
-        clearError('login-error');
-        clearError('register-error');
+        clearError('login-error', 'login-username');
+        clearError('login-error', 'login-password');
+        clearError('register-error', 'register-username');
+        clearError('register-error', 'register-password');
+        clearError('register-error', 'register-confirm-password');
         document.getElementById('password-strength').innerHTML = '';
         document.getElementById('mobile-nav').classList.add('hidden');
         document.getElementById('toggle-nav').classList.remove('open');
+        document.getElementById(formId === 'login' ? 'login-username' : 'register-username').focus();
         container.classList.remove('hidden');
       }, 300);
+    }
+
+    async function fetchWithRetry(url, options, retries = 3, delay = 1000) {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const response = await fetch(url, options);
+          if (response.status === 503 && i < retries - 1) {
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+          return response;
+        } catch (error) {
+          if (i === retries - 1) throw error;
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
     }
 
     document.querySelectorAll('a[href="#login"], a[href="#register"]').forEach(link => {
@@ -315,111 +352,144 @@
       });
     });
 
-    // Toggle menu móvel
     document.getElementById('toggle-nav').addEventListener('click', () => {
       document.getElementById('mobile-nav').classList.toggle('hidden');
       document.getElementById('toggle-nav').classList.toggle('open');
     });
 
-    // Mostrar/esconder senha
     togglePasswordVisibility('login-password', 'login-password-toggle');
     togglePasswordVisibility('register-password', 'register-password-toggle');
     togglePasswordVisibility('register-confirm-password', 'confirm-password-toggle');
 
-    // Validação em tempo real da senha
     document.getElementById('register-password').addEventListener('input', updatePasswordStrength);
 
-    // Login
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (isSubmitting) return;
+      isSubmitting = true;
+
       const username = DOMPurify.sanitize(document.getElementById('login-username').value.trim());
       const password = DOMPurify.sanitize(document.getElementById('login-password').value);
-      clearError('login-error');
+      clearError('login-error', 'login-username');
+      clearError('login-error', 'login-password');
       showLoader('login-loader');
 
       if (!username || !validateUsername(username)) {
-        showError('login-error', 'Usuário deve ter 3-20 caracteres alfanuméricos');
+        showError('login-error', 'Usuário deve ter 3-20 caracteres alfanuméricos', 'login-username');
         hideLoader('login-loader');
+        isSubmitting = false;
         return;
       }
       if (!password || !validatePassword(password).valid) {
-        showError('login-error', 'Senha deve ter pelo menos 8 caracteres, incluindo letras maiúsculas, minúsculas, números e caracteres especiais');
+        showError('login-error', 'Senha deve ter pelo menos 8 caracteres, incluindo letras maiúsculas, minúsculas, números e caracteres especiais', 'login-password');
         hideLoader('login-loader');
+        isSubmitting = false;
         return;
       }
 
       try {
-        const response = await fetch(`${API_BASE}/login`, {
+        const response = await fetchWithRetry(`${API_BASE}/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
         });
         const data = await response.json();
         if (!response.ok) {
-          throw new Error(data.error || 'Erro ao fazer login');
+          const errorMessages = {
+            401: 'Usuário ou senha incorretos',
+            404: 'Usuário não encontrado',
+            429: 'Muitas tentativas. Tente novamente em 1 minuto.',
+            default: data.error || 'Erro ao fazer login'
+          };
+          throw new Error(errorMessages[response.status] || errorMessages.default);
         }
         localStorage.setItem('token', data.token);
         showToast('Login realizado com sucesso!');
-        // Configurar temporizador de sessão (1 hora)
         setTimeout(() => {
-          showToast('Sua sessão está prestes a expirar. Faça login novamente.', 'error');
+          showToast('Sua sessão expira em 5 minutos. Faça login novamente.', 'error');
           localStorage.removeItem('token');
           window.location.href = '/index.html';
-        }, 55 * 60 * 1000); // 55 minutos
+        }, 55 * 60 * 1000);
         window.location.href = data.user.isAdmin ? '/dashboard' : '/shop';
       } catch (error) {
-        showError('login-error', error.message === 'Too many requests' ? 'Muitas tentativas. Tente novamente em alguns minutos.' : error.message);
+        showError('login-error', error.message, 'login-username');
+        if (error.message.includes('Muitas tentativas')) {
+          setTimeout(() => {
+            clearError('login-error', 'login-username');
+            clearError('login-error', 'login-password');
+          }, 60 * 1000);
+        }
       } finally {
         hideLoader('login-loader');
+        isSubmitting = false;
       }
     });
 
-    // Registro
     document.getElementById('register-form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (isSubmitting) return;
+      isSubmitting = true;
+
       const username = DOMPurify.sanitize(document.getElementById('register-username').value.trim());
       const password = DOMPurify.sanitize(document.getElementById('register-password').value);
       const confirmPassword = DOMPurify.sanitize(document.getElementById('register-confirm-password').value);
-      clearError('register-error');
+      clearError('register-error', 'register-username');
+      clearError('register-error', 'register-password');
+      clearError('register-error', 'register-confirm-password');
       showLoader('register-loader');
 
       if (!username || !validateUsername(username)) {
-        showError('register-error', 'Usuário deve ter 3-20 caracteres alfanuméricos');
+        showError('register-error', 'Usuário deve ter 3-20 caracteres alfanuméricos', 'register-username');
         hideLoader('register-loader');
+        isSubmitting = false;
         return;
       }
       const passwordStrength = validatePassword(password);
       if (!passwordStrength.valid) {
-        showError('register-error', passwordStrength.message);
+        showError('register-error', passwordStrength.message, 'register-password');
         hideLoader('register-loader');
+        isSubmitting = false;
         return;
       }
       if (password !== confirmPassword) {
-        showError('register-error', 'As senhas não coincidem');
+        showError('register-error', 'As senhas não coincidem', 'register-confirm-password');
         hideLoader('register-loader');
+        isSubmitting = false;
         return;
       }
 
       try {
-        const response = await fetch(`${API_BASE}/register`, {
+        const response = await fetchWithRetry(`${API_BASE}/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password, confirmPassword })
         });
         const data = await response.json();
         if (!response.ok) {
-          throw new Error(data.error || 'Erro ao registrar');
+          const errorMessages = {
+            409: 'Usuário já existe',
+            429: 'Muitas tentativas. Tente novamente em 1 minuto.',
+            default: data.error || 'Erro ao registrar'
+          };
+          throw new Error(errorMessages[response.status] || errorMessages.default);
         }
         showToast('Registro realizado com sucesso! Faça login.');
         switchForm('login');
       } catch (error) {
-        showError('register-error', error.message === 'Too many requests' ? 'Muitas tentativas. Tente novamente em alguns minutos.' : error.message);
+        showError('register-error', error.message, 'register-username');
+        if (error.message.includes('Muitas tentativas')) {
+          setTimeout(() => {
+            clearError('register-error', 'register-username');
+            clearError('register-error', 'register-password');
+            clearError('register-error', 'register-confirm-password');
+          }, 60 * 1000);
+        }
       } finally {
         hideLoader('register-loader');
+        isSubmitting = false;
       }
     });
 
-    // Suporte a Enter nos formulários
     document.querySelectorAll('#login-form input, #register-form input').forEach(input => {
       input.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {

@@ -1,4 +1,4 @@
-```toml
+
 [build]
   publish = "."
   functions = "functions"
@@ -23,4 +23,3 @@
   from = "/*"
   to = "/index.html"
   status = 200
-```

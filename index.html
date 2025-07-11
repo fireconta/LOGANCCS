@@ -3,17 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Plataforma segura para compra de cartões - LoganCCS">
   <title>LOGAN CC'S - Login e Registro</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="https://via.placeholder.com/32?text=LCC">
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
+  <script src="https://cdn.tailwindcss.com?version=3.4.3"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" rel="stylesheet">
   <style>
     body {
-      font-family: 'Poppins', sans-serif;
-      background: linear-gradient(45deg, #1e3a8a, #7c3aed, #db2777, #22d3ee);
-      background-size: 400%;
-      animation: gradientShift 10s ease infinite;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(45deg, #1e3a8a, #3b82f6, #6b7280, #22d3ee);
+      background-size: 300%;
+      animation: gradientShift 15s ease infinite;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -27,22 +30,29 @@
       background: url('https://source.unsplash.com/random/1920x1080/?cyber') no-repeat center;
       background-size: cover;
       background-blend-mode: overlay;
-      background-color: rgba(0, 0, 0, 0.7);
+      background-color: rgba(0, 0, 0, 0.6);
     }
     .form-container {
       animation: slideIn 0.8s ease-out;
       backdrop-filter: blur(12px);
-      background: rgba(31, 41, 55, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 1rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .form-container.hidden {
+      opacity: 0;
+      transform: translateY(20px);
     }
     .btn {
       position: relative;
       overflow: hidden;
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
     .btn:hover {
       transform: scale(1.05);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
     }
     .btn::after {
       content: '';
@@ -51,8 +61,8 @@
       left: -100%;
       width: 100%;
       height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-      transition: 0.4s;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transition: left 0.5s ease;
     }
     .btn:hover::after {
       left: 100%;
@@ -60,7 +70,7 @@
     .loader {
       display: none;
       border: 4px solid #f3f3f3;
-      border-top: 4px solid #db2777;
+      border-top: 4px solid #3b82f6;
       border-radius: 50%;
       width: 24px;
       height: 24px;
@@ -72,90 +82,133 @@
     }
     .error {
       display: none;
-      color: #f87171;
+      color: #ef4444;
       font-size: 0.875rem;
       animation: fadeIn 0.3s;
     }
+    .password-strength {
+      font-size: 0.75rem;
+      margin-top: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .strength-weak { color: #ef4444; }
+    .strength-medium { color: #f59e0b; }
+    .strength-strong { color: #22c55e; }
+    .strength-item { display: flex; align-items: center; gap: 4px; }
+    .strength-item i { font-size: 0.75rem; }
     @keyframes fadeIn {
       from { opacity: 0; }
       to { opacity: 1; }
     }
     .navbar-toggle {
-      transition: transform 0.3s;
+      transition: transform 0.3s ease;
     }
     .navbar-toggle.open {
       transform: rotate(90deg);
     }
+    .password-toggle {
+      cursor: pointer;
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9ca3af;
+    }
+    .particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+      background-size: 20px 20px;
+      opacity: 0.3;
+      z-index: -1;
+    }
+    @media (max-width: 640px) {
+      .form-container { padding: 1.5rem; }
+      .hero { padding: 2rem 1rem; }
+    }
   </style>
 </head>
 <body class="text-gray-200">
+  <div class="particles"></div>
   <header class="bg-gray-900 shadow-lg sticky top-0 z-20">
     <nav class="container mx-auto p-4 flex justify-between items-center">
-      <h1 class="text-3xl font-bold text-white font-montserrat">LOGAN CC'S</h1>
+      <h1 class="text-3xl font-bold text-white">LOGAN CC'S</h1>
       <div class="flex items-center">
-        <button id="toggle-nav" class="text-white md:hidden navbar-toggle"><i class="fas fa-bars"></i></button>
+        <button id="toggle-nav" class="text-white md:hidden navbar-toggle" aria-label="Alternar menu"><i class="fas fa-bars"></i></button>
         <div id="nav-links" class="hidden md:flex space-x-4">
-          <a href="#login" class="text-white hover:text-cyan-400 transition">Login</a>
-          <a href="#register" class="text-white hover:text-cyan-400 transition">Registro</a>
+          <a href="#login" class="text-white hover:text-blue-400 transition focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Ir para login">Login</a>
+          <a href="#register" class="text-white hover:text-blue-400 transition focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Ir para registro">Registro</a>
         </div>
       </div>
     </nav>
     <div id="mobile-nav" class="hidden md:hidden bg-gray-800 p-4">
-      <a href="#login" class="block text-white hover:text-cyan-400 py-2">Login</a>
-      <a href="#register" class="block text-white hover:text-cyan-400 py-2">Registro</a>
+      <a href="#login" class="block text-white hover:text-blue-400 py-2 focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Ir para login">Login</a>
+      <a href="#register" class="block text-white hover:text-blue-400 py-2 focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Ir para registro">Registro</a>
     </div>
   </header>
 
   <section class="hero py-16 text-center">
-    <h2 class="text-5xl font-bold text-white font-montserrat mb-4">LOGAN CC'S</h2>
-    <p class="text-xl text-gray-300">A plataforma mais segura e moderna para compra de cartões!</p>
+    <h2 class="text-5xl font-bold text-white mb-4">LOGAN CC'S</h2>
+    <p class="text-xl text-gray-300">A plataforma mais segura para compra de cartões!</p>
   </section>
 
   <main class="container mx-auto p-6 flex-grow flex items-center justify-center">
-    <div class="max-w-md w-full rounded-xl shadow-2xl p-8 form-container">
+    <div class="max-w-md w-full rounded-xl p-8 form-container" id="form-container">
       <div id="login" class="space-y-6">
-        <h2 class="text-3xl font-semibold text-center text-cyan-400 font-montserrat">Login</h2>
-        <form id="login-form" class="space-y-4" aria-label="Formulário de Login">
-          <div>
+        <h2 class="text-3xl font-semibold text-center text-blue-400">Login</h2>
+        <form id="login-form" class="space-y-4" role="form" aria-label="Formulário de Login" lang="pt-BR">
+          <div class="relative">
             <label for="login-username" class="block text-sm font-medium">Usuário</label>
-            <input type="text" id="login-username" name="username" class="mt-1 w-full p-3 rounded-md bg-gray-700 text-white border border-gray-600 focus:ring-2 focus:ring-cyan-500 transition" placeholder="Digite seu usuário" required aria-required="true" aria-describedby="username-help login-error">
+            <input type="text" id="login-username" name="username" class="mt-1 w-full p-3 rounded-md bg-gray-800 text-white border border-gray-600 focus:ring-2 focus:ring-blue-500 transition" placeholder="Digite seu usuário" required aria-required="true" aria-describedby="username-help login-error">
             <p id="username-help" class="text-xs text-gray-400 mt-1">Mínimo de 3 caracteres alfanuméricos</p>
-            <p id="login-error" class="error"></p>
+            <p id="login-error" class="error" role="alert" aria-live="polite"></p>
           </div>
-          <div>
+          <div class="relative">
             <label for="login-password" class="block text-sm font-medium">Senha</label>
-            <input type="password" id="login-password" name="password" class="mt-1 w-full p-3 rounded-md bg-gray-700 text-white border border-gray-600 focus:ring-2 focus:ring-cyan-500 transition" placeholder="Digite sua senha" required aria-required="true" aria-describedby="login-error">
+            <input type="password" id="login-password" name="password" class="mt-1 w-full p-3 rounded-md bg-gray-800 text-white border border-gray-600 focus:ring-2 focus:ring-blue-500 transition pr-10" placeholder="Digite sua senha" required aria-required="true" aria-describedby="login-error">
+            <span class="password-toggle" id="login-password-toggle" aria-label="Mostrar/esconder senha"><i class="fas fa-eye"></i></span>
+            <p class="text-sm text-right mt-1"><a href="#forgot-password" class="text-blue-400 hover:underline" aria-label="Recuperar senha">Esqueceu sua senha?</a></p>
           </div>
-          <button type="submit" class="btn w-full bg-cyan-600 text-white p-3 rounded-md hover:bg-cyan-700 flex items-center justify-center gap-2">
+          <button type="submit" class="btn w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Entrar">
             <span class="loader" id="login-loader"></span>
             <i class="fas fa-sign-in-alt"></i> Entrar
           </button>
         </form>
-        <p class="text-center text-sm">Não tem uma conta? <a href="#register" class="text-cyan-400 hover:underline">Registre-se</a></p>
+        <p class="text-center text-sm">Não tem uma conta? <a href="#register" class="text-blue-400 hover:underline" aria-label="Ir para registro">Registre-se</a></p>
       </div>
 
       <div id="register" class="space-y-6 hidden">
-        <h2 class="text-3xl font-semibold text-center text-cyan-400 font-montserrat">Registrar</h2>
-        <form id="register-form" class="space-y-4" aria-label="Formulário de Registro">
-          <div>
+        <h2 class="text-3xl font-semibold text-center text-blue-400">Registrar</h2>
+        <form id="register-form" class="space-y-4" role="form" aria-label="Formulário de Registro" lang="pt-BR">
+          <div class="relative">
             <label for="register-username" class="block text-sm font-medium">Usuário</label>
-            <input type="text" id="register-username" name="username" class="mt-1 w-full p-3 rounded-md bg-gray-700 text-white border border-gray-600 focus:ring-2 focus:ring-cyan-500 transition" placeholder="Digite seu usuário" required aria-required="true" aria-describedby="username-help register-error">
-            <p id="register-error" class="error"></p>
+            <input type="text" id="register-username" name="username" class="mt-1 w-full p-3 rounded-md bg-gray-800 text-white border border-gray-600 focus:ring-2 focus:ring-blue-500 transition" placeholder="Digite seu usuário" required aria-required="true" aria-describedby="username-help register-error">
+            <p id="username-help" class="text-xs text-gray-400 mt-1">3-20 caracteres, apenas letras e números</p>
+            <p id="register-error" class="error" role="alert" aria-live="polite"></p>
           </div>
-          <div>
+          <div class="relative">
             <label for="register-password" class="block text-sm font-medium">Senha</label>
-            <input type="password" id="register-password" name="password" class="mt-1 w-full p-3 rounded-md bg-gray-700 text-white border border-gray-600 focus:ring-2 focus:ring-cyan-500 transition" placeholder="Digite sua senha" required aria-required="true">
+            <input type="password" id="register-password" name="password" class="mt-1 w-full p-3 rounded-md bg-gray-800 text-white border border-gray-600 focus:ring-2 focus:ring-blue-500 transition pr-10" placeholder="Digite sua senha" required aria-required="true" aria-describedby="password-strength">
+            <span class="password-toggle" id="register-password-toggle" aria-label="Mostrar/esconder senha"><i class="fas fa-eye"></i></span>
+            <div id="password-strength" class="password-strength"></div>
           </div>
-          <div>
+          <div class="relative">
             <label for="register-confirm-password" class="block text-sm font-medium">Confirmar Senha</label>
-            <input type="password" id="register-confirm-password" name="confirm-password" class="mt-1 w-full p-3 rounded-md bg-gray-700 text-white border border-gray-600 focus:ring-2 focus:ring-cyan-500 transition" placeholder="Confirme sua senha" required aria-required="true" aria-describedby="register-error">
+            <input type="password" id="register-confirm-password" name="confirm-password" class="mt-1 w-full p-3 rounded-md bg-gray-800 text-white border border-gray-600 focus:ring-2 focus:ring-blue-500 transition pr-10" placeholder="Confirme sua senha" required aria-required="true" aria-describedby="register-error">
+            <span class="password-toggle" id="confirm-password-toggle" aria-label="Mostrar/esconder senha"><i class="fas fa-eye"></i></span>
           </div>
-          <button type="submit" class="btn w-full bg-cyan-600 text-white p-3 rounded-md hover:bg-cyan-700 flex items-center justify-center gap-2">
+          <button type="submit" class="btn w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Registrar">
             <span class="loader" id="register-loader"></span>
             <i class="fas fa-user-plus"></i> Registrar
           </button>
         </form>
-        <p class="text-center text-sm">Já tem uma conta? <a href="#login" class="text-cyan-400 hover:underline">Faça login</a></p>
+        <p class="text-center text-sm">Já tem uma conta? <a href="#login" class="text-blue-400 hover:underline" aria-label="Ir para login">Faça login</a></p>
       </div>
     </div>
   </main>
@@ -167,7 +220,7 @@
   <script src="/utils.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
   <script>
-    const { validateCardNumber, validateCvv, validateExpiry, validateUrl, validateBank, validateLevel, formatPrice } = window.utils;
+    const { validateUsername, validatePassword } = window.utils;
     const API_BASE = '/api';
 
     function showToast(message, type = 'success') {
@@ -189,7 +242,7 @@
 
     function showError(id, message) {
       const error = document.getElementById(id);
-      error.textContent = message;
+      error.textContent = DOMPurify.sanitize(message);
       error.style.display = 'block';
     }
 
@@ -199,14 +252,66 @@
       error.style.display = 'none';
     }
 
+    function updatePasswordStrength() {
+      const password = document.getElementById('register-password').value;
+      const strengthContainer = document.getElementById('password-strength');
+      const strength = validatePassword(password);
+      strengthContainer.innerHTML = `
+        <div class="strength-item ${strength.length ? 'strength-strong' : 'strength-weak'}">
+          <i class="fas ${strength.length ? 'fa-check' : 'fa-times'}"></i> Mínimo 8 caracteres
+        </div>
+        <div class="strength-item ${strength.uppercase ? 'strength-strong' : 'strength-weak'}">
+          <i class="fas ${strength.uppercase ? 'fa-check' : 'fa-times'}"></i> Letra maiúscula
+        </div>
+        <div class="strength-item ${strength.lowercase ? 'strength-strong' : 'strength-weak'}">
+          <i class="fas ${strength.lowercase ? 'fa-check' : 'fa-times'}"></i> Letra minúscula
+        </div>
+        <div class="strength-item ${strength.number ? 'strength-strong' : 'strength-weak'}">
+          <i class="fas ${strength.number ? 'fa-check' : 'fa-times'}"></i> Número
+        </div>
+        <div class="strength-item ${strength.special ? 'strength-strong' : 'strength-weak'}">
+          <i class="fas ${strength.special ? 'fa-check' : 'fa-times'}"></i> Caractere especial
+        </div>
+        <div class="strength-item">${strength.message}</div>
+      `;
+      strengthContainer.className = `password-strength ${strength.class}`;
+    }
+
+    function togglePasswordVisibility(inputId, toggleId) {
+      const input = document.getElementById(inputId);
+      const toggle = document.getElementById(toggleId);
+      toggle.addEventListener('click', () => {
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        toggle.innerHTML = `<i class="fas ${isPassword ? 'fa-eye-slash' : 'fa-eye'}"></i>`;
+        toggle.setAttribute('aria-label', isPassword ? 'Esconder senha' : 'Mostrar senha');
+      });
+    }
+
     // Alternar entre login e registro
+    function switchForm(formId) {
+      const loginForm = document.getElementById('login');
+      const registerForm = document.getElementById('register');
+      const container = document.getElementById('form-container');
+      container.classList.add('hidden');
+      setTimeout(() => {
+        loginForm.classList.toggle('hidden', formId !== 'login');
+        registerForm.classList.toggle('hidden', formId !== 'register');
+        document.getElementById('login-form').reset();
+        document.getElementById('register-form').reset();
+        clearError('login-error');
+        clearError('register-error');
+        document.getElementById('password-strength').innerHTML = '';
+        document.getElementById('mobile-nav').classList.add('hidden');
+        document.getElementById('toggle-nav').classList.remove('open');
+        container.classList.remove('hidden');
+      }, 300);
+    }
+
     document.querySelectorAll('a[href="#login"], a[href="#register"]').forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
-        document.getElementById('login').classList.toggle('hidden', e.target.getAttribute('href') !== '#login');
-        document.getElementById('register').classList.toggle('hidden', e.target.getAttribute('href') !== '#register');
-        document.getElementById('mobile-nav').classList.add('hidden');
-        document.getElementById('toggle-nav').classList.remove('open');
+        switchForm(e.target.getAttribute('href').slice(1));
       });
     });
 
@@ -216,21 +321,29 @@
       document.getElementById('toggle-nav').classList.toggle('open');
     });
 
+    // Mostrar/esconder senha
+    togglePasswordVisibility('login-password', 'login-password-toggle');
+    togglePasswordVisibility('register-password', 'register-password-toggle');
+    togglePasswordVisibility('register-confirm-password', 'confirm-password-toggle');
+
+    // Validação em tempo real da senha
+    document.getElementById('register-password').addEventListener('input', updatePasswordStrength);
+
     // Login
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const username = document.getElementById('login-username').value;
-      const password = document.getElementById('login-password').value;
+      const username = DOMPurify.sanitize(document.getElementById('login-username').value.trim());
+      const password = DOMPurify.sanitize(document.getElementById('login-password').value);
       clearError('login-error');
       showLoader('login-loader');
 
-      if (username.length < 3 || !/^[a-zA-Z0-9]+$/.test(username)) {
-        showError('login-error', 'Usuário deve ter pelo menos 3 caracteres alfanuméricos');
+      if (!username || !validateUsername(username)) {
+        showError('login-error', 'Usuário deve ter 3-20 caracteres alfanuméricos');
         hideLoader('login-loader');
         return;
       }
-      if (password.length < 6) {
-        showError('login-error', 'Senha deve ter pelo menos 6 caracteres');
+      if (!password || !validatePassword(password).valid) {
+        showError('login-error', 'Senha deve ter pelo menos 8 caracteres, incluindo letras maiúsculas, minúsculas, números e caracteres especiais');
         hideLoader('login-loader');
         return;
       }
@@ -242,12 +355,20 @@
           body: JSON.stringify({ username, password })
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Erro ao fazer login');
+        if (!response.ok) {
+          throw new Error(data.error || 'Erro ao fazer login');
+        }
         localStorage.setItem('token', data.token);
         showToast('Login realizado com sucesso!');
+        // Configurar temporizador de sessão (1 hora)
+        setTimeout(() => {
+          showToast('Sua sessão está prestes a expirar. Faça login novamente.', 'error');
+          localStorage.removeItem('token');
+          window.location.href = '/index.html';
+        }, 55 * 60 * 1000); // 55 minutos
         window.location.href = data.user.isAdmin ? '/dashboard' : '/shop';
       } catch (error) {
-        showError('login-error', error.message);
+        showError('login-error', error.message === 'Too many requests' ? 'Muitas tentativas. Tente novamente em alguns minutos.' : error.message);
       } finally {
         hideLoader('login-loader');
       }
@@ -256,19 +377,20 @@
     // Registro
     document.getElementById('register-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const username = document.getElementById('register-username').value;
-      const password = document.getElementById('register-password').value;
-      const confirmPassword = document.getElementById('register-confirm-password').value;
+      const username = DOMPurify.sanitize(document.getElementById('register-username').value.trim());
+      const password = DOMPurify.sanitize(document.getElementById('register-password').value);
+      const confirmPassword = DOMPurify.sanitize(document.getElementById('register-confirm-password').value);
       clearError('register-error');
       showLoader('register-loader');
 
-      if (username.length < 3 || !/^[a-zA-Z0-9]+$/.test(username)) {
-        showError('register-error', 'Usuário deve ter pelo menos 3 caracteres alfanuméricos');
+      if (!username || !validateUsername(username)) {
+        showError('register-error', 'Usuário deve ter 3-20 caracteres alfanuméricos');
         hideLoader('register-loader');
         return;
       }
-      if (password.length < 6) {
-        showError('register-error', 'Senha deve ter pelo menos 6 caracteres');
+      const passwordStrength = validatePassword(password);
+      if (!passwordStrength.valid) {
+        showError('register-error', passwordStrength.message);
         hideLoader('register-loader');
         return;
       }
@@ -285,14 +407,27 @@
           body: JSON.stringify({ username, password, confirmPassword })
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Erro ao registrar');
+        if (!response.ok) {
+          throw new Error(data.error || 'Erro ao registrar');
+        }
         showToast('Registro realizado com sucesso! Faça login.');
-        document.getElementById('register').classList.add('hidden');
-        document.getElementById('login').classList.remove('hidden');
+        switchForm('login');
       } catch (error) {
-        showError('register-error', error.message);
+        showError('register-error', error.message === 'Too many requests' ? 'Muitas tentativas. Tente novamente em alguns minutos.' : error.message);
       } finally {
         hideLoader('register-loader');
       }
     });
+
+    // Suporte a Enter nos formulários
+    document.querySelectorAll('#login-form input, #register-form input').forEach(input => {
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          input.closest('form').dispatchEvent(new Event('submit'));
+        }
+      });
+    });
   </script>
+</body>
+</html>

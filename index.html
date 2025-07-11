@@ -3,159 +3,160 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🔐 LoganCCS</title>
+  <title>🔐 LoganCCS - Login</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="/utils.js"></script>
+  <script src="/debug.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/heroicons/2.0.18/dist/heroicons.min.css" rel="stylesheet">
 </head>
 <body class="bg-gradient-to-r from-blue-100 to-gray-100 min-h-screen flex items-center justify-center">
-  <div class="max-w-md w-full mx-auto bg-white p-6 rounded-lg shadow-lg">
-    <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">🔐 LoganCCS</h1>
-
-    <!-- Abas -->
-    <ul class="flex justify-center mb-6" data-tabs-toggle="#auth-tabs">
-      <li>
-        <button id="login-tab" class="px-4 py-2 font-semibold text-blue-600 border-b-2 border-blue-600 flex items-center" aria-selected="true" aria-controls="login-form">
-          <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14"></path>
-          </svg>
-          🔐 Login
-        </button>
-      </li>
-      <li>
-        <button id="register-tab" class="px-4 py-2 font-semibold text-gray-600 hover:text-blue-600 flex items-center" aria-selected="false" aria-controls="register-form">
-          <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-          </svg>
-          📝 Registro
-        </button>
-      </li>
-    </ul>
-
-    <!-- Feedback -->
+  <main class="max-w-md w-full p-6 bg-white rounded-lg shadow-lg">
+    <h1 class="text-3xl font-bold text-center mb-6">🔐 LoganCCS</h1>
+    <div class="flex space-x-4 mb-6">
+      <button id="login-tab" class="flex-1 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 flex items-center justify-center">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14"></path>
+        </svg>
+        🔐 Login
+      </button>
+      <button id="register-tab" class="flex-1 py-2 bg-gray-300 text-gray-800 rounded-lg font-semibold hover:bg-gray-400 flex items-center justify-center">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+        </svg>
+        📝 Registro
+      </button>
+    </div>
     <div id="feedback" class="hidden p-4 mb-4 rounded-lg text-sm"></div>
-
-    <!-- Formulário de Login -->
-    <div id="auth-tabs">
-      <div id="login-form" class="space-y-4">
+    <section id="login-section">
+      <form id="login-form" class="space-y-4">
         <div>
           <label for="login-username" class="block text-sm font-medium text-gray-700">👤 Usuário</label>
-          <input id="login-username" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite seu usuário" required aria-label="Usuário">
+          <input id="login-username" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Nome de usuário">
         </div>
         <div>
           <label for="login-password" class="block text-sm font-medium text-gray-700">🔒 Senha</label>
-          <input id="login-password" type="password" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite sua senha" required aria-label="Senha">
+          <input id="login-password" type="password" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Senha">
         </div>
-        <button id="login-button" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-center transition transform hover:scale-105" aria-label="Entrar">
+        <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center">
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14"></path>
           </svg>
-          ✅ Entrar
+          🔐 Entrar
         </button>
-      </div>
-
-      <!-- Formulário de Registro -->
-      <div id="register-form" class="space-y-4 hidden">
+      </form>
+    </section>
+    <section id="register-section" class="hidden">
+      <form id="register-form" class="space-y-4">
         <div>
           <label for="register-username" class="block text-sm font-medium text-gray-700">👤 Usuário</label>
-          <input id="register-username" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite seu usuário" required aria-label="Usuário">
+          <input id="register-username" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Nome de usuário">
         </div>
         <div>
           <label for="register-password" class="block text-sm font-medium text-gray-700">🔒 Senha</label>
-          <input id="register-password" type="password" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite sua senha" required aria-label="Senha">
+          <input id="register-password" type="password" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Senha">
         </div>
         <div>
-          <label for="register-confirm-password" class="block text-sm font-medium text-gray-700">🔒 Confirmar Senha</label>
-          <input id="register-confirm-password" type="password" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Confirme sua senha" required aria-label="Confirmar Senha">
+          <label for="admin-password" class="block text-sm font-medium text-gray-700">🔑 Senha de Admin (opcional)</label>
+          <input id="admin-password" type="password" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Senha de administrador">
         </div>
-        <button id="register-button" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-center transition transform hover:scale-105" aria-label="Registrar">
+        <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center">
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
           </svg>
-          ✅ Registrar
+          📝 Registrar
         </button>
-      </div>
+      </form>
+    </section>
+    <div id="debug-panel" class="mt-6 p-4 bg-gray-100 rounded-lg">
+      <h2 class="text-lg font-semibold">🐞 Depuração</h2>
+      <div id="debug-messages" class="mt-2 text-sm"></div>
     </div>
-  </div>
-
+  </main>
+  <style>
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+      animation: fade-in 0.3s ease-out;
+    }
+  </style>
   <script>
-    // Alternar abas
+    debug.init('debug-messages', true);
     const loginTab = document.getElementById('login-tab');
     const registerTab = document.getElementById('register-tab');
-    const loginForm = document.getElementById('login-form');
-    const registerForm = document.getElementById('register-form');
+    const loginSection = document.getElementById('login-section');
+    const registerSection = document.getElementById('register-section');
     const feedback = document.getElementById('feedback');
 
     loginTab.addEventListener('click', () => {
-      loginTab.classList.add('border-blue-600', 'text-blue-600');
-      loginTab.setAttribute('aria-selected', 'true');
-      registerTab.classList.remove('border-blue-600', 'text-blue-600');
-      registerTab.setAttribute('aria-selected', 'false');
-      loginForm.classList.remove('hidden');
-      registerForm.classList.add('hidden');
+      loginTab.classList.add('bg-blue-600', 'text-white');
+      loginTab.classList.remove('bg-gray-300', 'text-gray-800');
+      registerTab.classList.add('bg-gray-300', 'text-gray-800');
+      registerTab.classList.remove('bg-blue-600', 'text-white');
+      loginSection.classList.remove('hidden');
+      registerSection.classList.add('hidden');
     });
 
     registerTab.addEventListener('click', () => {
-      registerTab.classList.add('border-blue-600', 'text-blue-600');
-      registerTab.setAttribute('aria-selected', 'true');
-      loginTab.classList.remove('border-blue-600', 'text-blue-600');
-      loginTab.setAttribute('aria-selected', 'false');
-      registerForm.classList.remove('hidden');
-      loginForm.classList.add('hidden');
+      registerTab.classList.add('bg-blue-600', 'text-white');
+      registerTab.classList.remove('bg-gray-300', 'text-gray-800');
+      loginTab.classList.add('bg-gray-300', 'text-gray-800');
+      loginTab.classList.remove('bg-blue-600', 'text-white');
+      registerSection.classList.remove('hidden');
+      loginSection.classList.add('hidden');
     });
 
-    // Validação e submissão de login
-    document.getElementById('login-button').addEventListener('click', async () => {
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
       const username = document.getElementById('login-username').value;
       const password = document.getElementById('login-password').value;
-
-      if (username.length < 3 || password.length < 6) {
-        showFeedback('❌ Usuário (mín. 3 caracteres) e senha (mín. 6 caracteres) são obrigatórios', 'bg-red-100 text-red-700');
+      if (!utils.validateUsername(username) || !utils.validatePassword(password)) {
+        showFeedback('❌ Usuário deve ter no mínimo 3 caracteres alfanuméricos e senha 6 caracteres', 'bg-red-100 text-red-700');
+        debug.error('Validação de login falhou');
         return;
       }
-
-      showFeedback('⏳ Carregando...', 'bg-blue-100 text-blue-700');
       try {
+        showFeedback('⏳ Fazendo login...', 'bg-blue-100 text-blue-700');
+        debug.log('Enviando requisição para /api/login');
         const response = await axios.post('/api/login', { username, password });
-        showFeedback('✅ Login bem-sucedido! Redirecionando...', 'bg-green-100 text-green-700');
         localStorage.setItem('token', response.data.token);
-        setTimeout(() => window.location.href = '/dashboard', 1000);
+        showFeedback('✅ Login realizado! Redirecionando...', 'bg-green-100 text-green-700');
+        debug.log('Login bem-sucedido, token salvo');
+        setTimeout(() => window.location.href = response.data.isAdmin ? '/dashboard' : '/shop', 1000);
       } catch (error) {
-        showFeedback(`❌ Erro ao fazer login: ${error.response?.data?.error || 'Erro desconhecido'}`, 'bg-red-100 text-red-700');
+        const errorMessage = error.response?.data?.error || '❌ Erro ao fazer login';
+        showFeedback(errorMessage, 'bg-red-100 text-red-700');
+        debug.error(`Erro no login: ${errorMessage}`);
       }
     });
 
-    // Validação e submissão de registro
-    document.getElementById('register-button').addEventListener('click', async () => {
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
       const username = document.getElementById('register-username').value;
       const password = document.getElementById('register-password').value;
-      const confirmPassword = document.getElementById('register-confirm-password').value;
-
-      if (username.length < 3 || !/^[a-zA-Z0-9]+$/.test(username)) {
-        showFeedback('❌ Usuário deve ter no mínimo 3 caracteres alfanuméricos', 'bg-red-100 text-red-700');
+      const adminPassword = document.getElementById('admin-password').value;
+      if (!utils.validateUsername(username) || !utils.validatePassword(password)) {
+        showFeedback('❌ Usuário deve ter no mínimo 3 caracteres alfanuméricos e senha 6 caracteres', 'bg-red-100 text-red-700');
+        debug.error('Validação de registro falhou');
         return;
       }
-      if (password.length < 6) {
-        showFeedback('❌ Senha deve ter no mínimo 6 caracteres', 'bg-red-100 text-red-700');
-        return;
-      }
-      if (password !== confirmPassword) {
-        showFeedback('❌ As senhas não coincidem', 'bg-red-100 text-red-700');
-        return;
-      }
-
-      showFeedback('⏳ Carregando...', 'bg-blue-100 text-blue-700');
       try {
-        const response = await axios.post('/api/register', { username, password });
-        showFeedback('✅ Registro bem-sucedido! Redirecionando...', 'bg-green-100 text-green-700');
-        setTimeout(() => loginTab.click(), 1000);
+        showFeedback('⏳ Registrando...', 'bg-blue-100 text-blue-700');
+        debug.log('Enviando requisição para /api/register');
+        const response = await axios.post('/api/register', { username, password, isAdmin: !!adminPassword, adminPassword });
+        localStorage.setItem('token', response.data.token);
+        showFeedback('✅ Registro realizado! Redirecionando...', 'bg-green-100 text-green-700');
+        debug.log('Registro bem-sucedido, token salvo');
+        setTimeout(() => window.location.href = response.data.isAdmin ? '/dashboard' : '/shop', 1000);
       } catch (error) {
-        showFeedback(`❌ Erro ao registrar: ${error.response?.data?.error || 'Erro desconhecido'}`, 'bg-red-100 text-red-700');
+        const errorMessage = error.response?.data?.error || '❌ Erro ao registrar';
+        showFeedback(errorMessage, 'bg-red-100 text-red-700');
+        debug.error(`Erro no registro: ${errorMessage}`);
       }
     });
 
-    // Função para exibir feedback
     function showFeedback(message, classes) {
       feedback.classList.remove('hidden');
       feedback.textContent = message;

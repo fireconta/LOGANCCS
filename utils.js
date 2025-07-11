@@ -1,48 +1,28 @@
-const utils = {
+const Utils = {
   formatBin(cardNumber) {
-    if (!cardNumber) return '';
-    return cardNumber.slice(0, 6);
+    return cardNumber ? cardNumber.slice(0, 6) + '**** **** ' + cardNumber.slice(-4) : '';
   },
-
   formatExpiry(month, year) {
-    if (!month || !year) return '';
-    return `${month.padStart(2, '0')}/${year}`;
+    return month && year ? `${month.toString().padStart(2, '0')}/${year}` : '';
   },
-
   validateCardNumber(cardNumber) {
-    if (!cardNumber || cardNumber.length < 13 || cardNumber.length > 19) return false;
-    return /^\d+$/.test(cardNumber);
+    return cardNumber && cardNumber.length >= 16;
   },
-
   validateCvv(cvv) {
-    if (!cvv) return false;
-    return /^\d{3,4}$/.test(cvv);
+    return cvv && cvv.length >= 3 && cvv.length <= 4 && /^\d+$/.test(cvv);
   },
-
   validateExpiry(month, year) {
-    if (!month || !year) return false;
-    const currentYear = new Date().getFullYear();
-    const monthNum = parseInt(month, 10);
-    const yearNum = parseInt(year, 10);
-    if (isNaN(monthNum) || isNaN(yearNum)) return false;
-    if (monthNum < 1 || monthNum > 12) return false;
-    if (yearNum < currentYear || yearNum > currentYear + 10) return false;
-    const currentDate = new Date();
-    const expiryDate = new Date(yearNum, monthNum - 1);
-    return expiryDate >= currentDate;
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    return month >= 1 && month <= 12 && year >= currentYear && (year > currentYear || month >= currentMonth);
   },
-
-  isValidUrl(url) {
-    try {
-      new URL(url);
-      return /^https?:\/\//.test(url);
-    } catch {
-      return false;
-    }
+  validateUsername(username) {
+    return username && username.length >= 3 && /^[a-zA-Z0-9]+$/.test(username);
   },
-
-  generateUserId(mongoId) {
-    if (!mongoId) return '';
-    return (parseInt(mongoId, 16) % 1000000000).toString().padStart(9, '0');
+  validatePassword(password) {
+    return password && password.length >= 6;
   }
 };
+
+window.utils = Utils;

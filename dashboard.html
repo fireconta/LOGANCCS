@@ -5,15 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>📊 Dashboard - LoganCCS</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="/debug.js"></script>
   <script src="/utils.js"></script>
+  <script src="/debug.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/heroicons/2.0.18/dist/heroicons.min.css" rel="stylesheet">
 </head>
 <body class="bg-gradient-to-r from-blue-100 to-gray-100 min-h-screen">
   <header class="bg-blue-800 text-white p-4 shadow sticky top-0 z-10">
     <div class="max-w-7xl mx-auto flex justify-between items-center">
-      <h1 class="text-2xl font-bold">📊 Dashboard - LoganCCS</h1>
+      <h1 class="text-2xl font-bold">📊 Dashboard</h1>
       <nav class="flex space-x-4">
         <a href="#" onclick="logout()" class="hover:underline flex items-center" aria-label="Sair">
           <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -32,65 +32,56 @@
   </header>
 
   <main class="max-w-7xl mx-auto p-6">
-    <!-- Abas -->
-    <div class="flex space-x-4 mb-6 border-b">
-      <button id="users-tab" class="px-4 py-2 font-semibold text-blue-600 border-b-2 border-blue-600 flex items-center" aria-selected="true" aria-controls="users-section">
-        <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4a4 4 0 110 8 4 4 0 010-8zm0 10c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z"></path>
+    <div class="flex space-x-4 mb-6">
+      <button id="users-tab" class="flex-1 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 flex items-center justify-center">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
         </svg>
         👥 Usuários
       </button>
-      <button id="cards-tab" class="px-4 py-2 font-semibold text-gray-600 hover:text-blue-600 flex items-center" aria-selected="false" aria-controls="cards-section">
-        <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <button id="cards-tab" class="flex-1 py-2 bg-gray-300 text-gray-800 rounded-lg font-semibold hover:bg-gray-400 flex items-center justify-center">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 6h18M3 14h18M3 18h18"></path>
         </svg>
         💳 Cartões
       </button>
-      <button id="prices-tab" class="px-4 py-2 font-semibold text-gray-600 hover:text-blue-600 flex items-center" aria-selected="false" aria-controls="prices-section">
-        <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c2.21 0 4 1.79 4 4s-1.79 4-4 4-4-1.79-4-4 1.79-4 4-4zm0-6v2m0 16v2m6-6h2m-16 0H2"></path>
+      <button id="prices-tab" class="flex-1 py-2 bg-gray-300 text-gray-800 rounded-lg font-semibold hover:bg-gray-400 flex items-center justify-center">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
         </svg>
         💰 Preços
       </button>
     </div>
-
-    <!-- Feedback -->
     <div id="feedback" class="hidden p-4 mb-4 rounded-lg text-sm"></div>
 
-    <!-- Painel de Depuração -->
-    <div id="debug-panel" class="bg-gray-800 text-white p-4 rounded-lg mb-6">
-      <h2 class="text-lg font-semibold mb-2">📜 Painel de Depuração</h2>
-      <div id="debug-messages"></div>
-    </div>
-
-    <!-- Gerenciar Usuários -->
-    <section id="users-section" class="bg-white p-6 rounded-lg shadow-lg">
+    <section id="users-section">
       <h2 class="text-xl font-semibold mb-4 flex items-center">👥 Gerenciar Usuários</h2>
-      <table class="w-full border-collapse">
+      <table class="w-full border-collapse bg-white rounded-lg shadow">
         <thead>
           <tr class="bg-gray-100">
-            <th class="border p-3 text-left">🆔 ID</th>
             <th class="border p-3 text-left">👤 Usuário</th>
-            <th class="border p-3 text-left">💰 Saldo</th>
             <th class="border p-3 text-left">🔐 Admin</th>
-            <th class="border p-3 text-left">⚙️ Ações</th>
+            <th class="border p-3 text-left">🗑️ Ações</th>
           </tr>
         </thead>
         <tbody id="users-table"></tbody>
       </table>
     </section>
 
-    <!-- Gerenciar Cartões -->
-    <section id="cards-section" class="hidden bg-white p-6 rounded-lg shadow-lg">
-      <h2 class="text-xl font-semibold mb-4 flex items-center">💳 Gerenciar Cartões</h2>
+    <section id="cards-section" class="hidden">
+      <h2 class="text-xl font-semibold mb-4 flex items-center">💳 Adicionar Cartão</h2>
       <form id="card-form" class="space-y-4">
         <div>
+          <label for="card-number" class="block text-sm font-medium text-gray-700">🔢 Número do Cartão</label>
+          <input id="card-number" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Número do cartão">
+        </div>
+        <div>
           <label for="card-bank" class="block text-sm font-medium text-gray-700">🏦 Banco</label>
-          <select id="card-bank" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required aria-label="Selecione o banco"></select>
+          <input id="card-bank" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Banco">
         </div>
         <div>
           <label for="card-brand" class="block text-sm font-medium text-gray-700">🏷️ Bandeira</label>
-          <select id="card-brand" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required aria-label="Selecione a bandeira">
+          <select id="card-brand" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Bandeira">
             <option value="Visa">Visa</option>
             <option value="Mastercard">Mastercard</option>
             <option value="Elo">Elo</option>
@@ -100,69 +91,75 @@
         </div>
         <div>
           <label for="card-level" class="block text-sm font-medium text-gray-700">⭐ Nível</label>
-          <select id="card-level" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required aria-label="Selecione o nível"></select>
+          <input id="card-level" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Nível">
         </div>
         <div>
-          <label for="card-number" class="block text-sm font-medium text-gray-700">🔢 Número do Cartão</label>
-          <input id="card-number" type="text" pattern="\d{13,19}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite o número do cartão" required aria-label="Número do cartão">
+          <label for="card-expiry-month" class="block text-sm font-medium text-gray-700">📅 Mês de Validade</label>
+          <input id="card-expiry-month" type="number" min="1" max="12" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Mês de validade">
         </div>
         <div>
-          <label for="card-cvv" class="block text-sm font-medium text-gray-700">🔐 CVV</label>
-          <input id="card-cvv" type="text" pattern="\d{3,4}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite o CVV" required aria-label="CVV">
+          <label for="card-expiry-year" class="block text-sm font-medium text-gray-700">📅 Ano de Validade</label>
+          <input id="card-expiry-year" type="number" min="2025" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Ano de validade">
         </div>
-        <div class="flex space-x-4">
-          <div class="w-1/2">
-            <label for="card-expiry-month" class="block text-sm font-medium text-gray-700">📅 Mês</label>
-            <input id="card-expiry-month" type="text" pattern="\d{1,2}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="MM" required aria-label="Mês de validade">
-          </div>
-          <div class="w-1/2">
-            <label for="card-expiry-year" class="block text-sm font-medium text-gray-700">📅 Ano</label>
-            <input id="card-expiry-year" type="text" pattern="\d{4}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="YYYY" required aria-label="Ano de validade">
-          </div>
+        <div>
+          <label for="card-cvv" class="block text-sm font-medium text-gray-700">🔒 CVV</label>
+          <input id="card-cvv" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="CVV">
         </div>
-        <button id="card-button" type="button" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 flex items-center justify-center" aria-label="Adicionar cartão">
+        <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center">
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
           </svg>
-          ✅ Adicionar Cartão
+          ✅ Adicionar
         </button>
       </form>
     </section>
 
-    <!-- Gerenciar Níveis e Preços -->
-    <section id="prices-section" class="hidden bg-white p-6 rounded-lg shadow-lg">
-      <h2 class="text-xl font-semibold mb-4 flex items-center">💰 Gerenciar Níveis e Preços</h2>
+    <section id="prices-section" class="hidden">
+      <h2 class="text-xl font-semibold mb-4 flex items-center">💰 Adicionar Nível e Preço</h2>
       <form id="price-form" class="space-y-4">
         <div>
           <label for="price-level" class="block text-sm font-medium text-gray-700">⭐ Nível</label>
-          <input id="price-level" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite o nível" required aria-label="Nível">
+          <input id="price-level" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Nível">
         </div>
         <div>
-          <label for="price-value" class="block text-sm font-medium text-gray-700">💰 Preço (R$)</label>
-          <input id="price-value" type="number" step="0.01" min="0" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite o preço" required aria-label="Preço">
+          <label for="price-value" class="block text-sm font-medium text-gray-700">💰 Preço</label>
+          <input id="price-value" type="number" step="0.01" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Preço">
         </div>
         <div>
           <label for="price-payment-link" class="block text-sm font-medium text-gray-700">🔗 Link de Pagamento</label>
-          <input id="price-payment-link" type="url" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite o link de pagamento" required aria-label="Link de pagamento">
+          <input id="price-payment-link" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Link de pagamento">
         </div>
-        <button id="price-button" type="button" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 flex items-center justify-center" aria-label="Adicionar nível">
+        <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center">
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
           </svg>
-          ✅ Adicionar Nível
+          ✅ Adicionar
         </button>
       </form>
     </section>
+
+    <div id="debug-panel" class="mt-6 p-4 bg-gray-100 rounded-lg">
+      <h2 class="text-lg font-semibold">🐞 Depuração</h2>
+      <div id="debug-messages" class="mt-2 text-sm"></div>
+    </div>
   </main>
 
   <footer class="bg-blue-800 text-white text-center p-4">
     <p>© 2025 LoganCCS. Todos os direitos reservados.</p>
   </footer>
 
-  <script>
-    debug.init('debug-messages', true); // Inicializa o painel de depuração
+  <style>
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+      animation: fade-in 0.3s ease-out;
+    }
+  </style>
 
-    // Alternar abas
+  <script>
+    debug.init('debug-messages', true);
     const usersTab = document.getElementById('users-tab');
     const cardsTab = document.getElementById('cards-tab');
     const pricesTab = document.getElementById('prices-tab');
@@ -172,12 +169,12 @@
     const feedback = document.getElementById('feedback');
 
     usersTab.addEventListener('click', () => {
-      usersTab.classList.add('border-blue-600', 'text-blue-600');
-      usersTab.setAttribute('aria-selected', 'true');
-      cardsTab.classList.remove('border-blue-600', 'text-blue-600');
-      cardsTab.setAttribute('aria-selected', 'false');
-      pricesTab.classList.remove('border-blue-600', 'text-blue-600');
-      pricesTab.setAttribute('aria-selected', 'false');
+      usersTab.classList.add('bg-blue-600', 'text-white');
+      usersTab.classList.remove('bg-gray-300', 'text-gray-800');
+      cardsTab.classList.add('bg-gray-300', 'text-gray-800');
+      cardsTab.classList.remove('bg-blue-600', 'text-white');
+      pricesTab.classList.add('bg-gray-300', 'text-gray-800');
+      pricesTab.classList.remove('bg-blue-600', 'text-white');
       usersSection.classList.remove('hidden');
       cardsSection.classList.add('hidden');
       pricesSection.classList.add('hidden');
@@ -185,182 +182,148 @@
     });
 
     cardsTab.addEventListener('click', () => {
-      cardsTab.classList.add('border-blue-600', 'text-blue-600');
-      cardsTab.setAttribute('aria-selected', 'true');
-      usersTab.classList.remove('border-blue-600', 'text-blue-600');
-      usersTab.setAttribute('aria-selected', 'false');
-      pricesTab.classList.remove('border-blue-600', 'text-blue-600');
-      pricesTab.setAttribute('aria-selected', 'false');
+      cardsTab.classList.add('bg-blue-600', 'text-white');
+      cardsTab.classList.remove('bg-gray-300', 'text-gray-800');
+      usersTab.classList.add('bg-gray-300', 'text-gray-800');
+      usersTab.classList.remove('bg-blue-600', 'text-white');
+      pricesTab.classList.add('bg-gray-300', 'text-gray-800');
+      pricesTab.classList.remove('bg-blue-600', 'text-white');
       cardsSection.classList.remove('hidden');
       usersSection.classList.add('hidden');
       pricesSection.classList.add('hidden');
-      loadBanksAndLevels();
     });
 
     pricesTab.addEventListener('click', () => {
-      pricesTab.classList.add('border-blue-600', 'text-blue-600');
-      pricesTab.setAttribute('aria-selected', 'true');
-      usersTab.classList.remove('border-blue-600', 'text-blue-600');
-      usersTab.setAttribute('aria-selected', 'false');
-      cardsTab.classList.remove('border-blue-600', 'text-blue-600');
-      cardsTab.setAttribute('aria-selected', 'false');
+      pricesTab.classList.add('bg-blue-600', 'text-white');
+      pricesTab.classList.remove('bg-gray-300', 'text-gray-800');
+      usersTab.classList.add('bg-gray-300', 'text-gray-800');
+      usersTab.classList.remove('bg-blue-600', 'text-white');
+      cardsTab.classList.add('bg-gray-300', 'text-gray-800');
+      cardsTab.classList.remove('bg-blue-600', 'text-white');
       pricesSection.classList.remove('hidden');
       usersSection.classList.add('hidden');
       cardsSection.classList.add('hidden');
     });
 
-    // Carregar bancos e níveis
-    async function loadBanksAndLevels() {
-      try {
-        showFeedback('⏳ Carregando bancos e níveis...', 'bg-blue-100 text-blue-700');
-        const banksResponse = await axios.get('/api/banks', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
-        const levelsResponse = await axios.get('/api/cardprices', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
-        const bankSelect = document.getElementById('card-bank');
-        const levelSelect = document.getElementById('card-level');
-        bankSelect.innerHTML = '<option value="">🏦 Selecione</option>' + banksResponse.data.map(bank => `<option value="${bank._id}">${bank.name}</option>`).join('');
-        levelSelect.innerHTML = '<option value="">⭐ Selecione</option>' + levelsResponse.data.map(level => `<option value="${level.nivel}">${level.nivel}</option>`).join('');
-        showFeedback('✅ Bancos e níveis carregados!', 'bg-green-100 text-green-700');
-      } catch (error) {
-        showFeedback(`❌ Erro ao carregar: ${error.response?.data?.error || 'Erro desconhecido'}`, 'bg-red-100 text-red-700');
-        debug.error(error.response?.data?.error || 'Erro ao carregar bancos e níveis');
-      }
-    }
-
-    // Carregar usuários
     async function loadUsers() {
       try {
         showFeedback('⏳ Carregando usuários...', 'bg-blue-100 text-blue-700');
-        const response = await axios.get('/api/users', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+        debug.log('Carregando lista de usuários');
+        const response = await axios.get('/api/users', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
         const usersTable = document.getElementById('users-table');
         usersTable.innerHTML = response.data.map(user => `
           <tr class="hover:bg-gray-50">
-            <td class="border p-3">🆔 ${utils.generateUserId(user._id)}</td>
             <td class="border p-3">👤 ${user.username}</td>
-            <td class="border p-3">💰 ${user.balance}</td>
-            <td class="border p-3">🔐 ${user.isAdmin ? 'Sim' : 'Não'}</td>
+            <td class="border p-3">${user.isAdmin ? '✅ Sim' : '❌ Não'}</td>
             <td class="border p-3">
-              <button onclick="updateUser('${user._id}')" class="text-blue-600 hover:underline flex items-center">
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                </svg>
-                ✏️ Editar
-              </button>
-              <button onclick="deleteUser('${user._id}')" class="text-red-600 hover:underline flex items-center ml-2">
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button onclick="deleteUser('${user.username}')" class="text-red-600 hover:text-red-800 flex items-center" aria-label="Deletar usuário">
+                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
-                🗑️ Excluir
+                🗑️ Deletar
               </button>
             </td>
           </tr>
         `).join('');
         showFeedback('✅ Usuários carregados!', 'bg-green-100 text-green-700');
+        debug.log('Usuários carregados com sucesso');
       } catch (error) {
-        showFeedback(`❌ Erro ao carregar usuários: ${error.response?.data?.error || 'Erro desconhecido'}`, 'bg-red-100 text-red-700');
-        debug.error(error.response?.data?.error || 'Erro ao carregar usuários');
+        const errorMessage = error.response?.data?.error || '❌ Erro ao carregar usuários';
+        showFeedback(errorMessage, 'bg-red-100 text-red-700');
+        debug.error(`Erro ao carregar usuários: ${errorMessage}`);
       }
     }
 
-    // Adicionar cartão
-    document.getElementById('card-button').addEventListener('click', async () => {
-      const bank = document.getElementById('card-bank').value;
-      const brand = document.getElementById('card-brand').value;
-      const level = document.getElementById('card-level').value;
-      const cardNumber = document.getElementById('card-number').value;
-      const cvv = document.getElementById('card-cvv').value;
-      const expiryMonth = document.getElementById('card-expiry-month').value;
-      const expiryYear = document.getElementById('card-expiry-year').value;
+    async function deleteUser(username) {
+      try {
+        showFeedback('⏳ Deletando usuário...', 'bg-blue-100 text-blue-700');
+        debug.log(`Enviando requisição para deletar usuário: ${username}`);
+        await axios.post('/api/delete-user', { username }, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        showFeedback('✅ Usuário deletado!', 'bg-green-100 text-green-700');
+        debug.log('Usuário deletado com sucesso');
+        loadUsers();
+      } catch (error) {
+        const errorMessage = error.response?.data?.error || '❌ Erro ao deletar usuário';
+        showFeedback(errorMessage, 'bg-red-100 text-red-700');
+        debug.error(`Erro ao deletar usuário: ${errorMessage}`);
+      }
+    }
 
-      if (!utils.validateCardNumber(cardNumber)) {
-        showFeedback('❌ Número do cartão inválido (13-19 dígitos)', 'bg-red-100 text-red-700');
+    document.getElementById('card-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const card = {
+        cardNumber: document.getElementById('card-number').value,
+        bank: document.getElementById('card-bank').value,
+        brand: document.getElementById('card-brand').value,
+        level: document.getElementById('card-level').value,
+        expiryMonth: parseInt(document.getElementById('card-expiry-month').value),
+        expiryYear: parseInt(document.getElementById('card-expiry-year').value),
+        cvv: document.getElementById('card-cvv').value,
+      };
+      if (!utils.validateCardNumber(card.cardNumber) || !utils.validateCvv(card.cvv) || !utils.validateExpiry(card.expiryMonth, card.expiryYear)) {
+        showFeedback('❌ Dados do cartão inválidos', 'bg-red-100 text-red-700');
+        debug.error('Validação do cartão falhou');
         return;
       }
-      if (!utils.validateCvv(cvv)) {
-        showFeedback('❌ CVV inválido (3-4 dígitos)', 'bg-red-100 text-red-700');
-        return;
+      try {
+        showFeedback('⏳ Adicionando cartão...', 'bg-blue-100 text-blue-700');
+        debug.log('Enviando requisição para adicionar cartão');
+        await axios.post('/api/cards', card, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        showFeedback('✅ Cartão adicionado!', 'bg-green-100 text-green-700');
+        debug.log('Cartão adicionado com sucesso');
+        document.getElementById('card-form').reset();
+      } catch (error) {
+        const errorMessage = error.response?.data?.error || '❌ Erro ao adicionar cartão';
+        showFeedback(errorMessage, 'bg-red-100 text-red-700');
+        debug.error(`Erro ao adicionar cartão: ${errorMessage}`);
       }
-      if (!utils.validateExpiry(expiryMonth, expiryYear)) {
-        showFeedback('❌ Data de validade inválida', 'bg-red-100 text-red-700');
-        return;
-      }
-      if (!bank || !brand || !level) {
+    });
+
+    document.getElementById('price-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const price = {
+        nivel: document.getElementById('price-level').value,
+        price: parseFloat(document.getElementById('price-value').value),
+        paymentLink: document.getElementById('price-payment-link').value,
+      };
+      if (!price.nivel || !price.price || !price.paymentLink) {
         showFeedback('❌ Todos os campos são obrigatórios', 'bg-red-100 text-red-700');
+        debug.error('Validação de preço falhou');
         return;
       }
-
-      showFeedback('⏳ Adicionando cartão...', 'bg-blue-100 text-blue-700');
       try {
-        await axios.post('/api/cards', { bank, brand, level, cardNumber, cvv, expiryMonth, expiryYear }, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
-        showFeedback('✅ Cartão adicionado com sucesso!', 'bg-green-100 text-green-700');
-        debug.log('Cartão adicionado: ' + cardNumber);
+        showFeedback('⏳ Adicionando preço...', 'bg-blue-100 text-blue-700');
+        debug.log('Enviando requisição para adicionar preço');
+        await axios.post('/api/cardprices', price, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        showFeedback('✅ Preço adicionado!', 'bg-green-100 text-green-700');
+        debug.log('Preço adicionado com sucesso');
+        document.getElementById('price-form').reset();
       } catch (error) {
-        showFeedback(`❌ Erro ao adicionar cartão: ${error.response?.data?.error || 'Erro desconhecido'}`, 'bg-red-100 text-red-700');
-        debug.error(error.response?.data?.error || 'Erro ao adicionar cartão');
+        const errorMessage = error.response?.data?.error || '❌ Erro ao adicionar preço';
+        showFeedback(errorMessage, 'bg-red-100 text-red-700');
+        debug.error(`Erro ao adicionar preço: ${errorMessage}`);
       }
     });
 
-    // Adicionar nível
-    document.getElementById('price-button').addEventListener('click', async () => {
-      const nivel = document.getElementById('price-level').value;
-      const price = parseFloat(document.getElementById('price-value').value);
-      const paymentLink = document.getElementById('price-payment-link').value;
-
-      if (!nivel || !/^[a-zA-Z0-9\s]+$/.test(nivel)) {
-        showFeedback('❌ Nível deve conter apenas letras, números e espaços', 'bg-red-100 text-red-700');
-        return;
-      }
-      if (!price || price <= 0) {
-        showFeedback('❌ Preço deve ser um número positivo', 'bg-red-100 text-red-700');
-        return;
-      }
-      if (!utils.isValidUrl(paymentLink)) {
-        showFeedback('❌ Link de pagamento inválido', 'bg-red-100 text-red-700');
-        return;
-      }
-
-      showFeedback('⏳ Adicionando nível...', 'bg-blue-100 text-blue-700');
-      try {
-        await axios.post('/api/cardprices', { nivel, price, paymentLink }, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
-        showFeedback('✅ Nível adicionado com sucesso!', 'bg-green-100 text-green-700');
-        debug.log('Nível adicionado: ' + nivel);
-      } catch (error) {
-        showFeedback(`❌ Erro ao adicionar nível: ${error.response?.data?.error || 'Erro desconhecido'}`, 'bg-red-100 text-red-700');
-        debug.error(error.response?.data?.error || 'Erro ao adicionar nível');
-      }
-    });
-
-    // Logout
     function logout() {
       localStorage.removeItem('token');
       window.location.href = '/';
     }
 
-    // Feedback
     function showFeedback(message, classes) {
       feedback.classList.remove('hidden');
       feedback.textContent = message;
       feedback.className = `p-4 mb-4 rounded-lg text-sm ${classes}`;
-      debug.log(message);
     }
 
-    // Funções de edição e exclusão de usuário (placeholders)
-    async function updateUser(userId) {
-      showFeedback('⚙️ Funcionalidade de edição em desenvolvimento', 'bg-yellow-100 text-yellow-700');
-    }
-
-    async function deleteUser(userId) {
-      showFeedback('⏳ Excluindo usuário...', 'bg-blue-100 text-blue-700');
-      try {
-        await axios.delete('/api/delete-user', { data: { targetId: userId }, headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
-        showFeedback('✅ Usuário excluído com sucesso!', 'bg-green-100 text-green-700');
-        loadUsers();
-      } catch (error) {
-        showFeedback(`❌ Erro ao excluir usuário: ${error.response?.data?.error || 'Erro desconhecido'}`, 'bg-red-100 text-red-700');
-        debug.error(error.response?.data?.error || 'Erro ao excluir usuário');
-      }
-    }
-
-    // Inicializar
     loadUsers();
   </script>
 </body>

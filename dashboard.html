@@ -4,669 +4,303 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard - LoganCCS</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.0/purify.min.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="/debug.js"></script>
   <script src="/utils.js"></script>
-  <style>
-    body { font-family: 'Inter', sans-serif; }
-    .gradient-bg { background: linear-gradient(135deg, #1a237e, #1565c0); }
-    .card { transition: all 0.3s ease; }
-    .card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); }
-    .btn { transition: background-color 0.3s ease; }
-    .btn:hover { background-color: #1e40af; }
-    .tab { cursor: pointer; }
-    .tab.active { background-color: #1e40af; color: white; }
-    .error-message { color: #dc2626; font-weight: bold; }
-    @media (max-width: 640px) {
-      .container { padding: 0.5rem; }
-      .tab { padding: 0.5rem; font-size: 0.875rem; }
-      .card { padding: 0.5rem; }
-      .text-2xl { font-size: 1.25rem; }
-      .p-6 { padding: 1rem; }
-      input, select { font-size: 0.875rem; }
-      .tabs-container { overflow-x: auto; white-space: nowrap; }
-    }
-  </style>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/heroicons/2.0.18/dist/heroicons.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-100">
-  <nav class="gradient-bg text-white p-6 flex justify-between items-center shadow-lg">
-    <h1 class="text-3xl font-bold">Dashboard - LoganCCS</h1>
-    <div class="flex items-center space-x-6">
-      <span id="user-info" class="text-lg font-medium"></span>
-      <a href="/index.html" class="hover:underline text-lg"><i class="fas fa-sign-out-alt mr-2"></i>Logout</a>
-      <a href="/shop.html" class="hover:underline text-lg"><i class="fas fa-store mr-2"></i>Loja</a>
+<body class="bg-gray-100 min-h-screen">
+  <header class="bg-blue-600 text-white p-4 shadow">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold">Dashboard - LoganCCS</h1>
+      <nav class="flex space-x-4">
+        <a href="/api/logout" class="hover:underline flex items-center"><svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7"></path></svg>Logout</a>
+        <a href="/shop" class="hover:underline flex items-center"><svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h18l-1.68 9H4.68L3 3zm2 14a2 2 0 100 4 2 2 0 000-4zm14 0a2 2 0 100 4 2 2 0 000-4z"></path></svg>Loja</a>
+      </nav>
     </div>
-  </nav>
-  <div class="container mx-auto p-6">
-    <div class="tabs-container flex space-x-2 mb-4">
-      <div class="tab bg-blue-900 text-white p-3 rounded-t-md" data-tab="users">Gerenciar Usuários</div>
-      <div class="tab bg-blue-900 text-white p-3 rounded-t-md" data-tab="cards">Gerenciar Cartões</div>
-      <div class="tab bg-blue-900 text-white p-3 rounded-t-md" data-tab="levels">Gerenciar Níveis e Preços</div>
+  </header>
+
+  <main class="max-w-7xl mx-auto p-6">
+    <!-- Abas -->
+    <div class="flex space-x-4 mb-6 border-b">
+      <button id="users-tab" class="px-4 py-2 font-semibold text-blue-600 border-b-2 border-blue-600">Gerenciar Usuários</button>
+      <button id="cards-tab" class="px-4 py-2 font-semibold text-gray-600 hover:text-blue-600">Gerenciar Cartões</button>
+      <button id="prices-tab" class="px-4 py-2 font-semibold text-gray-600 hover:text-blue-600">Gerenciar Níveis e Preços</button>
     </div>
-    <div id="tab-content">
-      <!-- Gerenciar Usuários -->
-      <div id="users" class="tab-panel hidden bg-white rounded-xl shadow-lg p-6">
-        <h2 class="text-2xl font-bold mb-4 text-blue-900">Gerenciar Usuários</h2>
-        <div id="users-list" class="space-y-4"></div>
-      </div>
-      <!-- Gerenciar Cartões -->
-      <div id="cards" class="tab-panel hidden bg-white rounded-xl shadow-lg p-6">
-        <h2 class="text-2xl font-bold mb-4 text-blue-900">Gerenciar Cartões</h2>
-        <form id="add-card-form" class="mb-6">
-          <div class="grid grid-cols-1 gap-4">
-            <select id="card-bank" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required>
-              <option value="" disabled selected>Selecione o Banco</option>
-            </select>
-            <select id="card-brand" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required>
-              <option value="" disabled selected>Selecione a Bandeira</option>
-              <option value="Visa">Visa</option>
-              <option value="Mastercard">Mastercard</option>
-              <option value="Elo">Elo</option>
-              <option value="American Express">American Express</option>
-              <option value="Hipercard">Hipercard</option>
-            </select>
-            <select id="card-level" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required>
-              <option value="" disabled selected>Selecione o Nível</option>
-            </select>
-            <input id="card-number" type="text" placeholder="Número do Cartão" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
-            <input id="card-cvv" type="text" placeholder="CVV" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
-            <input id="card-expiry-month" type="text" placeholder="Mês de Validade (MM)" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
-            <input id="card-expiry-year" type="text" placeholder="Ano de Validade (YYYY)" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
+
+    <!-- Feedback -->
+    <div id="feedback" class="hidden p-4 mb-4 rounded-lg text-sm"></div>
+
+    <!-- Painel de Depuração -->
+    <div id="debug-panel" class="bg-gray-800 text-white p-4 rounded-lg mb-6 hidden">
+      <h2 class="text-lg font-semibold mb-2">Painel de Depuração</h2>
+      <div id="debug-messages"></div>
+    </div>
+
+    <!-- Gerenciar Usuários -->
+    <section id="users-section" class="bg-white p-6 rounded-lg shadow">
+      <h2 class="text-xl font-semibold mb-4 flex items-center"><svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4a4 4 0 110 8 4 4 0 010-8zm0 10c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z"></path></svg>Gerenciar Usuários</h2>
+      <table class="w-full border-collapse">
+        <thead>
+          <tr class="bg-gray-100">
+            <th class="border p-2 text-left">ID</th>
+            <th class="border p-2 text-left">Usuário</th>
+            <th class="border p-2 text-left">Saldo</th>
+            <th class="border p-2 text-left">Admin</th>
+            <th class="border p-2 text-left">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="users-table"></tbody>
+      </table>
+    </section>
+
+    <!-- Gerenciar Cartões -->
+    <section id="cards-section" class="hidden bg-white p-6 rounded-lg shadow">
+      <h2 class="text-xl font-semibold mb-4 flex items-center"><svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 6h18M3 14h18M3 18h18"></path></svg>Gerenciar Cartões</h2>
+      <form id="card-form" class="space-y-4">
+        <div>
+          <label for="card-bank" class="block text-sm font-medium text-gray-700">Selecione o Banco</label>
+          <select id="card-bank" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required></select>
+        </div>
+        <div>
+          <label for="card-brand" class="block text-sm font-medium text-gray-700">Selecione a Bandeira</label>
+          <select id="card-brand" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+            <option value="Visa">Visa</option>
+            <option value="Mastercard">Mastercard</option>
+            <option value="Elo">Elo</option>
+            <option value="American Express">American Express</option>
+            <option value="Hipercard">Hipercard</option>
+          </select>
+        </div>
+        <div>
+          <label for="card-level" class="block text-sm font-medium text-gray-700">Selecione o Nível</label>
+          <select id="card-level" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required></select>
+        </div>
+        <div>
+          <label for="card-number" class="block text-sm font-medium text-gray-700">Número do Cartão</label>
+          <input id="card-number" type="text" pattern="\d{13,19}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite o número do cartão" required>
+        </div>
+        <div>
+          <label for="card-cvv" class="block text-sm font-medium text-gray-700">CVV</label>
+          <input id="card-cvv" type="text" pattern="\d{3,4}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite o CVV" required>
+        </div>
+        <div class="flex space-x-4">
+          <div class="w-1/2">
+            <label for="card-expiry-month" class="block text-sm font-medium text-gray-700">Mês de Validade</label>
+            <input id="card-expiry-month" type="text" pattern="\d{1,2}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="MM" required>
           </div>
-          <button type="submit" class="btn w-full bg-blue-900 text-white p-3 rounded-md hover:bg-blue-800 mt-4"><i class="fas fa-plus mr-2"></i>Adicionar Cartão</button>
-        </form>
-        <div id="cards-list" class="space-y-4"></div>
-      </div>
-      <!-- Gerenciar Níveis e Preços -->
-      <div id="levels" class="tab-panel hidden bg-white rounded-xl shadow-lg p-6">
-        <h2 class="text-2xl font-bold mb-4 text-blue-900">Gerenciar Níveis e Preços</h2>
-        <form id="add-level-form" class="mb-6">
-          <div class="grid grid-cols-1 gap-4">
-            <input id="new-level" type="text" placeholder="Novo Nível" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
-            <input id="new-price" type="number" placeholder="Preço" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
-            <input id="new-payment-link" type="url" placeholder="Link de Pagamento" class="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" required />
+          <div class="w-1/2">
+            <label for="card-expiry-year" class="block text-sm font-medium text-gray-700">Ano de Validade</label>
+            <input id="card-expiry-year" type="text" pattern="\d{4}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="YYYY" required>
           </div>
-          <button type="submit" class="btn w-full bg-blue-900 text-white p-3 rounded-md hover:bg-blue-800 mt-4"><i class="fas fa-plus mr-2"></i>Adicionar Nível</button>
-        </form>
-        <div id="levels-list" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
-      </div>
-    </div>
-  </div>
-  <footer class="gradient-bg text-white p-6 text-center">
-    <p class="text-sm">© 2025 LoganCCS. Todos os direitos reservados.</p>
+        </div>
+        <button id="card-button" type="button" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-center">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+          Adicionar Cartão
+        </button>
+      </form>
+    </section>
+
+    <!-- Gerenciar Níveis e Preços -->
+    <section id="prices-section" class="hidden bg-white p-6 rounded-lg shadow">
+      <h2 class="text-xl font-semibold mb-4 flex items-center"><svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c2.21 0 4 1.79 4 4s-1.79 4-4 4-4-1.79-4-4 1.79-4 4-4zm0-6v2m0 16v2m6-6h2m-16 0H2"></path></svg>Gerenciar Níveis e Preços</h2>
+      <form id="price-form" class="space-y-4">
+        <div>
+          <label for="price-level" class="block text-sm font-medium text-gray-700">Nível</label>
+          <input id="price-level" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite o nível" required>
+        </div>
+        <div>
+          <label for="price-value" class="block text-sm font-medium text-gray-700">Preço (R$)</label>
+          <input id="price-value" type="number" step="0.01" min="0" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite o preço" required>
+        </div>
+        <div>
+          <label for="price-payment-link" class="block text-sm font-medium text-gray-700">Link de Pagamento</label>
+          <input id="price-payment-link" type="url" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite o link de pagamento" required>
+        </div>
+        <button id="price-button" type="button" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-center">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+          Adicionar Nível
+        </button>
+      </form>
+    </section>
+  </main>
+
+  <footer class="bg-gray-800 text-white text-center p-4">
+    <p>© 2025 LoganCCS. Todos os direitos reservados.</p>
   </footer>
+
   <script>
-    debug.init('debug-panel', true);
-    debug.log('Inicializando dashboard.html');
+    debug.init('debug-messages', true); // Inicializa o painel de depuração
 
-    // Função para formatar o número do cartão (exibir primeiros 6 dígitos e últimos 4, mascarando o meio)
-    function formatBin(cardNumber) {
-      if (!cardNumber || cardNumber.length < 10) {
-        debug.warn('Número do cartão inválido para formatação: ' + cardNumber);
-        return '**** **** **** ****';
-      }
-      return cardNumber.slice(0, 6) + '******' + cardNumber.slice(-4);
-    }
+    // Alternar abas
+    const usersTab = document.getElementById('users-tab');
+    const cardsTab = document.getElementById('cards-tab');
+    const pricesTab = document.getElementById('prices-tab');
+    const usersSection = document.getElementById('users-section');
+    const cardsSection = document.getElementById('cards-section');
+    const pricesSection = document.getElementById('prices-section');
+    const feedback = document.getElementById('feedback');
 
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.add('hidden'));
-      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-      document.getElementById(tabId).classList.remove('hidden');
-      document.querySelector(`.tab[data-tab="${tabId}"]`).classList.add('active');
-      debug.log(`Alternando para aba: ${tabId}`);
-      if (tabId === 'users') loadUsers();
-      if (tabId === 'cards') {
-        loadBanks(); // Recarrega bancos ao abrir a aba de cartões
-        loadCards();
-      }
-      if (tabId === 'levels') loadLevels();
-    }
-
-    document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    usersTab.addEventListener('click', () => {
+      usersTab.classList.add('border-blue-600', 'text-blue-600');
+      cardsTab.classList.remove('border-blue-600', 'text-blue-600');
+      pricesTab.classList.remove('border-blue-600', 'text-blue-600');
+      usersSection.classList.remove('hidden');
+      cardsSection.classList.add('hidden');
+      pricesSection.classList.add('hidden');
+      loadUsers();
     });
 
-    async function checkAuth() {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          debug.error('Token JWT não encontrado no localStorage');
-          window.location.href = '/index.html';
-          return null;
-        }
-        debug.log('Verificando autenticação na API /check-auth');
-        const response = await fetch('/.netlify/functions/app-function/check-auth', {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
-        if (!response.ok) {
-          debug.error(`Erro na API /check-auth: Status ${response.status} - ${response.statusText}`);
-          window.location.href = '/index.html';
-          return null;
-        }
-        const data = await response.json();
-        if (!data.authenticated || !data.user.isAdmin) {
-          debug.error('Usuário não autorizado ou não é admin');
-          window.location.href = '/index.html';
-          return null;
-        }
-        document.getElementById('user-info').textContent = `Usuário: ${data.user.username} | Saldo: R$${data.user.balance.toFixed(2)}`;
-        debug.log(`Autenticação bem-sucedida para admin: ${data.user.username}`);
-        return data.user;
-      } catch (error) {
-        debug.error('Erro ao verificar autenticação: ' + error.message);
-        window.location.href = '/index.html';
-        return null;
-      }
-    }
+    cardsTab.addEventListener('click', () => {
+      cardsTab.classList.add('border-blue-600', 'text-blue-600');
+      usersTab.classList.remove('border-blue-600', 'text-blue-600');
+      pricesTab.classList.remove('border-blue-600', 'text-blue-600');
+      cardsSection.classList.remove('hidden');
+      usersSection.classList.add('hidden');
+      pricesSection.classList.add('hidden');
+      loadBanksAndLevels();
+    });
 
-    async function loadBanks() {
+    pricesTab.addEventListener('click', () => {
+      pricesTab.classList.add('border-blue-600', 'text-blue-600');
+      usersTab.classList.remove('border-blue-600', 'text-blue-600');
+      cardsTab.classList.remove('border-blue-600', 'text-blue-600');
+      pricesSection.classList.remove('hidden');
+      usersSection.classList.add('hidden');
+      cardsSection.classList.add('hidden');
+    });
+
+    // Carregar bancos e níveis
+    async function loadBanksAndLevels() {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          debug.error('Token JWT não encontrado ao carregar bancos');
-          document.getElementById('card-bank').innerHTML = '<option value="" disabled selected>Erro: Faça login novamente</option>';
-          alert('Erro de autenticação. Faça login novamente.');
-          window.location.href = '/index.html';
-          return [];
-        }
-        debug.log('Iniciando chamada à API /banks');
-        const response = await fetch('/.netlify/functions/app-function/banks', {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
-        if (!response.ok) {
-          debug.error(`Erro na API /banks: Status ${response.status} - ${response.statusText}`);
-          let errorMsg = `Erro ao carregar bancos: ${response.status} - ${response.statusText}`;
-          if (response.status === 401) {
-            errorMsg = 'Erro de autenticação na API /banks. Faça login novamente.';
-            window.location.href = '/index.html';
-          } else if (response.status === 404) {
-            errorMsg = 'API /banks não encontrada. Verifique o backend.';
-          }
-          document.getElementById('card-bank').innerHTML = `<option value="" disabled selected>${errorMsg}</option>`;
-          alert(`${errorMsg} Verifique o console para mais detalhes.`);
-          return [];
-        }
-        const banks = await response.json();
-        if (!Array.isArray(banks) || !banks.every(bank => bank && typeof bank.name === 'string')) {
-          debug.error('Resposta da API /banks inválida: não é um array ou faltam campos "name". Resposta: ' + JSON.stringify(banks));
-          document.getElementById('card-bank').innerHTML = '<option value="" disabled selected>Erro: Dados de bancos inválidos</option>';
-          alert('Erro nos dados de bancos: formato inválido. Contate o suporte.');
-          return [];
-        }
+        const banksResponse = await axios.get('/api/banks', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+        const levelsResponse = await axios.get('/api/cardprices', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
         const bankSelect = document.getElementById('card-bank');
-        bankSelect.innerHTML = '<option value="" disabled selected>Selecione o Banco</option>';
-        if (banks.length === 0) {
-          debug.log('Nenhum banco encontrado na coleção banks');
-          bankSelect.innerHTML = '<option value="" disabled selected>Nenhum banco disponível</option>';
-          alert('Nenhum banco cadastrado na coleção banks.');
-          return [];
-        }
-        banks.forEach(bank => {
-          const option = document.createElement('option');
-          option.value = bank.name;
-          option.textContent = bank.name;
-          bankSelect.appendChild(option);
-        });
-        debug.log(`Bancos carregados com sucesso: ${banks.length} bancos`);
-        return banks;
+        const levelSelect = document.getElementById('card-level');
+        bankSelect.innerHTML = '<option value="">Selecione</option>' + banksResponse.data.map(bank => `<option value="${bank._id}">${bank.name}</option>`).join('');
+        levelSelect.innerHTML = '<option value="">Selecione</option>' + levelsResponse.data.map(level => `<option value="${level.nivel}">${level.nivel}</option>`).join('');
       } catch (error) {
-        debug.error('Erro ao carregar bancos: ' + error.message);
-        document.getElementById('card-bank').innerHTML = `<option value="" disabled selected>Erro: ${error.message}</option>`;
-        alert(`Erro ao carregar bancos: ${error.message}. Verifique o console para mais detalhes.`);
-        return [];
+        showFeedback(error.response?.data?.error || 'Erro ao carregar bancos e níveis', 'bg-red-100 text-red-700');
       }
     }
 
-    async function loadPriceLevels() {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          debug.error('Token JWT não encontrado ao carregar níveis');
-          document.getElementById('card-level').innerHTML = '<option value="" disabled selected>Erro: Faça login novamente</option>';
-          return [];
-        }
-        debug.log('Iniciando chamada à API /cardprices');
-        const response = await fetch('/.netlify/functions/app-function/cardprices', {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
-        if (!response.ok) {
-          debug.error(`Erro na API /cardprices: Status ${response.status} - ${response.statusText}`);
-          document.getElementById('card-level').innerHTML = `<option value="" disabled selected>Erro: ${response.status} - ${response.statusText}</option>`;
-          document.getElementById('levels-list').innerHTML = `<p class="error-message">Erro ao carregar níveis: ${response.status} - ${response.statusText}</p>`;
-          return [];
-        }
-        const prices = await response.json();
-        if (!Array.isArray(prices)) {
-          debug.error('Resposta da API /cardprices não é um array: ' + JSON.stringify(prices));
-          document.getElementById('card-level').innerHTML = '<option value="" disabled selected>Erro: Dados de níveis inválidos</option>';
-          document.getElementById('levels-list').innerHTML = '<p class="error-message">Erro nos dados de níveis. Contate o suporte.</p>';
-          return [];
-        }
-        const cardLevelSelect = document.getElementById('card-level');
-        cardLevelSelect.innerHTML = '<option value="" disabled selected>Selecione o Nível</option>';
-        prices.forEach(price => {
-          const option = document.createElement('option');
-          option.value = price.nivel;
-          option.textContent = price.nivel;
-          cardLevelSelect.appendChild(option);
-        });
-        debug.log('Níveis de preços carregados: ' + prices.length);
-        return prices;
-      } catch (error) {
-        debug.error('Erro ao carregar níveis de preços: ' + error.message);
-        document.getElementById('card-level').innerHTML = `<option value="" disabled selected>Erro: ${error.message}</option>`;
-        document.getElementById('levels-list').innerHTML = `<p class="error-message">Erro ao carregar níveis: ${error.message}</p>`;
-        return [];
-      }
-    }
-
-    async function loadLevels() {
-      try {
-        const prices = await loadPriceLevels();
-        const container = document.getElementById('levels-list');
-        container.innerHTML = '';
-        if (prices.length === 0) {
-          debug.log('Nenhum nível encontrado na coleção cardprices');
-          container.innerHTML = '<p class="text-gray-500">Nenhum nível cadastrado.</p>';
-          return;
-        }
-        prices.forEach(price => {
-          const levelHtml = `
-            <div class="card bg-gray-100 rounded-md p-4">
-              <p><strong>Nível:</strong> ${DOMPurify.sanitize(price.nivel)}</p>
-              <p><strong>Preço:</strong> R$${price.price.toFixed(2)}</p>
-              <p><strong>Link:</strong> <a href="${DOMPurify.sanitize(price.paymentLink)}" target="_blank" class="text-blue-900 hover:underline">${DOMPurify.sanitize(price.paymentLink)}</a></p>
-              <div class="grid grid-cols-1 gap-2 mt-2">
-                <input type="number" id="price-${price.nivel}" placeholder="Novo preço" class="p-2 border rounded-md" value="${price.price.toFixed(2)}">
-                <input type="url" id="link-${price.nivel}" placeholder="Novo link" class="p-2 border rounded-md" value="${DOMPurify.sanitize(price.paymentLink)}">
-                <button class="btn bg-blue-900 text-white p-2 rounded-md hover:bg-blue-800" onclick="updateLevel('${DOMPurify.sanitize(price.nivel)}', document.getElementById('price-${price.nivel}').value, document.getElementById('link-${price.nivel}').value)"><i class="fas fa-edit mr-2"></i>Atualizar</button>
-                <button class="btn bg-red-600 text-white p-2 rounded-md hover:bg-red-700" onclick="deleteLevel('${DOMPurify.sanitize(price.nivel)}')"><i class="fas fa-trash mr-2"></i>Excluir</button>
-              </div>
-            </div>
-          `;
-          container.insertAdjacentHTML('beforeend', levelHtml);
-        });
-        debug.log('Níveis carregados: ' + prices.length);
-      } catch (error) {
-        debug.error('Erro ao carregar níveis: ' + error.message);
-        document.getElementById('levels-list').innerHTML = `<p class="error-message">Erro ao carregar níveis: ${error.message}</p>`;
-      }
-    }
-
-    async function addLevel(event) {
-      event.preventDefault();
-      const level = document.getElementById('new-level').value.trim();
-      const price = document.getElementById('new-price').value.trim();
-      const paymentLink = document.getElementById('new-payment-link').value.trim();
-      if (!level || !price || price < 0 || !utils.isValidUrl(paymentLink)) {
-        debug.error('Validação falhou: Nível, preço ou URL inválidos');
-        alert('Nível, preço válido (positivo) e URL válida (https://...) são obrigatórios.');
-        return;
-      }
-      try {
-        debug.log('Iniciando chamada à API /cardprices para adicionar nível');
-        const response = await fetch('/.netlify/functions/app-function/cardprices', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('token')
-          },
-          body: JSON.stringify({ nivel: level, price: parseFloat(price), paymentLink })
-        });
-        if (!response.ok) {
-          const errorData = await response.json();
-          debug.error(`Erro na API /cardprices: Status ${response.status} - ${errorData.error || response.statusText}`);
-          alert(`Erro ao adicionar nível: ${errorData.error || 'Tente novamente.'}`);
-          return;
-        }
-        const data = await response.json();
-        if (data.success) {
-          debug.log('Nível adicionado: ' + level);
-          alert('Nível adicionado com sucesso!');
-          document.getElementById('add-level-form').reset();
-          await Promise.all([loadLevels(), loadPriceLevels()]);
-        } else {
-          debug.error('Erro ao adicionar nível: ' + (data.error || 'Erro desconhecido'));
-          alert(`Erro ao adicionar nível: ${data.error || 'Erro desconhecido'}`);
-        }
-      } catch (error) {
-        debug.error('Erro ao adicionar nível: ' + error.message);
-        alert(`Erro ao adicionar nível: ${error.message}. Verifique sua conexão ou contate o suporte.`);
-      }
-    }
-
-    async function updateLevel(nivel, price, paymentLink) {
-      if (!price || price < 0 || !utils.isValidUrl(paymentLink)) {
-        debug.error('Validação falhou: Preço ou URL inválidos');
-        alert('Preço válido e URL válida são obrigatórios.');
-        return;
-      }
-      try {
-        debug.log('Iniciando chamada à API /cardprices para atualizar nível: ' + nivel);
-        const response = await fetch('/.netlify/functions/app-function/cardprices', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('token')
-          },
-          body: JSON.stringify({ nivel, price: parseFloat(price), paymentLink })
-        });
-        if (!response.ok) {
-          debug.error(`Erro na API /cardprices: Status ${response.status} - ${response.statusText}`);
-          alert('Erro ao atualizar nível. Tente novamente.');
-          return;
-        }
-        const data = await response.json();
-        if (data.success) {
-          debug.log('Nível atualizado: ' + nivel);
-          alert('Nível atualizado com sucesso!');
-          await Promise.all([loadLevels(), loadPriceLevels()]);
-        } else {
-          debug.error('Erro ao atualizar nível: ' + (data.error || 'Erro desconhecido'));
-          alert('Erro ao atualizar nível: ' + (data.error || 'Erro desconhecido'));
-        }
-      } catch (error) {
-        debug.error('Erro ao atualizar nível: ' + error.message);
-        alert('Erro ao atualizar nível. Tente novamente.');
-      }
-    }
-
-    async function deleteLevel(nivel) {
-      if (!confirm(`Tem certeza que deseja excluir o nível "${nivel}"?`)) return;
-      try {
-        debug.log('Iniciando chamada à API /cardprices para excluir nível: ' + nivel);
-        const response = await fetch('/.netlify/functions/app-function/cardprices', {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('token')
-          },
-          body: JSON.stringify({ nivel })
-        });
-        if (!response.ok) {
-          debug.error(`Erro na API /cardprices: Status ${response.status} - ${response.statusText}`);
-          alert('Erro ao excluir nível. Tente novamente.');
-          return;
-        }
-        const data = await response.json();
-        if (data.success) {
-          debug.log('Nível excluído: ' + nivel);
-          alert('Nível excluído com sucesso!');
-          await Promise.all([loadLevels(), loadPriceLevels()]);
-        } else {
-          debug.error('Erro ao excluir nível: ' + (data.error || 'Erro desconhecido'));
-          alert('Erro ao excluir nível: ' + (data.error || 'Erro desconhecido'));
-        }
-      } catch (error) {
-        debug.error('Erro ao excluir nível: ' + error.message);
-        alert('Erro ao excluir nível. Tente novamente.');
-      }
-    }
-
+    // Carregar usuários
     async function loadUsers() {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          debug.error('Token JWT não encontrado ao carregar usuários');
-          document.getElementById('users-list').innerHTML = '<p class="error-message">Erro de autenticação. Faça login novamente.</p>';
-          return;
-        }
-        debug.log('Iniciando chamada à API /users');
-        const response = await fetch('/.netlify/functions/app-function/users', {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
-        if (!response.ok) {
-          debug.error(`Erro na API /users: Status ${response.status} - ${response.statusText}`);
-          document.getElementById('users-list').innerHTML = `<p class="error-message">Erro ao carregar usuários: ${response.status} - ${response.statusText}</p>`;
-          return;
-        }
-        const users = await response.json();
-        if (!Array.isArray(users)) {
-          debug.error('Resposta da API /users não é um array: ' + JSON.stringify(users));
-          document.getElementById('users-list').innerHTML = '<p class="error-message">Erro nos dados de usuários. Contate o suporte.</p>';
-          return;
-        }
-        const container = document.getElementById('users-list');
-        container.innerHTML = '';
-        if (users.length === 0) {
-          debug.log('Nenhum usuário encontrado na coleção users');
-          container.innerHTML = '<p class="text-gray-500">Nenhum usuário cadastrado.</p>';
-          return;
-        }
-        users.forEach(user => {
-          const userHtml = `
-            <div class="card bg-gray-100 rounded-md p-4">
-              <p><strong>Usuário:</strong> ${DOMPurify.sanitize(user.username)}</p>
-              <p><strong>Saldo:</strong> R$${user.balance.toFixed(2)}</p>
-              <p><strong>Admin:</strong> ${user.isAdmin ? 'Sim' : 'Não'}</p>
-              <div class="grid grid-cols-1 gap-2 mt-2">
-                <input type="number" id="balance-${user._id}" placeholder="Novo saldo" class="p-2 border rounded-md">
-                <button class="btn bg-blue-900 text-white p-2 rounded-md hover:bg-blue-800" onclick="updateUser('${user._id}', { balance: document.getElementById('balance-${user._id}').value })"><i class="fas fa-edit mr-2"></i>Atualizar Saldo</button>
-                <button class="btn bg-blue-900 text-white p-2 rounded-md hover:bg-blue-800" onclick="updateUser('${user._id}', { isAdmin: !${user.isAdmin} })"><i class="fas fa-user-shield mr-2"></i>${user.isAdmin ? 'Remover Admin' : 'Tornar Admin'}</button>
-                ${user.username !== 'LVz' ? `<button class="btn bg-red-600 text-white p-2 rounded-md hover:bg-red-700" onclick="deleteUser('${user._id}')"><i class="fas fa-trash mr-2"></i>Excluir</button>` : ''}
-              </div>
-            </div>
-          `;
-          container.insertAdjacentHTML('beforeend', userHtml);
-        });
-        debug.log('Usuários carregados: ' + users.length);
+        const response = await axios.get('/api/users', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+        const usersTable = document.getElementById('users-table');
+        usersTable.innerHTML = response.data.map(user => `
+          <tr>
+            <td class="border p-2">${utils.generateUserId(user._id)}</td>
+            <td class="border p-2">${user.username}</td>
+            <td class="border p-2">${user.balance}</td>
+            <td class="border p-2">${user.isAdmin ? 'Sim' : 'Não'}</td>
+            <td class="border p-2">
+              <button onclick="updateUser('${user._id}')" class="text-blue-600 hover:underline">Editar</button>
+              <button onclick="deleteUser('${user._id}')" class="text-red-600 hover:underline ml-2">Excluir</button>
+            </td>
+          </tr>
+        `).join('');
       } catch (error) {
-        debug.error('Erro ao carregar usuários: ' + error.message);
-        document.getElementById('users-list').innerHTML = `<p class="error-message">Erro ao carregar usuários: ${error.message}</p>`;
+        showFeedback(error.response?.data?.error || 'Erro ao carregar usuários', 'bg-red-100 text-red-700');
       }
     }
 
-    async function updateUser(userId, updates) {
-      if (updates.balance && (isNaN(updates.balance) || updates.balance < 0)) {
-        debug.error('Validação falhou: Saldo inválido');
-        alert('Saldo inválido.');
-        return;
-      }
-      try {
-        debug.log('Iniciando chamada à API /users para atualizar usuário: ' + userId);
-        const response = await fetch('/.netlify/functions/app-function/users', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('token')
-          },
-          body: JSON.stringify({ userId, ...updates })
-        });
-        if (!response.ok) {
-          debug.error(`Erro na API /users: Status ${response.status} - ${response.statusText}`);
-          alert('Erro ao atualizar usuário. Tente novamente.');
-          return;
-        }
-        const data = await response.json();
-        if (data.success) {
-          debug.log('Usuário atualizado: ' + userId);
-          alert('Usuário atualizado com sucesso!');
-          loadUsers();
-        } else {
-          debug.error('Erro ao atualizar usuário: ' + (data.error || 'Erro desconhecido'));
-          alert('Erro ao atualizar usuário: ' + (data.error || 'Erro desconhecido'));
-        }
-      } catch (error) {
-        debug.error('Erro ao atualizar usuário: ' + error.message);
-        alert('Erro ao atualizar usuário. Tente novamente.');
-      }
-    }
-
-    async function deleteUser(userId) {
-      if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
-      try {
-        debug.log('Iniciando chamada à API /delete-user para excluir usuário: ' + userId);
-        const response = await fetch('/.netlify/functions/app-function/delete-user', {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('token')
-          },
-          body: JSON.stringify({ targetId: userId })
-        });
-        if (!response.ok) {
-          debug.error(`Erro na API /delete-user: Status ${response.status} - ${response.statusText}`);
-          alert('Erro ao excluir usuário. Tente novamente.');
-          return;
-        }
-        const data = await response.json();
-        if (data.success) {
-          debug.log('Usuário excluído: ' + userId);
-          alert('Usuário excluído com sucesso!');
-          loadUsers();
-        } else {
-          debug.error('Erro ao excluir usuário: ' + (data.error || 'Erro desconhecido'));
-          alert('Erro ao excluir usuário: ' + (data.error || 'Erro desconhecido'));
-        }
-      } catch (error) {
-        debug.error('Erro ao excluir usuário: ' + error.message);
-        alert('Erro ao excluir usuário. Tente novamente.');
-      }
-    }
-
-    async function loadCards() {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          debug.error('Token JWT não encontrado ao carregar cartões');
-          document.getElementById('cards-list').innerHTML = '<p class="error-message">Erro de autenticação. Faça login novamente.</p>';
-          return;
-        }
-        debug.log('Iniciando chamada à API /cards');
-        const response = await fetch('/.netlify/functions/app-function/cards', {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
-        if (!response.ok) {
-          debug.error(`Erro na API /cards: Status ${response.status} - ${response.statusText}`);
-          document.getElementById('cards-list').innerHTML = `<p class="error-message">Erro ao carregar cartões: ${response.status} - ${response.statusText}</p>`;
-          alert(`Erro ao carregar cartões: ${response.status} - ${response.statusText}. Verifique o console para mais detalhes.`);
-          return;
-        }
-        const cards = await response.json();
-        if (!Array.isArray(cards)) {
-          debug.error('Resposta da API /cards não é um array: ' + JSON.stringify(cards));
-          document.getElementById('cards-list').innerHTML = '<p class="error-message">Erro nos dados de cartões. Contate o suporte.</p>';
-          alert('Erro nos dados de cartões. Contate o suporte.');
-          return;
-        }
-        const container = document.getElementById('cards-list');
-        container.innerHTML = '';
-        if (cards.length === 0) {
-          debug.log('Nenhum cartão encontrado na coleção cards');
-          container.innerHTML = '<p class="text-gray-500">Nenhum cartão cadastrado.</p>';
-          return;
-        }
-        cards.forEach(card => {
-          const cardHtml = `
-            <div class="card bg-gray-100 rounded-md p-4">
-              <p><strong>Banco:</strong> ${DOMPurify.sanitize(card.bank)}</p>
-              <p><strong>Bandeira:</strong> ${DOMPurify.sanitize(card.brand)}</p>
-              <p><strong>Nível:</strong> ${DOMPurify.sanitize(card.level)}</p>
-              <p><strong>BIN:</strong> ${formatBin(DOMPurify.sanitize(card.cardNumber))}</p>
-              <button class="btn bg-red-600 text-white p-2 rounded-md hover:bg-red-700 mt-2" onclick="deleteCard('${DOMPurify.sanitize(card.cardNumber)}')"><i class="fas fa-trash mr-2"></i>Excluir</button>
-            </div>
-          `;
-          container.insertAdjacentHTML('beforeend', cardHtml);
-        });
-        debug.log('Cartões carregados: ' + cards.length);
-      } catch (error) {
-        debug.error('Erro ao carregar cartões: ' + error.message);
-        document.getElementById('cards-list').innerHTML = `<p class="error-message">Erro ao carregar cartões: ${error.message}</p>`;
-        alert(`Erro ao carregar cartões: ${error.message}. Verifique o console para mais detalhes.`);
-      }
-    }
-
-    async function addCard(event) {
-      event.preventDefault();
+    // Adicionar cartão
+    document.getElementById('card-button').addEventListener('click', async () => {
       const bank = document.getElementById('card-bank').value;
       const brand = document.getElementById('card-brand').value;
       const level = document.getElementById('card-level').value;
-      const cardNumber = document.getElementById('card-number').value.trim();
-      const cvv = document.getElementById('card-cvv').value.trim();
-      const expiryMonth = document.getElementById('card-expiry-month').value.trim();
-      const expiryYear = document.getElementById('card-expiry-year').value.trim();
+      const cardNumber = document.getElementById('card-number').value;
+      const cvv = document.getElementById('card-cvv').value;
+      const expiryMonth = document.getElementById('card-expiry-month').value;
+      const expiryYear = document.getElementById('card-expiry-year').value;
 
-      if (!bank || !brand || !level || !utils.validateCardNumber(cardNumber) || !utils.validateCvv(cvv) || !utils.validateExpiry(expiryMonth, expiryYear)) {
-        debug.error('Validação falhou: Dados do cartão inválidos');
-        alert('Dados do cartão inválidos. Verifique os campos e tente novamente.');
+      if (!utils.validateCardNumber(cardNumber)) {
+        showFeedback('Número do cartão inválido (13-19 dígitos)', 'bg-red-100 text-red-700');
+        return;
+      }
+      if (!utils.validateCvv(cvv)) {
+        showFeedback('CVV inválido (3-4 dígitos)', 'bg-red-100 text-red-700');
+        return;
+      }
+      if (!utils.validateExpiry(expiryMonth, expiryYear)) {
+        showFeedback('Data de validade inválida', 'bg-red-100 text-red-700');
+        return;
+      }
+      if (!bank || !brand || !level) {
+        showFeedback('Todos os campos são obrigatórios', 'bg-red-100 text-red-700');
         return;
       }
 
+      showFeedback('Carregando...', 'bg-blue-100 text-blue-700');
       try {
-        debug.log('Iniciando chamada à API /cards para adicionar cartão');
-        const response = await fetch('/.netlify/functions/app-function/cards', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('token')
-          },
-          body: JSON.stringify({ bank, brand, level, cardNumber, cvv, expiryMonth, expiryYear })
-        });
-        if (!response.ok) {
-          debug.error(`Erro na API /cards: Status ${response.status} - ${response.statusText}`);
-          alert('Erro ao adicionar cartão. Tente novamente.');
-          return;
-        }
-        const data = await response.json();
-        if (data.success) {
-          debug.log('Cartão adicionado: ' + cardNumber);
-          alert('Cartão adicionado com sucesso!');
-          document.getElementById('add-card-form').reset();
-          loadCards();
-        } else {
-          debug.error('Erro ao adicionar cartão: ' + (data.error || 'Erro desconhecido'));
-          alert('Erro ao adicionar cartão: ' + (data.error || 'Erro desconhecido'));
-        }
+        await axios.post('/api/cards', { bank, brand, level, cardNumber, cvv, expiryMonth, expiryYear }, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+        showFeedback('Cartão adicionado com sucesso', 'bg-green-100 text-green-700');
+        debug.log('Cartão adicionado: ' + cardNumber);
       } catch (error) {
-        debug.error('Erro ao adicionar cartão: ' + error.message);
-        alert('Erro ao adicionar cartão. Tente novamente.');
+        showFeedback(error.response?.data?.error || 'Erro ao adicionar cartão', 'bg-red-100 text-red-700');
+        debug.error(error.response?.data?.error || 'Erro ao adicionar cartão');
+      }
+    });
+
+    // Adicionar nível
+    document.getElementById('price-button').addEventListener('click', async () => {
+      const nivel = document.getElementById('price-level').value;
+      const price = parseFloat(document.getElementById('price-value').value);
+      const paymentLink = document.getElementById('price-payment-link').value;
+
+      if (!nivel || !/^[a-zA-Z0-9\s]+$/.test(nivel)) {
+        showFeedback('Nível deve conter apenas letras, números e espaços', 'bg-red-100 text-red-700');
+        return;
+      }
+      if (!price || price <= 0) {
+        showFeedback('Preço deve ser um número positivo', 'bg-red-100 text-red-700');
+        return;
+      }
+      if (!utils.isValidUrl(paymentLink)) {
+        showFeedback('Link de pagamento inválido', 'bg-red-100 text-red-700');
+        return;
+      }
+
+      showFeedback('Carregando...', 'bg-blue-100 text-blue-700');
+      try {
+        await axios.post('/api/cardprices', { nivel, price, paymentLink }, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+        showFeedback('Nível adicionado com sucesso', 'bg-green-100 text-green-700');
+        debug.log('Nível adicionado: ' + nivel);
+      } catch (error) {
+        showFeedback(error.response?.data?.error || 'Erro ao adicionar nível', 'bg-red-100 text-red-700');
+        debug.error(error.response?.data?.error || 'Erro ao adicionar nível');
+      }
+    });
+
+    function showFeedback(message, classes) {
+      feedback.classList.remove('hidden');
+      feedback.textContent = message;
+      feedback.className = `p-4 mb-4 rounded-lg text-sm ${classes}`;
+      debug.log(message);
+    }
+
+    // Funções de edição e exclusão de usuário (placeholders)
+    async function updateUser(userId) {
+      // Implementar lógica de edição
+      showFeedback('Funcionalidade de edição em desenvolvimento', 'bg-yellow-100 text-yellow-700');
+    }
+
+    async function deleteUser(userId) {
+      showFeedback('Carregando...', 'bg-blue-100 text-blue-700');
+      try {
+        await axios.delete('/api/delete-user', { data: { targetId: userId }, headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+        showFeedback('Usuário excluído com sucesso', 'bg-green-100 text-green-700');
+        loadUsers();
+      } catch (error) {
+        showFeedback(error.response?.data?.error || 'Erro ao excluir usuário', 'bg-red-100 text-red-700');
       }
     }
 
-    async function deleteCard(cardNumber) {
-      if (!confirm('Tem certeza que deseja excluir este cartão?')) return;
-      try {
-        debug.log('Iniciando chamada à API /cards para excluir cartão: ' + cardNumber);
-        const response = await fetch('/.netlify/functions/app-function/cards', {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('token')
-          },
-          body: JSON.stringify({ cardNumber })
-        });
-        if (!response.ok) {
-          debug.error(`Erro na API /cards: Status ${response.status} - ${response.statusText}`);
-          alert('Erro ao excluir cartão. Tente novamente.');
-          return;
-        }
-        const data = await response.json();
-        if (data.success) {
-          debug.log('Cartão excluído: ' + cardNumber);
-          alert('Cartão excluído com sucesso!');
-          loadCards();
-        } else {
-          debug.error('Erro ao excluir cartão: ' + (data.error || 'Erro desconhecido'));
-          alert('Erro ao excluir cartão: ' + (data.error || 'Erro desconhecido'));
-        }
-      } catch (error) {
-        debug.error('Erro ao excluir cartão: ' + error.message);
-        alert('Erro ao excluir cartão. Tente novamente.');
-      }
-    }
-
-    document.getElementById('add-card-form').addEventListener('submit', addCard);
-    document.getElementById('add-level-form').addEventListener('submit', addLevel);
-
-    (async () => {
-      const user = await checkAuth();
-      if (user) {
-        await Promise.all([loadUsers(), loadBanks(), loadLevels()]);
-        switchTab('users'); // Abre a aba de usuários por padrão
-      }
-    })();
+    // Inicializar
+    loadUsers();
   </script>
 </body>
 </html>

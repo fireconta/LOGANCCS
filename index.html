@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🔐 LoganCCS - Login</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="/utils.js"></script>
-  <script src="/debug.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/heroicons/2.0.18/dist/heroicons.min.css" rel="stylesheet">
 </head>
@@ -32,11 +30,11 @@
       <form id="login-form" class="space-y-4">
         <div>
           <label for="login-username" class="block text-sm font-medium text-gray-700">👤 Usuário</label>
-          <input id="login-username" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Nome de usuário">
+          <input id="login-username" type="text" required minlength="3" pattern="[A-Za-z0-9]+" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Nome de usuário">
         </div>
         <div>
           <label for="login-password" class="block text-sm font-medium text-gray-700">🔒 Senha</label>
-          <input id="login-password" type="password" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Senha">
+          <input id="login-password" type="password" required minlength="6" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Senha">
         </div>
         <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center">
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,11 +48,11 @@
       <form id="register-form" class="space-y-4">
         <div>
           <label for="register-username" class="block text-sm font-medium text-gray-700">👤 Usuário</label>
-          <input id="register-username" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Nome de usuário">
+          <input id="register-username" type="text" required minlength="3" pattern="[A-Za-z0-9]+" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Nome de usuário">
         </div>
         <div>
           <label for="register-password" class="block text-sm font-medium text-gray-700">🔒 Senha</label>
-          <input id="register-password" type="password" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Senha">
+          <input id="register-password" type="password" required minlength="6" pattern="(?=.*[A-Z])(?=.*[0-9]).{6,}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Senha">
         </div>
         <div>
           <label for="admin-password" class="block text-sm font-medium text-gray-700">🔑 Senha de Admin (opcional)</label>
@@ -68,7 +66,7 @@
         </button>
       </form>
     </section>
-    <div id="debug-panel" class="mt-6 p-4 bg-gray-100 rounded-lg">
+    <div id="debug-panel" class="mt-6 p-4 bg-gray-100 rounded-lg hidden">
       <h2 class="text-lg font-semibold">🐞 Depuração</h2>
       <div id="debug-messages" class="mt-2 text-sm"></div>
     </div>
@@ -82,86 +80,93 @@
       animation: fade-in 0.3s ease-out;
     }
   </style>
+  <script src="/utils.js" defer></script>
+  <script src="/debug.js" defer></script>
   <script>
-    debug.init('debug-messages', true);
-    const loginTab = document.getElementById('login-tab');
-    const registerTab = document.getElementById('register-tab');
-    const loginSection = document.getElementById('login-section');
-    const registerSection = document.getElementById('register-section');
-    const feedback = document.getElementById('feedback');
+    document.addEventListener('DOMContentLoaded', () => {
+      const isDebugEnabled = process.env.NODE_ENV !== 'production';
+      if (isDebugEnabled) debug.init('debug-messages', true);
 
-    loginTab.addEventListener('click', () => {
-      loginTab.classList.add('bg-blue-600', 'text-white');
-      loginTab.classList.remove('bg-gray-300', 'text-gray-800');
-      registerTab.classList.add('bg-gray-300', 'text-gray-800');
-      registerTab.classList.remove('bg-blue-600', 'text-white');
-      loginSection.classList.remove('hidden');
-      registerSection.classList.add('hidden');
-    });
+      const loginTab = document.getElementById('login-tab');
+      const registerTab = document.getElementById('register-tab');
+      const loginSection = document.getElementById('login-section');
+      const registerSection = document.getElementById('register-section');
+      const feedback = document.getElementById('feedback');
 
-    registerTab.addEventListener('click', () => {
-      registerTab.classList.add('bg-blue-600', 'text-white');
-      registerTab.classList.remove('bg-gray-300', 'text-gray-800');
-      loginTab.classList.add('bg-gray-300', 'text-gray-800');
-      loginTab.classList.remove('bg-blue-600', 'text-white');
-      registerSection.classList.remove('hidden');
-      loginSection.classList.add('hidden');
-    });
+      loginTab.addEventListener('click', () => {
+        loginTab.classList.add('bg-blue-600', 'text-white');
+        loginTab.classList.remove('bg-gray-300', 'text-gray-800');
+        registerTab.classList.add('bg-gray-300', 'text-gray-800');
+        registerTab.classList.remove('bg-blue-600', 'text-white');
+        loginSection.classList.remove('hidden');
+        registerSection.classList.add('hidden');
+      });
 
-    document.getElementById('login-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const username = document.getElementById('login-username').value;
-      const password = document.getElementById('login-password').value;
-      if (!utils.validateUsername(username) || !utils.validatePassword(password)) {
-        showFeedback('❌ Usuário deve ter no mínimo 3 caracteres alfanuméricos e senha 6 caracteres', 'bg-red-100 text-red-700');
-        debug.error('Validação de login falhou');
-        return;
+      registerTab.addEventListener('click', () => {
+        registerTab.classList.add('bg-blue-600', 'text-white');
+        registerTab.classList.remove('bg-gray-300', 'text-gray-800');
+        loginTab.classList.add('bg-gray-300', 'text-gray-800');
+        loginTab.classList.remove('bg-blue-600', 'text-white');
+        registerSection.classList.remove('hidden');
+        loginSection.classList.add('hidden');
+      });
+
+      document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = utils.sanitizeInput(document.getElementById('login-username').value.trim());
+        const password = document.getElementById('login-password').value;
+        if (!utils.validateUsername(username) || !utils.validatePassword(password)) {
+          showFeedback('❌ Usuário deve ter no mínimo 3 caracteres alfanuméricos e senha 6 caracteres com letra maiúscula e número', 'bg-red-100', 'text-red-700');
+          if (isDebugEnabled) debug.error('Validação de login falhou');
+          return;
+        }
+        try {
+          showFeedback('⏳ Fazendo login...', 'bg-blue-100', 'text-blue-700');
+          if (isDebugEnabled) debug.log('Enviando requisição para /.netlify/functions/login');
+          const response = await axios.post('/.netlify/functions/login', { username, password });
+          document.cookie = `token=${response.data.token}; path=/; secure; samesite=strict`;
+          showFeedback('✅ Login realizado! Redirecionando...', 'bg-green-100', 'text-green-700');
+          if (isDebugEnabled) debug.log('Login bem-sucedido, token salvo');
+          setTimeout(() => window.location.href = response.data.isAdmin ? '/dashboard.html' : '/shop.html', 1000);
+        } catch (error) {
+          const errorMessage = error.response?.data?.error || '❌ Erro ao fazer login';
+          showFeedback(errorMessage, 'bg-red-100', 'text-red-700');
+          if (isDebugEnabled) debug.error(`Erro no login: ${errorMessage}`);
+        }
+      });
+
+      document.getElementById('register-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = utils.sanitizeInput(document.getElementById('register-username').value.trim());
+        const password = document.getElementById('register-password').value;
+        const adminPassword = document.getElementById('admin-password').value;
+        if (!utils.validateUsername(username) || !utils.validatePassword(password)) {
+          showFeedback('❌ Usuário deve ter no mínimo 3 caracteres alfanuméricos e senha 6 caracteres com letra maiúscula e número', 'bg-red-100', 'text-red-700');
+          if (isDebugEnabled) debug.error('Validação de registro falhou');
+          return;
+        }
+        try {
+          showFeedback('⏳ Registrando...', 'bg-blue-100', 'text-blue-700');
+          if (isDebugEnabled) debug.log('Enviando requisição para /.netlify/functions/register');
+          const response = await axios.post('/.netlify/functions/register', { username, password, isAdmin: !!adminPassword, adminPassword });
+          document.cookie = `token=${response.data.token}; path=/; secure; samesite=strict`;
+          showFeedback('✅ Registro realizado! Redirecionando...', 'bg-green-100', 'text-green-700');
+          if (isDebugEnabled) debug.log('Registro bem-sucedido, token salvo');
+          setTimeout(() => window.location.href = response.data.isAdmin ? '/dashboard.html' : '/shop.html', 1000);
+        } catch (error) {
+          const errorMessage = error.response?.data?.error || '❌ Erro ao registrar';
+          showFeedback(errorMessage, 'bg-red-100', 'text-red-700');
+          if (isDebugEnabled) debug.error(`Erro no registro: ${errorMessage}`);
+        }
+      });
+
+      function showFeedback(message, bgColor, textColor) {
+        feedback.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-blue-100', 'text-blue-700', 'bg-green-100', 'text-green-700');
+        feedback.classList.add(bgColor, textColor);
+        feedback.textContent = message;
+        feedback.classList.add('animate-fade-in');
       }
-      try {
-        showFeedback('⏳ Fazendo login...', 'bg-blue-100 text-blue-700');
-        debug.log('Enviando requisição para /api/login');
-        const response = await axios.post('/api/login', { username, password });
-        localStorage.setItem('token', response.data.token);
-        showFeedback('✅ Login realizado! Redirecionando...', 'bg-green-100 text-green-700');
-        debug.log('Login bem-sucedido, token salvo');
-        setTimeout(() => window.location.href = response.data.isAdmin ? '/dashboard' : '/shop', 1000);
-      } catch (error) {
-        const errorMessage = error.response?.data?.error || '❌ Erro ao fazer login';
-        showFeedback(errorMessage, 'bg-red-100 text-red-700');
-        debug.error(`Erro no login: ${errorMessage}`);
-      }
     });
-
-    document.getElementById('register-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const username = document.getElementById('register-username').value;
-      const password = document.getElementById('register-password').value;
-      const adminPassword = document.getElementById('admin-password').value;
-      if (!utils.validateUsername(username) || !utils.validatePassword(password)) {
-        showFeedback('❌ Usuário deve ter no mínimo 3 caracteres alfanuméricos e senha 6 caracteres', 'bg-red-100 text-red-700');
-        debug.error('Validação de registro falhou');
-        return;
-      }
-      try {
-        showFeedback('⏳ Registrando...', 'bg-blue-100 text-blue-700');
-        debug.log('Enviando requisição para /api/register');
-        const response = await axios.post('/api/register', { username, password, isAdmin: !!adminPassword, adminPassword });
-        localStorage.setItem('token', response.data.token);
-        showFeedback('✅ Registro realizado! Redirecionando...', 'bg-green-100 text-green-700');
-        debug.log('Registro bem-sucedido, token salvo');
-        setTimeout(() => window.location.href = response.data.isAdmin ? '/dashboard' : '/shop', 1000);
-      } catch (error) {
-        const errorMessage = error.response?.data?.error || '❌ Erro ao registrar';
-        showFeedback(errorMessage, 'bg-red-100 text-red-700');
-        debug.error(`Erro no registro: ${errorMessage}`);
-      }
-    });
-
-    function showFeedback(message, classes) {
-      feedback.classList.remove('hidden');
-      feedback.textContent = message;
-      feedback.className = `p-4 mb-4 rounded-lg text-sm ${classes}`;
-    }
   </script>
 </body>
 </html>

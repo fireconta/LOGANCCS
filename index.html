@@ -4,133 +4,113 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🔐 LoganCCS - Login</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.0/purify.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdn.jsdelivr.net/npm/heroicons/2.0.18/dist/heroicons.min.css" rel="stylesheet">
-  <style>
-    body { font-family: 'Inter', sans-serif; }
-    .gradient-bg { background: linear-gradient(135deg, #1a237e, #1565c0); }
-    .card { transition: all 0.3s ease; }
-    .card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); }
-    .tab { cursor: pointer; transition: background-color 0.3s ease; }
-    .tab.active { background-color: #1565c0; color: white; }
-    .btn { transition: background-color 0.3s ease; }
-    .btn:hover { background-color: #1e40af; }
-    @keyframes fade-in {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-fade-in { animation: fade-in 0.3s ease-out; }
-  </style>
+  <script src="[invalid url, do not cite]
+  <script src="[invalid url, do not cite]
+  <link href="[invalid url, do not cite] rel="stylesheet">
 </head>
-<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl shadow-xl card max-w-md w-full p-8">
-    <h1 class="text-3xl font-bold text-center text-blue-900 mb-6">🔐 LoganCCS</h1>
-    <div class="flex justify-center gap-4 mb-6">
-      <button id="login-tab" class="tab px-4 py-2 rounded-md bg-blue-900 text-white active flex items-center">
+<body class="bg-gradient-to-r from-blue-100 to-gray-100 min-h-screen flex items-center justify-center">
+  <main class="max-w-md w-full p-6 bg-white rounded-lg shadow-lg">
+    <h1 class="text-3xl font-bold text-center mb-6">🔐 LoganCCS</h1>
+    <div class="flex space-x-4 mb-6">
+      <button id="login-tab" class="flex-1 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 flex items-center justify-center">
         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14"></path>
         </svg>
-        Login
+        🔐 Login
       </button>
-      <button id="register-tab" class="tab px-4 py-2 rounded-md bg-gray-200 text-gray-700 flex items-center">
+      <button id="register-tab" class="flex-1 py-2 bg-gray-300 text-gray-800 rounded-lg font-semibold hover:bg-gray-400 flex items-center justify-center">
         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
         </svg>
-        Registro
+        📝 Registro
       </button>
     </div>
     <div id="feedback" class="hidden p-4 mb-4 rounded-lg text-sm"></div>
-    <div id="login-form-container">
+    <section id="login-section">
       <form id="login-form" class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-            </svg>
-            Usuário
-          </label>
-          <input id="login-username" type="text" required minlength="3" pattern="[A-Za-z0-9]+" class="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" aria-label="Nome de usuário" />
+          <label for="login-username" class="block text-sm font-medium text-gray-700">👤 Usuário</label>
+          <input id="login-username" type="text" required minlength="3" pattern="[A-Za-z0-9]+" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Nome de usuário">
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 1.104-.896 2-2 2s-2-.896-2-2 2-4 2-4 2 .896 2 2zm0 0c0-1.104.896-2 2-2s2 .896 2 2-2 4-2 4-2-.896-2-2z"></path>
-            </svg>
-            Senha
-          </label>
-          <input id="login-password" type="password" required minlength="6" class="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" aria-label="Senha" />
+          <label for="login-password" class="block text-sm font-medium text-gray-700">🔒 Senha</label>
+          <input id="login-password" type="password" required minlength="6" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Senha">
         </div>
-        <button type="submit" class="btn w-full bg-blue-900 text-white p-3 rounded-md hover:bg-blue-800 flex items-center justify-center">
+        <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center">
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14"></path>
           </svg>
-          Entrar
+          🔐 Entrar
         </button>
       </form>
-      <p class="text-center text-sm mt-4">Não tem uma conta? <a href="#" id="to-register" class="text-blue-900 hover:underline">Registre-se</a></p>
-    </div>
-    <div id="register-form-container" class="hidden">
+    </section>
+    <section id="register-section" class="hidden">
       <form id="register-form" class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-            </svg>
-            Usuário
-          </label>
-          <input id="register-username" type="text" required minlength="3" pattern="[A-Za-z0-9]+" class="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" aria-label="Nome de usuário" />
+          <label for="register-username" class="block text-sm font-medium text-gray-700">👤 Usuário</label>
+          <input id="register-username" type="text" required minlength="3" pattern="[A-Za-z0-9]+" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Nome de usuário">
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 1.104-.896 2-2 2s-2-.896-2-2 2-4 2-4 2 .896 2 2zm0 0c0-1.104.896-2 2-2s2 .896 2 2-2 4-2 4-2-.896-2-2z"></path>
-            </svg>
-            Senha
-          </label>
-          <input id="register-password" type="password" required minlength="6" pattern="(?=.*[A-Z])(?=.*[0-9]).{6,}" class="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" aria-label="Senha" />
+          <label for="register-password" class="block text-sm font-medium text-gray-700">🔒 Senha</label>
+          <input id="register-password" type="password" required minlength="6" pattern="(?=.*[A-Z])(?=.*[0-9]).{6,}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Senha">
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 1.104-.896 2-2 2s-2-.896-2-2 2-4 2-4 2 .896 2 2zm0 0c0-1.104.896-2 2-2s2 .896 2 2-2 4-2 4-2-.896-2-2z"></path>
-            </svg>
-            Confirmar Senha
-          </label>
-          <input id="register-confirm-password" type="password" required minlength="6" class="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-900" aria-label="Confirmar senha" />
+          <label for="register-confirm-password" class="block text-sm font-medium text-gray-700">🔒 Confirmar Senha</label>
+          <input id="register-confirm-password" type="password" required minlength="6" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Confirmar senha">
         </div>
-        <button type="submit" class="btn w-full bg-blue-900 text-white p-3 rounded-md hover:bg-blue-800 flex items-center justify-center">
+        <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center">
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
           </svg>
-          Registrar
+          📝 Registrar
         </button>
       </form>
-      <p class="text-center text-sm mt-4">Já tem uma conta? <a href="#" id="to-login" class="text-blue-900 hover:underline">Faça login</a></p>
-    </div>
+    </section>
     <div id="debug-panel" class="mt-6 p-4 bg-gray-100 rounded-lg">
       <h2 class="text-lg font-semibold">🐞 Depuração</h2>
       <div id="debug-messages" class="mt-2 text-sm"></div>
     </div>
-  </div>
+  </main>
+  <style>
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+      animation: fade-in 0.3s ease-out;
+    }
+  </style>
   <script src="/utils.js" defer></script>
   <script src="/debug.js" defer></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      const isDebugEnabled = process.env.NODE_ENV !== 'production';
-      if (isDebugEnabled) {
-        debug.init('debug-messages', true);
-        debug.log('Inicializando index.html');
-        await checkMongoDB();
-      }
+      debug.init('debug-messages', true);
+      debug.log('Inicializando index.html');
+      await checkMongoDB();
 
-      function switchTab(tab) {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('#login-form-container, #register-form-container').forEach(c => c.classList.add('hidden'));
-        document.getElementById(`${tab}-tab`).classList.add('active');
-        document.getElementById(`${tab}-form-container`).classList.remove('hidden');
-        document.getElementById('feedback').classList.add('hidden');
-      }
+      const loginTab = document.getElementById('login-tab');
+      const registerTab = document.getElementById('register-tab');
+      const loginSection = document.getElementById('login-section');
+      const registerSection = document.getElementById('register-section');
+      const feedback = document.getElementById('feedback');
+
+      loginTab.addEventListener('click', () => {
+        loginTab.classList.add('bg-blue-600', 'text-white');
+        loginTab.classList.remove('bg-gray-300', 'text-gray-800');
+        registerTab.classList.add('bg-gray-300', 'text-gray-800');
+        registerTab.classList.remove('bg-blue-600', 'text-white');
+        loginSection.classList.remove('hidden');
+        registerSection.classList.add('hidden');
+      });
+
+      registerTab.addEventListener('click', () => {
+        registerTab.classList.add('bg-blue-600', 'text-white');
+        registerTab.classList.remove('bg-gray-300', 'text-gray-800');
+        loginTab.classList.add('bg-gray-300', 'text-gray-800');
+        loginTab.classList.remove('bg-blue-600', 'text-white');
+        registerSection.classList.remove('hidden');
+        loginSection.classList.add('hidden');
+      });
 
       async function checkMongoDB() {
         try {
@@ -144,18 +124,18 @@
         }
       }
 
-      async function handleLogin(event) {
-        event.preventDefault();
-        const username = DOMPurify.sanitize(document.getElementById('login-username').value.trim());
+      document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('login-username').value.trim();
         const password = document.getElementById('login-password').value;
         if (!utils.validateUsername(username) || !utils.validatePassword(password)) {
           showFeedback('❌ Usuário deve ter no mínimo 3 caracteres alfanuméricos e senha 6 caracteres com letra maiúscula e número', 'bg-red-100', 'text-red-700');
-          if (isDebugEnabled) debug.error('Validação de login falhou');
+          debug.error('Validação de login falhou');
           return;
         }
         try {
           showFeedback('⏳ Fazendo login...', 'bg-blue-100', 'text-blue-700');
-          if (isDebugEnabled) debug.log(`Enviando requisição de login para usuário: ${username}`);
+          debug.log(`Enviando requisição para /api/app-function/login com username: ${username}`);
           const response = await fetch('/api/app-function/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -164,42 +144,42 @@
           const data = await response.json();
           if (!response.ok) {
             showFeedback(`❌ Erro ${response.status}: ${data.error || 'Erro na API'}`, 'bg-red-100', 'text-red-700');
-            if (isDebugEnabled) debug.error(`Erro na API /login: Status ${response.status}, Resposta: ${JSON.stringify(data)}`);
+            debug.error(`Erro na API /login: Status ${response.status}, Resposta: ${JSON.stringify(data)}`);
             return;
           }
           if (data.token) {
             localStorage.setItem('token', data.token);
             showFeedback('✅ Login realizado! Redirecionando...', 'bg-green-100', 'text-green-700');
-            if (isDebugEnabled) debug.log(`Login bem-sucedido para usuário: ${username}, token salvo`);
+            debug.log(`Login bem-sucedido para usuário: ${username}, token salvo`);
             setTimeout(() => window.location.href = data.isAdmin ? '/dashboard.html' : '/shop.html', 1000);
           } else {
             showFeedback(`❌ ${data.error || 'Credenciais inválidas'}`, 'bg-red-100', 'text-red-700');
-            if (isDebugEnabled) debug.error(`Erro no login: ${data.error || 'Credenciais inválidas'}`);
+            debug.error(`Erro no login: ${data.error || 'Credenciais inválidas'}`);
           }
         } catch (error) {
           showFeedback('❌ Erro ao conectar ao servidor', 'bg-red-100', 'text-red-700');
-          if (isDebugEnabled) debug.error(`Erro ao conectar ao servidor: ${error.message}`);
+          debug.error(`Erro ao conectar ao servidor: ${error.message}`);
         }
-      }
+      });
 
-      async function handleRegister(event) {
-        event.preventDefault();
-        const username = DOMPurify.sanitize(document.getElementById('register-username').value.trim());
+      document.getElementById('register-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('register-username').value.trim();
         const password = document.getElementById('register-password').value;
         const confirmPassword = document.getElementById('register-confirm-password').value;
         if (!utils.validateUsername(username) || !utils.validatePassword(password)) {
           showFeedback('❌ Usuário deve ter no mínimo 3 caracteres alfanuméricos e senha 6 caracteres com letra maiúscula e número', 'bg-red-100', 'text-red-700');
-          if (isDebugEnabled) debug.error('Validação de registro falhou');
+          debug.error('Validação de registro falhou');
           return;
         }
         if (password !== confirmPassword) {
           showFeedback('❌ As senhas não coincidem', 'bg-red-100', 'text-red-700');
-          if (isDebugEnabled) debug.error('Senhas não coincidem');
+          debug.error('Senhas não coincidem');
           return;
         }
         try {
           showFeedback('⏳ Registrando...', 'bg-blue-100', 'text-blue-700');
-          if (isDebugEnabled) debug.log(`Enviando requisição de registro para usuário: ${username}`);
+          debug.log(`Enviando requisição para /api/app-function/register com username: ${username}`);
           const response = await fetch('/api/app-function/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -208,37 +188,39 @@
           const data = await response.json();
           if (!response.ok) {
             showFeedback(`❌ Erro ${response.status}: ${data.error || 'Erro na API'}`, 'bg-red-100', 'text-red-700');
-            if (isDebugEnabled) debug.error(`Erro na API /register: Status ${response.status}, Resposta: ${JSON.stringify(data)}`);
+            debug.error(`Erro na API /register: Status ${response.status}, Resposta: ${JSON.stringify(data)}`);
             return;
           }
           if (data.success) {
             showFeedback('✅ Registro bem-sucedido! Faça login.', 'bg-green-100', 'text-green-700');
-            if (isDebugEnabled) debug.log(`Registro bem-sucedido para usuário: ${username}`);
+            debug.log(`Registro bem-sucedido para usuário: ${username}`);
             switchTab('login');
           } else {
             showFeedback(`❌ ${data.error || 'Erro ao registrar usuário'}`, 'bg-red-100', 'text-red-700');
-            if (isDebugEnabled) debug.error(`Erro no registro: ${data.error || 'Erro desconhecido'}`);
+            debug.error(`Erro no registro: ${data.error || 'Erro desconhecido'}`);
           }
         } catch (error) {
           showFeedback('❌ Erro ao conectar ao servidor', 'bg-red-100', 'text-red-700');
-          if (isDebugEnabled) debug.error(`Erro ao conectar ao servidor: ${error.message}`);
+          debug.error(`Erro ao conectar ao servidor: ${error.message}`);
         }
-      }
+      });
 
       function showFeedback(message, bgColor, textColor) {
-        const feedback = document.getElementById('feedback');
         feedback.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-blue-100', 'text-blue-700', 'bg-green-100', 'text-green-700');
         feedback.classList.add(bgColor, textColor);
         feedback.textContent = message;
         feedback.classList.add('animate-fade-in');
       }
 
-      document.getElementById('login-tab').addEventListener('click', () => switchTab('login'));
-      document.getElementById('register-tab').addEventListener('click', () => switchTab('register'));
-      document.getElementById('to-register').addEventListener('click', () => switchTab('register'));
-      document.getElementById('to-login').addEventListener('click', () => switchTab('login'));
-      document.getElementById('login-form').addEventListener('submit', handleLogin);
-      document.getElementById('register-form').addEventListener('submit', handleRegister);
+      function switchTab(tab) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('#login-form-container, #register-form-container').forEach(c => c.classList.add('hidden'));
+        document.getElementById(`${tab}-tab`).classList.add('active');
+        document.getElementById(`${tab}-form-container`).classList.remove('hidden');
+        document.getElementById('feedback').classList.add('hidden');
+      }
+
+      await checkMongoDB();
     });
   </script>
 </body>

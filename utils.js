@@ -1,15 +1,31 @@
 const Utils = {
   formatBin(cardNumber) {
-    return cardNumber ? cardNumber.slice(0, 6) + '**** **** ' + cardNumber.slice(-4) : '';
+    if (!cardNumber) return '';
+    return cardNumber.slice(0, 6) + '**** **** ' + cardNumber.slice(-4);
   },
   formatExpiry(month, year) {
-    return month && year ? `${month.toString().padStart(2, '0')}/${year}` : '';
+    if (!month || !year) return '';
+    return `${month.toString().padStart(2, '0')}/${year}`;
   },
   validateCardNumber(cardNumber) {
-    return cardNumber && cardNumber.length >= 16;
+    if (!cardNumber || cardNumber.length !== 16 || !/^\d+$/.test(cardNumber)) return false;
+    // Algoritmo Luhn
+    let sum = 0;
+    let isEven = false;
+    for (let i = cardNumber.length - 1; i >= 0; i--) {
+      let digit = parseInt(cardNumber[i]);
+      if (isEven) {
+        digit *= 2;
+        if (digit > 9) digit -= 9;
+      }
+      sum += digit;
+      isEven = !isEven;
+    }
+    return sum % 10 === 0;
   },
-  validateCvv(cvv) {
-    return cvv && cvv.length >= 3 && cvv.length <= 4 && /^\d+$/.test(cvv);
+  validateCvv(cvv, brand) {
+    if (!cvv || !/^\d+$/.test(cvv)) return false;
+    return brand === 'American Express' ? cvv.length === 4 : cvv.length === 3;
   },
   validateExpiry(month, year) {
     const now = new Date();
@@ -21,7 +37,10 @@ const Utils = {
     return username && username.length >= 3 && /^[a-zA-Z0-9]+$/.test(username);
   },
   validatePassword(password) {
-    return password && password.length >= 6;
+    return password && password.length >= 6 && /[A-Z]/.test(password) && /[0-9]/.test(password);
+  },
+  sanitizeInput(input) {
+    return input.replace(/[<>&"']/g, '');
   }
 };
 

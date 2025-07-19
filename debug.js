@@ -4,33 +4,35 @@ const debug = {
 
   init(panelId, enable) {
     this.panelId = panelId;
-    this.enabled = enable;
-    if (this.enabled) {
+    this.enabled = enable && process.env.NODE_ENV !== 'production';
+    if (this.enabled && document.getElementById(this.panelId)) {
       console.log('Debugging ativado');
     }
   },
 
   log(message) {
     if (this.enabled) {
-      console.log(`[DEBUG ${new Date().toLocaleString('pt-BR')}]: ${message}`);
-      if (this.panelId) {
-        const panel = document.getElementById(this.panelId);
-        if (panel) {
-          panel.innerHTML += `<p>[${new Date().toLocaleString('pt-BR')}]: ${message}</p>`;
-        }
+      const sanitizedMessage = this.sanitize(message);
+      console.log(`[DEBUG ${new Date().toLocaleString('pt-BR')}]: ${sanitizedMessage}`);
+      const panel = document.getElementById(this.panelId);
+      if (panel) {
+        panel.innerHTML += `<p>${sanitizedMessage}</p>`;
       }
     }
   },
 
   error(message) {
     if (this.enabled) {
-      console.error(`[ERROR ${new Date().toLocaleString('pt-BR')}]: ${message}`);
-      if (this.panelId) {
-        const panel = document.getElementById(this.panelId);
-        if (panel) {
-          panel.innerHTML += `<p style="color: red;">[ERROR ${new Date().toLocaleString('pt-BR')}]: ${message}</p>`;
-        }
+      const sanitizedMessage = this.sanitize(message);
+      console.error(`[ERROR ${new Date().toLocaleString('pt-BR')}]: ${sanitizedMessage}`);
+      const panel = document.getElementById(this.panelId);
+      if (panel) {
+        panel.innerHTML += `<p style="color: red;">${sanitizedMessage}</p>`;
       }
     }
+  },
+
+  sanitize(message) {
+    return String(message).replace(/[<>&"']/g, '');
   }
 };

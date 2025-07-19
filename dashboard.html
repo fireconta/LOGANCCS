@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>📊 Dashboard - LoganCCS</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="/utils.js"></script>
-  <script src="/debug.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/heroicons/2.0.18/dist/heroicons.min.css" rel="stylesheet">
 </head>
@@ -21,7 +19,7 @@
           </svg>
           🔒 Logout
         </a>
-        <a href="/shop" class="hover:underline flex items-center" aria-label="Ir para a Loja">
+        <a href="/shop.html" class="hover:underline flex items-center" aria-label="Ir para a Loja">
           <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h18l-1.68 9H4.68L3 3zm2 14a2 2 0 100 4 2 2 0 000-4zm14 0a2 2 0 100 4 2 2 0 000-4z"></path>
           </svg>
@@ -30,7 +28,6 @@
       </nav>
     </div>
   </header>
-
   <main class="max-w-7xl mx-auto p-6">
     <div class="flex space-x-4 mb-6">
       <button id="users-tab" class="flex-1 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 flex items-center justify-center">
@@ -53,7 +50,6 @@
       </button>
     </div>
     <div id="feedback" class="hidden p-4 mb-4 rounded-lg text-sm"></div>
-
     <section id="users-section">
       <h2 class="text-xl font-semibold mb-4 flex items-center">👥 Gerenciar Usuários</h2>
       <table class="w-full border-collapse bg-white rounded-lg shadow">
@@ -67,21 +63,20 @@
         <tbody id="users-table"></tbody>
       </table>
     </section>
-
     <section id="cards-section" class="hidden">
       <h2 class="text-xl font-semibold mb-4 flex items-center">💳 Adicionar Cartão</h2>
       <form id="card-form" class="space-y-4">
         <div>
           <label for="card-number" class="block text-sm font-medium text-gray-700">🔢 Número do Cartão</label>
-          <input id="card-number" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Número do cartão">
+          <input id="card-number" type="text" required pattern="[0-9]{16}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Número do cartão">
         </div>
         <div>
           <label for="card-bank" class="block text-sm font-medium text-gray-700">🏦 Banco</label>
-          <input id="card-bank" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Banco">
+          <input id="card-bank" type="text" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Banco">
         </div>
         <div>
           <label for="card-brand" class="block text-sm font-medium text-gray-700">🏷️ Bandeira</label>
-          <select id="card-brand" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Bandeira">
+          <select id="card-brand" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Bandeira">
             <option value="Visa">Visa</option>
             <option value="Mastercard">Mastercard</option>
             <option value="Elo">Elo</option>
@@ -91,19 +86,19 @@
         </div>
         <div>
           <label for="card-level" class="block text-sm font-medium text-gray-700">⭐ Nível</label>
-          <input id="card-level" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Nível">
+          <input id="card-level" type="text" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Nível">
         </div>
         <div>
           <label for="card-expiry-month" class="block text-sm font-medium text-gray-700">📅 Mês de Validade</label>
-          <input id="card-expiry-month" type="number" min="1" max="12" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Mês de validade">
+          <input id="card-expiry-month" type="number" required min="1" max="12" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Mês de validade">
         </div>
         <div>
           <label for="card-expiry-year" class="block text-sm font-medium text-gray-700">📅 Ano de Validade</label>
-          <input id="card-expiry-year" type="number" min="2025" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Ano de validade">
+          <input id="card-expiry-year" type="number" required min="2025" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Ano de validade">
         </div>
         <div>
           <label for="card-cvv" class="block text-sm font-medium text-gray-700">🔒 CVV</label>
-          <input id="card-cvv" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="CVV">
+          <input id="card-cvv" type="text" required pattern="[0-9]{3,4}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="CVV">
         </div>
         <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center">
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -113,21 +108,20 @@
         </button>
       </form>
     </section>
-
     <section id="prices-section" class="hidden">
       <h2 class="text-xl font-semibold mb-4 flex items-center">💰 Adicionar Nível e Preço</h2>
       <form id="price-form" class="space-y-4">
         <div>
           <label for="price-level" class="block text-sm font-medium text-gray-700">⭐ Nível</label>
-          <input id="price-level" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Nível">
+          <input id="price-level" type="text" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Nível">
         </div>
         <div>
           <label for="price-value" class="block text-sm font-medium text-gray-700">💰 Preço</label>
-          <input id="price-value" type="number" step="0.01" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Preço">
+          <input id="price-value" type="number" required step="0.01" min="0" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Preço">
         </div>
         <div>
           <label for="price-payment-link" class="block text-sm font-medium text-gray-700">🔗 Link de Pagamento</label>
-          <input id="price-payment-link" type="text" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Link de pagamento">
+          <input id="price-payment-link" type="url" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Link de pagamento">
         </div>
         <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center">
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -137,194 +131,202 @@
         </button>
       </form>
     </section>
-
-    <div id="debug-panel" class="mt-6 p-4 bg-gray-100 rounded-lg">
+    <div id="debug-panel" class="mt-6 p-4 bg-gray-100 rounded-lg hidden">
+      <button id="toggle-debug" class="mb-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Alternar Depuração</button>
       <h2 class="text-lg font-semibold">🐞 Depuração</h2>
       <div id="debug-messages" class="mt-2 text-sm"></div>
     </div>
   </main>
-
   <footer class="bg-blue-800 text-white text-center p-4">
     <p>© 2025 LoganCCS. Todos os direitos reservados.</p>
   </footer>
-
-  <style>
-    @keyframes fade-in {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-fade-in {
-      animation: fade-in 0.3s ease-out;
-    }
-  </style>
-
+  <script src="/utils.js" defer></script>
+  <script src="/debug.js" defer></script>
   <script>
-    debug.init('debug-messages', true);
-    const usersTab = document.getElementById('users-tab');
-    const cardsTab = document.getElementById('cards-tab');
-    const pricesTab = document.getElementById('prices-tab');
-    const usersSection = document.getElementById('users-section');
-    const cardsSection = document.getElementById('cards-section');
-    const pricesSection = document.getElementById('prices-section');
-    const feedback = document.getElementById('feedback');
+    document.addEventListener('DOMContentLoaded', () => {
+      const isDebugEnabled = process.env.NODE_ENV !== 'production';
+      if (isDebugEnabled) debug.init('debug-messages', true);
 
-    usersTab.addEventListener('click', () => {
-      usersTab.classList.add('bg-blue-600', 'text-white');
-      usersTab.classList.remove('bg-gray-300', 'text-gray-800');
-      cardsTab.classList.add('bg-gray-300', 'text-gray-800');
-      cardsTab.classList.remove('bg-blue-600', 'text-white');
-      pricesTab.classList.add('bg-gray-300', 'text-gray-800');
-      pricesTab.classList.remove('bg-blue-600', 'text-white');
-      usersSection.classList.remove('hidden');
-      cardsSection.classList.add('hidden');
-      pricesSection.classList.add('hidden');
+      const usersTab = document.getElementById('users-tab');
+      const cardsTab = document.getElementById('cards-tab');
+      const pricesTab = document.getElementById('prices-tab');
+      const usersSection = document.getElementById('users-section');
+      const cardsSection = document.getElementById('cards-section');
+      const pricesSection = document.getElementById('prices-section');
+      const feedback = document.getElementById('feedback');
+      const debugPanel = document.getElementById('debug-panel');
+      const toggleDebug = document.getElementById('toggle-debug');
+
+      toggleDebug.addEventListener('click', () => {
+        debugPanel.classList.toggle('hidden');
+      });
+
+      usersTab.addEventListener('click', () => {
+        usersTab.classList.add('bg-blue-600', 'text-white');
+        usersTab.classList.remove('bg-gray-300', 'text-gray-800');
+        cardsTab.classList.add('bg-gray-300', 'text-gray-800');
+        cardsTab.classList.remove('bg-blue-600', 'text-white');
+        pricesTab.classList.add('bg-gray-300', 'text-gray-800');
+        pricesTab.classList.remove('bg-blue-600', 'text-white');
+        usersSection.classList.remove('hidden');
+        cardsSection.classList.add('hidden');
+        pricesSection.classList.add('hidden');
+        loadUsers();
+      });
+
+      cardsTab.addEventListener('click', () => {
+        cardsTab.classList.add('bg-blue-600', 'text-white');
+        cardsTab.classList.remove('bg-gray-300', 'text-gray-800');
+        usersTab.classList.add('bg-gray-300', 'text-gray-800');
+        usersTab.classList.remove('bg-blue-600', 'text-white');
+        pricesTab.classList.add('bg-gray-300', 'text-gray-800');
+        pricesTab.classList.remove('bg-blue-600', 'text-white');
+        cardsSection.classList.remove('hidden');
+        usersSection.classList.add('hidden');
+        pricesSection.classList.add('hidden');
+      });
+
+      pricesTab.addEventListener('click', () => {
+        pricesTab.classList.add('bg-blue-600', 'text-white');
+        pricesTab.classList.remove('bg-gray-300', 'text-gray-800');
+        usersTab.classList.add('bg-gray-300', 'text-gray-800');
+        usersTab.classList.remove('bg-blue-600', 'text-white');
+        cardsTab.classList.add('bg-gray-300', 'text-gray-800');
+        cardsTab.classList.remove('bg-blue-600', 'text-white');
+        pricesSection.classList.remove('hidden');
+        usersSection.classList.add('hidden');
+        cardsSection.classList.add('hidden');
+      });
+
+      async function loadUsers() {
+        try {
+          showFeedback('⏳ Carregando usuários...', 'bg-blue-100', 'text-blue-700');
+          if (isDebugEnabled) debug.log('Carregando lista de usuários');
+          const response = await axios.get('/.netlify/functions/users', {
+            headers: { Authorization: `Bearer ${getCookie('token')}` }
+          });
+          const usersTable = document.getElementById('users-table');
+          usersTable.innerHTML = response.data.map(user => `
+            <tr class="hover:bg-gray-50">
+              <td class="border p-3">👤 ${utils.sanitizeInput(user.username)}</td>
+              <td class="border p-3">${user.isAdmin ? '✅ Sim' : '❌ Não'}</td>
+              <td class="border p-3">
+                <button onclick="deleteUser('${utils.sanitizeInput(user.username)}')" class="text-red-600 hover:text-red-800 flex items-center" aria-label="Deletar usuário">
+                  <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                  🗑️ Deletar
+                </button>
+              </td>
+            </tr>
+          `).join('');
+          showFeedback('✅ Usuários carregados!', 'bg-green-100', 'text-green-700');
+          if (isDebugEnabled) debug.log('Usuários carregados com sucesso');
+        } catch (error) {
+          const errorMessage = error.response?.data?.error || '❌ Erro ao carregar usuários';
+          showFeedback(errorMessage, 'bg-red-100', 'text-red-700');
+          if (isDebugEnabled) debug.error(`Erro ao carregar usuários: ${errorMessage}`);
+        }
+      }
+
+      async function deleteUser(username) {
+        try {
+          showFeedback('⏳ Deletando usuário...', 'bg-blue-100', 'text-blue-700');
+          if (isDebugEnabled) debug.log(`Enviando requisição para deletar usuário: ${username}`);
+          await axios.post('/.netlify/functions/delete-user', { username }, {
+            headers: { Authorization: `Bearer ${getCookie('token')}` }
+          });
+          showFeedback('✅ Usuário deletado!', 'bg-green-100', 'text-green-700');
+          if (isDebugEnabled) debug.log('Usuário deletado com sucesso');
+          loadUsers();
+        } catch (error) {
+          const errorMessage = error.response?.data?.error || '❌ Erro ao deletar usuário';
+          showFeedback(errorMessage, 'bg-red-100', 'text-red-700');
+          if (isDebugEnabled) debug.error(`Erro ao deletar usuário: ${errorMessage}`);
+        }
+      }
+
+      document.getElementById('card-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const card = {
+          cardNumber: utils.sanitizeInput(document.getElementById('card-number').value.trim()),
+          bank: utils.sanitizeInput(document.getElementById('card-bank').value.trim()),
+          brand: document.getElementById('card-brand').value,
+          level: utils.sanitizeInput(document.getElementById('card-level').value.trim()),
+          expiryMonth: parseInt(document.getElementById('card-expiry-month').value),
+          expiryYear: parseInt(document.getElementById('card-expiry-year').value),
+          cvv: utils.sanitizeInput(document.getElementById('card-cvv').value.trim()),
+        };
+        if (!utils.validateCardNumber(card.cardNumber) || !utils.validateCvv(card.cvv, card.brand) || !utils.validateExpiry(card.expiryMonth, card.expiryYear)) {
+          showFeedback('❌ Dados do cartão inválidos', 'bg-red-100', 'text-red-700');
+          if (isDebugEnabled) debug.error('Validação do cartão falhou');
+          return;
+        }
+        try {
+          showFeedback('⏳ Adicionando cartão...', 'bg-blue-100', 'text-blue-700');
+          if (isDebugEnabled) debug.log('Enviando requisição para adicionar cartão');
+          await axios.post('/.netlify/functions/cards', card, {
+            headers: { Authorization: `Bearer ${getCookie('token')}` }
+          });
+          showFeedback('✅ Cartão adicionado!', 'bg-green-100', 'text-green-700');
+          if (isDebugEnabled) debug.log('Cartão adicionado com sucesso');
+          document.getElementById('card-form').reset();
+        } catch (error) {
+          const errorMessage = error.response?.data?.error || '❌ Erro ao adicionar cartão';
+          showFeedback(errorMessage, 'bg-red-100', 'text-red-700');
+          if (isDebugEnabled) debug.error(`Erro ao adicionar cartão: ${errorMessage}`);
+        }
+      });
+
+      document.getElementById('price-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const price = {
+          nivel: utils.sanitizeInput(document.getElementById('price-level').value.trim()),
+          price: parseFloat(document.getElementById('price-value').value),
+          paymentLink: utils.sanitizeInput(document.getElementById('price-payment-link').value.trim()),
+        };
+        if (!price.nivel || !price.price || !price.paymentLink) {
+          showFeedback('❌ Todos os campos são obrigatórios', 'bg-red-100', 'text-red-700');
+          if (isDebugEnabled) debug.error('Validação de preço falhou');
+          return;
+        }
+        try {
+          showFeedback('⏳ Adicionando preço...', 'bg-blue-100', 'text-blue-700');
+          if (isDebugEnabled) debug.log('Enviando requisição para adicionar preço');
+          await axios.post('/.netlify/functions/cardprices', price, {
+            headers: { Authorization: `Bearer ${getCookie('token')}` }
+          });
+          showFeedback('✅ Preço adicionado!', 'bg-green-100', 'text-green-700');
+          if (isDebugEnabled) debug.log('Preço adicionado com sucesso');
+          document.getElementById('price-form').reset();
+        } catch (error) {
+          const errorMessage = error.response?.data?.error || '❌ Erro ao adicionar preço';
+          showFeedback(errorMessage, 'bg-red-100', 'text-red-700');
+          if (isDebugEnabled) debug.error(`Erro ao adicionar preço: ${errorMessage}`);
+        }
+      });
+
+      function logout() {
+        document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        window.location.href = '/index.html';
+      }
+
+      function showFeedback(message, bgColor, textColor) {
+        feedback.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-blue-100', 'text-blue-700', 'bg-green-100', 'text-green-700');
+        feedback.classList.add(bgColor, textColor);
+        feedback.textContent = message;
+        feedback.classList.add('animate-fade-in');
+      }
+
+      function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+      }
+
       loadUsers();
     });
-
-    cardsTab.addEventListener('click', () => {
-      cardsTab.classList.add('bg-blue-600', 'text-white');
-      cardsTab.classList.remove('bg-gray-300', 'text-gray-800');
-      usersTab.classList.add('bg-gray-300', 'text-gray-800');
-      usersTab.classList.remove('bg-blue-600', 'text-white');
-      pricesTab.classList.add('bg-gray-300', 'text-gray-800');
-      pricesTab.classList.remove('bg-blue-600', 'text-white');
-      cardsSection.classList.remove('hidden');
-      usersSection.classList.add('hidden');
-      pricesSection.classList.add('hidden');
-    });
-
-    pricesTab.addEventListener('click', () => {
-      pricesTab.classList.add('bg-blue-600', 'text-white');
-      pricesTab.classList.remove('bg-gray-300', 'text-gray-800');
-      usersTab.classList.add('bg-gray-300', 'text-gray-800');
-      usersTab.classList.remove('bg-blue-600', 'text-white');
-      cardsTab.classList.add('bg-gray-300', 'text-gray-800');
-      cardsTab.classList.remove('bg-blue-600', 'text-white');
-      pricesSection.classList.remove('hidden');
-      usersSection.classList.add('hidden');
-      cardsSection.classList.add('hidden');
-    });
-
-    async function loadUsers() {
-      try {
-        showFeedback('⏳ Carregando usuários...', 'bg-blue-100 text-blue-700');
-        debug.log('Carregando lista de usuários');
-        const response = await axios.get('/api/users', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        });
-        const usersTable = document.getElementById('users-table');
-        usersTable.innerHTML = response.data.map(user => `
-          <tr class="hover:bg-gray-50">
-            <td class="border p-3">👤 ${user.username}</td>
-            <td class="border p-3">${user.isAdmin ? '✅ Sim' : '❌ Não'}</td>
-            <td class="border p-3">
-              <button onclick="deleteUser('${user.username}')" class="text-red-600 hover:text-red-800 flex items-center" aria-label="Deletar usuário">
-                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-                🗑️ Deletar
-              </button>
-            </td>
-          </tr>
-        `).join('');
-        showFeedback('✅ Usuários carregados!', 'bg-green-100 text-green-700');
-        debug.log('Usuários carregados com sucesso');
-      } catch (error) {
-        const errorMessage = error.response?.data?.error || '❌ Erro ao carregar usuários';
-        showFeedback(errorMessage, 'bg-red-100 text-red-700');
-        debug.error(`Erro ao carregar usuários: ${errorMessage}`);
-      }
-    }
-
-    async function deleteUser(username) {
-      try {
-        showFeedback('⏳ Deletando usuário...', 'bg-blue-100 text-blue-700');
-        debug.log(`Enviando requisição para deletar usuário: ${username}`);
-        await axios.post('/api/delete-user', { username }, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        });
-        showFeedback('✅ Usuário deletado!', 'bg-green-100 text-green-700');
-        debug.log('Usuário deletado com sucesso');
-        loadUsers();
-      } catch (error) {
-        const errorMessage = error.response?.data?.error || '❌ Erro ao deletar usuário';
-        showFeedback(errorMessage, 'bg-red-100 text-red-700');
-        debug.error(`Erro ao deletar usuário: ${errorMessage}`);
-      }
-    }
-
-    document.getElementById('card-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const card = {
-        cardNumber: document.getElementById('card-number').value,
-        bank: document.getElementById('card-bank').value,
-        brand: document.getElementById('card-brand').value,
-        level: document.getElementById('card-level').value,
-        expiryMonth: parseInt(document.getElementById('card-expiry-month').value),
-        expiryYear: parseInt(document.getElementById('card-expiry-year').value),
-        cvv: document.getElementById('card-cvv').value,
-      };
-      if (!utils.validateCardNumber(card.cardNumber) || !utils.validateCvv(card.cvv) || !utils.validateExpiry(card.expiryMonth, card.expiryYear)) {
-        showFeedback('❌ Dados do cartão inválidos', 'bg-red-100 text-red-700');
-        debug.error('Validação do cartão falhou');
-        return;
-      }
-      try {
-        showFeedback('⏳ Adicionando cartão...', 'bg-blue-100 text-blue-700');
-        debug.log('Enviando requisição para adicionar cartão');
-        await axios.post('/api/cards', card, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        });
-        showFeedback('✅ Cartão adicionado!', 'bg-green-100 text-green-700');
-        debug.log('Cartão adicionado com sucesso');
-        document.getElementById('card-form').reset();
-      } catch (error) {
-        const errorMessage = error.response?.data?.error || '❌ Erro ao adicionar cartão';
-        showFeedback(errorMessage, 'bg-red-100 text-red-700');
-        debug.error(`Erro ao adicionar cartão: ${errorMessage}`);
-      }
-    });
-
-    document.getElementById('price-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const price = {
-        nivel: document.getElementById('price-level').value,
-        price: parseFloat(document.getElementById('price-value').value),
-        paymentLink: document.getElementById('price-payment-link').value,
-      };
-      if (!price.nivel || !price.price || !price.paymentLink) {
-        showFeedback('❌ Todos os campos são obrigatórios', 'bg-red-100 text-red-700');
-        debug.error('Validação de preço falhou');
-        return;
-      }
-      try {
-        showFeedback('⏳ Adicionando preço...', 'bg-blue-100 text-blue-700');
-        debug.log('Enviando requisição para adicionar preço');
-        await axios.post('/api/cardprices', price, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        });
-        showFeedback('✅ Preço adicionado!', 'bg-green-100 text-green-700');
-        debug.log('Preço adicionado com sucesso');
-        document.getElementById('price-form').reset();
-      } catch (error) {
-        const errorMessage = error.response?.data?.error || '❌ Erro ao adicionar preço';
-        showFeedback(errorMessage, 'bg-red-100 text-red-700');
-        debug.error(`Erro ao adicionar preço: ${errorMessage}`);
-      }
-    });
-
-    function logout() {
-      localStorage.removeItem('token');
-      window.location.href = '/';
-    }
-
-    function showFeedback(message, classes) {
-      feedback.classList.remove('hidden');
-      feedback.textContent = message;
-      feedback.className = `p-4 mb-4 rounded-lg text-sm ${classes}`;
-    }
-
-    loadUsers();
   </script>
 </body>
 </html>
